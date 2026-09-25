@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Saved Places — VeganSaathi</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/styles.css" rel="stylesheet">
+<script>window.VS_BASE = ""; window.VS_ACTIVE_PAGE = "";</script>
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<section class="vs-section">
+  <div class="container">
+    <h1 class="h4 mb-3">Saved Places</h1>
+    <div class="row g-4" id="savedGrid"></div>
+    <div id="savedEmptyState" class="vs-empty-state d-none">
+      <p>You haven't saved any places yet.</p>
+      <a href="explore.html" class="btn btn-vs-primary btn-sm">Explore Places</a>
+    </div>
+    <p class="vs-mock-notice">Development note: the save/remove toggle here only changes local UI state for this page load — nothing is persisted until Firebase is connected.</p>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/mock-data.js"></script>
+<script src="js/components.js"></script>
+<script src="js/app.js"></script>
+<script>
+  let savedIds = MOCK_SAVED_PLACES.slice();
+
+  function renderSaved() {
+    const grid = document.getElementById("savedGrid");
+    const empty = document.getElementById("savedEmptyState");
+    const places = MOCK_PLACES.filter(function (p) { return savedIds.indexOf(p.id) !== -1; });
+
+    if (places.length === 0) {
+      grid.innerHTML = "";
+      empty.classList.remove("d-none");
+      return;
+    }
+    empty.classList.add("d-none");
+    grid.innerHTML = places.map(function (place) {
+      return (
+        '<div class="col-sm-6 col-lg-4">' +
+        '<div class="vs-card vs-place-card">' +
+        '<div class="vs-place-card__image">' + place.imageLabel + " (mock photo)</div>" +
+        '<div class="vs-place-card__body">' +
+        '<h3 class="vs-place-card__title">' + place.name + "</h3>" +
+        "<div>" + renderDietBadges(place.dietTags) + "</div>" +
+        '<div class="d-flex gap-2 mt-2">' +
+        '<a href="place-details.html?id=' + place.id + '" class="btn btn-vs-primary btn-sm">View Details</a>' +
+        '<button type="button" class="btn btn-vs-outline btn-sm" onclick="removeSaved(\'' + place.id + '\')">Remove</button>' +
+        "</div></div></div></div>"
+      );
+    }).join("");
+  }
+
+  function removeSaved(placeId) {
+    savedIds = savedIds.filter(function (id) { return id !== placeId; });
+    renderSaved();
+  }
+
+  document.addEventListener("DOMContentLoaded", renderSaved);
+</script>
+</body>
+</html>

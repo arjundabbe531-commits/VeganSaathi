@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Place Details — VeganSaathi</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link href="css/styles.css" rel="stylesheet">
+<script>window.VS_BASE = ""; window.VS_ACTIVE_PAGE = "explore";</script>
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<section class="vs-section">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="vs-card mb-3">
+          <div class="vs-place-card__image" id="placeImage" style="height:220px;"></div>
+          <div class="p-3">
+            <h1 class="h3 mb-1" id="placeName"></h1>
+            <p class="text-muted-vs mb-2"><span id="placeType"></span> &middot; <span id="placeArea"></span></p>
+            <div class="mb-2" id="placeDietBadges"></div>
+            <div class="mb-3" id="placeVerification"></div>
+            <p class="vs-verify-note">Verified by our team as of the date shown — always confirm specifics with the vendor.</p>
+            <hr>
+            <p id="placeDescription"></p>
+            <dl class="row">
+              <dt class="col-sm-3">Address</dt>
+              <dd class="col-sm-9" id="placeAddress"></dd>
+              <dt class="col-sm-3">Price range</dt>
+              <dd class="col-sm-9" id="placePrice"></dd>
+            </dl>
+            <div id="vs-detail-map" style="height:260px;" class="mb-2"></div>
+            <div class="d-flex gap-2 mt-2">
+              <button type="button" id="saveBtn" class="btn btn-vs-outline">Save Place</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reviews -->
+        <div class="vs-card p-3 mb-3">
+          <h2 class="h5">Community Reviews</h2>
+          <div id="reviewsList"></div>
+
+          <hr>
+          <h3 class="h6">Write a Review</h3>
+          <form id="reviewForm" novalidate>
+            <div class="mb-2">
+              <label for="reviewRating" class="form-label">Rating</label>
+              <select id="reviewRating" class="form-select" required>
+                <option value="">Choose a rating</option>
+                <option value="5">5 — Excellent</option>
+                <option value="4">4 — Good</option>
+                <option value="3">3 — Okay</option>
+                <option value="2">2 — Poor</option>
+                <option value="1">1 — Very poor</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label for="reviewComment" class="form-label">Comment</label>
+              <textarea id="reviewComment" class="form-control" rows="3" placeholder="Share your experience..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-vs-primary btn-sm">Submit Review</button>
+            <div id="reviewFeedback" class="vs-form-note mt-2 d-none"></div>
+          </form>
+        </div>
+
+        <!-- Report -->
+        <div class="vs-card p-3">
+          <h2 class="h5">Report Incorrect Information</h2>
+          <form id="reportForm" novalidate>
+            <div class="mb-2">
+              <label for="reportReason" class="form-label">Reason</label>
+              <select id="reportReason" class="form-select" required>
+                <option value="">Choose a reason</option>
+                <option value="place-closed">Place no longer exists</option>
+                <option value="wrong-diet-info">Dietary information is incorrect</option>
+                <option value="wrong-address">Address is wrong</option>
+                <option value="temporarily-unavailable">Temporarily unavailable</option>
+                <option value="outdated">Information is outdated</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label for="reportDescription" class="form-label">Additional detail (optional)</label>
+              <textarea id="reportDescription" class="form-control" rows="2"></textarea>
+            </div>
+            <button type="submit" class="btn btn-vs-outline btn-sm">Submit Report</button>
+            <div id="reportFeedback" class="vs-form-note mt-2 d-none"></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="vs-card p-3">
+          <h2 class="h6">Why trust this listing?</h2>
+          <p class="text-muted-vs" style="font-size:0.9rem;">Every VeganSaathi listing goes through community submission and admin review before it is published, and can be re-verified through a real site visit. See the Community Verification section on the Home page for how this works.</p>
+          <a href="index.html#" class="btn btn-vs-outline btn-sm">Back to Home</a>
+          <a href="explore.html" class="btn btn-vs-outline btn-sm">Back to Explore</a>
+        </div>
+      </div>
+    </div>
+    <p class="vs-mock-notice">Development note: this page is showing placeholder/mock data (place details, reviews) for frontend testing only.</p>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="js/mock-data.js"></script>
+<script src="js/components.js"></script>
+<script src="js/app.js"></script>
+<script src="js/place-details.js"></script>
+</body>
+</html>

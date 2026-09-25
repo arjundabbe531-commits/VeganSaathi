@@ -1,0 +1,181 @@
+// VeganSaathi — Firestore Security Rules
+// Phase 3 foundation. See docs/FIREBASE_SECURITY.md for the full access model
+// explanation and docs/DATABASE_SCHEMA.md for field definitions.
+//
+// Access model summary:
+//   Visitor (no account)   — read published places and reviews only.
+//   Authenticated user     — create their own submissions/reviews/reports/saved
+//                             places; read/update only their own user doc; can
+//                             never set role="admin" or flip a place's
+//                             status/verificationStatus themselves.
+//   Admin (role=="admin"   — full moderation: approve/reject/re-verify places,
+//   on their own user doc)   resolve/dismiss reports, delete reviews.
+//
+// No blanket `allow read, write: if true;` anywhere in this file.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------- helpers ----------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Admin status is derived from the requester's OWN users/{uid} document,
+    // never from a client-supplied claim, so it can't be spoofed by sending a
+    // fake "role" field in the request payload.
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    function isValidDietPreference(value) {
+      return value in ["vegan", "vegetarian", "eggetarian", "jain", "unspecified"];
+    }
+
+    function isValidDietTags(tags) {
+      return tags is list
+        && tags.size() > 0
+        && tags.hasOnly(["vegan", "vegetarian", "eggetarian", "jain"]);
+    }
+
+    function isValidPlaceType(value) {
+      return value in ["restaurant", "mess", "canteen", "cafe", "dhaba", "other"];
+    }
+
+    // ---------------- users ----------------
+    // Document ID == Firebase Auth uid.
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+
+      allow create: if isOwner(userId)
+        && request.resource.data.role == "user"
+        && isValidDietPreference(request.resource.data.dietPreference);
+
+      // A user may update their own profile, but never their own role, and
+      // never in a way that stops matching their Firebase Auth email.
+      allow update: if isOwner(userId)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.email == resource.data.email;
+
+      // No client-side account deletion in the MVP — if this is ever needed,
+      // it should go through a trusted server-side flow (e.g. a Cloud
+      // Function), not a direct Firestore delete.
+      allow delete: if false;
+    }
+
+    // ---------------- places ----------------
+    match /places/{placeId} {
+      // Visitors and other users may read a place once it's published.
+      // The submitter may also read their own not-yet-published submission
+      // (so they can see its pending status), and admins can read everything.
+      allow read: if (resource.data.status == "published")
+        || isAdmin()
+        || (isSignedIn() && resource.data.submittedBy == request.auth.uid);
+
+      // A new submission always starts pending/unverified — a user cannot
+      // publish or pre-verify their own listing.
+      allow create: if isSignedIn()
+        && request.resource.data.submittedBy == request.auth.uid
+        && request.resource.data.status == "pending"
+        && request.resource.data.verificationStatus == "unverified"
+        && isValidPlaceType(request.resource.data.placeType)
+        && isValidDietTags(request.resource.data.dietTags);
+
+      // Admins can change anything (approve, reject, edit, re-verify).
+      // The original submitter may still edit their OWN submission while it
+      // is still pending, but cannot use that edit to publish or verify it
+      // themselves — those transitions are admin-only.
+      allow update: if isAdmin()
+        || (
+          isSignedIn()
+          && resource.data.submittedBy == request.auth.uid
+          && resource.data.status == "pending"
+          && request.resource.data.status == "pending"
+          && request.resource.data.verificationStatus == "unverified"
+          && request.resource.data.submittedBy == resource.data.submittedBy
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------------- reviews ----------------
+    match /reviews/{reviewId} {
+      // Reviews are public read (they only make sense attached to a place
+      // that's already public); kept simple for the MVP rather than joining
+      // against the parent place's status on every read.
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.authorName is string
+        && request.resource.data.authorName.size() > 0;
+
+      // Reviews aren't editable in the MVP — remove and repost instead.
+      allow update: if false;
+
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // ---------------- reports ----------------
+    match /reports/{reportId} {
+      // Only the reporter and admins can see a given report — reports can
+      // contain candid detail about a real vendor, so this stays narrow.
+      allow read: if isAdmin() || (isSignedIn() && resource.data.reporterId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.status == "pending"
+        && request.resource.data.reason in [
+             "place-closed", "wrong-diet-info", "wrong-address",
+             "temporarily-unavailable", "outdated", "other"
+           ];
+
+      // Only an admin resolves or dismisses a report.
+      allow update: if isAdmin();
+
+      allow delete: if false;
+    }
+
+    // ---------------- savedPlaces ----------------
+    // Document ID == "{uid}_{placeId}" (see docs/DATABASE_SCHEMA.md).
+    match /savedPlaces/{saveId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && saveId == (request.auth.uid + "_" + request.resource.data.placeId);
+
+      // Saved-place docs are only ever created or removed, never edited.
+      allow update: if false;
+
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ---------------- editSuggestions (Should-Have — not built until a later phase) ----------------
+    match /editSuggestions/{suggestionId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.suggestedBy == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.suggestedBy == request.auth.uid
+        && request.resource.data.status == "pending";
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Deny anything not explicitly matched above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

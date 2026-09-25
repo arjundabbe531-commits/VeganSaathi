@@ -1,0 +1,21 @@
+# Firebase
+.firebase/
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Secrets / environment
+.env
+.env.local
+*.pem
+*.key
+
+# Dependencies (if any tooling is added later)
+node_modules/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp

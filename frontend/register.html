@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Register — VeganSaathi</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/styles.css" rel="stylesheet">
+<script>window.VS_BASE = ""; window.VS_ACTIVE_PAGE = "";</script>
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<section class="vs-section">
+  <div class="container" style="max-width:520px;">
+    <div class="vs-card p-4">
+      <h1 class="h4 mb-3">Create your VeganSaathi account</h1>
+      <form id="registerForm" novalidate>
+        <div class="mb-3">
+          <label for="registerName" class="form-label">Name</label>
+          <input type="text" class="form-control" id="registerName" required>
+        </div>
+        <div class="mb-3">
+          <label for="registerEmail" class="form-label">Email</label>
+          <input type="email" class="form-control" id="registerEmail" required>
+        </div>
+        <div class="row">
+          <div class="col-sm-6 mb-3">
+            <label for="registerPassword" class="form-label">Password</label>
+            <input type="password" class="form-control" id="registerPassword" required minlength="6">
+          </div>
+          <div class="col-sm-6 mb-3">
+            <label for="registerConfirm" class="form-label">Confirm password</label>
+            <input type="password" class="form-control" id="registerConfirm" required minlength="6">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="registerDiet" class="form-label">Dietary preference</label>
+          <select id="registerDiet" class="form-select" required>
+            <option value="">Select one</option>
+            <option value="vegan">Vegan</option>
+            <option value="vegetarian">Vegetarian</option>
+            <option value="eggetarian">Eggetarian</option>
+            <option value="jain">Jain</option>
+            <option value="unspecified">Prefer not to specify</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-vs-primary w-100 mb-2">Create Account</button>
+        <div id="registerFeedback" class="vs-form-note mt-2 d-none"></div>
+      </form>
+      <p class="text-center mt-3 mb-0" style="font-size:0.9rem;">
+        Already have an account? <a href="login.html">Log in</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/mock-data.js"></script>
+<script src="js/components.js"></script>
+<script src="js/app.js"></script>
+<script src="js/auth-ui.js"></script>
+</body>
+</html>

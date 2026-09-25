@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VeganSaathi — Connecting People. Promoting Veganism.</title>
+<meta name="description" content="VeganSaathi is a community-verified vegan, vegetarian, Jain and eggetarian food discovery pilot for SSGMCE and nearby Shegaon." />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/styles.css" rel="stylesheet">
+<script>window.VS_BASE = ""; window.VS_ACTIVE_PAGE = "home";</script>
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<!-- Hero -->
+<section class="vs-hero">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-7">
+        <h1>Find. Connect. Discover a Better Vegan Journey.</h1>
+        <p class="lead">VeganSaathi helps students, hostel residents, and travellers around SSGMCE and Shegaon find vegan, vegetarian, Jain and eggetarian food — verified by real people, not just a restaurant's own claim.</p>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <a href="explore.html" class="btn btn-vs-primary btn-lg">Explore Places</a>
+          <a href="register.html" class="btn btn-vs-outline btn-lg">Join the Community</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Explore CTA / search -->
+<section class="vs-section">
+  <div class="container">
+    <div class="vs-card p-4 text-center">
+      <h2 class="h4">Looking for something specific?</h2>
+      <p class="text-muted-vs">Search messes, canteens, dhabas, cafes and restaurants near SSGMCE and Shegaon.</p>
+      <form action="explore.html" method="get" class="row justify-content-center g-2">
+        <div class="col-sm-8 col-md-6">
+          <label for="homeSearch" class="visually-hidden">Search places</label>
+          <input type="text" class="form-control" id="homeSearch" name="q" placeholder="Search places...">
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-vs-primary">Search</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Featured places -->
+<section class="vs-section vs-section--muted">
+  <div class="container">
+    <h2 class="vs-section-title">Nearby Vegan-Friendly Places</h2>
+    <div class="row g-4" id="featuredPlaces"><!-- injected by JS --></div>
+    <p class="vs-mock-notice">Development note: the places shown above are placeholder/mock records for frontend testing only — they are not real, verified Shegaon businesses. Real listings will come from team fieldwork (see docs/CEP_REQUIREMENTS.md).</p>
+  </div>
+</section>
+
+<!-- Community verification -->
+<section class="vs-section">
+  <div class="container">
+    <h2 class="vs-section-title text-center">How Community Verification Works</h2>
+    <div class="vs-flow">
+      <div class="vs-flow__step">User contribution</div>
+      <div class="vs-flow__arrow">→</div>
+      <div class="vs-flow__step">Community review</div>
+      <div class="vs-flow__arrow">→</div>
+      <div class="vs-flow__step">Field verification</div>
+      <div class="vs-flow__arrow">→</div>
+      <div class="vs-flow__step">Better local information</div>
+    </div>
+    <p class="text-center text-muted-vs mt-3">Verification means our team checked the information as of a specific date — not a permanent guarantee. Always confirm specifics with the vendor.</p>
+  </div>
+</section>
+
+<!-- Vegan awareness -->
+<section class="vs-section vs-section--muted">
+  <div class="container">
+    <h2 class="vs-section-title">Vegan Awareness</h2>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="vs-card p-3 h-100">
+          <h3 class="h6">What is Veganism?</h3>
+          <p class="text-muted-vs" style="font-size:0.9rem;">An introduction to what veganism means, and how it differs from vegetarianism.</p>
+          <a href="awareness/what-is-veganism.html">Read more →</a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="vs-card p-3 h-100">
+          <h3 class="h6">Vegetarian vs Vegan</h3>
+          <p class="text-muted-vs" style="font-size:0.9rem;">Why "vegetarian" and "vegan" are not the same thing in an Indian food context.</p>
+          <a href="awareness/vegetarian-vs-vegan.html">Read more →</a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="vs-card p-3 h-100">
+          <h3 class="h6">FAQ</h3>
+          <p class="text-muted-vs" style="font-size:0.9rem;">Common questions, myths, and facts about vegan and vegetarian diets.</p>
+          <a href="awareness/faq.html">Read more →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Community CTA -->
+<section class="vs-section">
+  <div class="container text-center">
+    <div class="vs-card p-4" style="background-color: var(--vs-green-100); border-color:#c7e2ce;">
+      <h2 class="h4">Know a vegan-friendly place?</h2>
+      <p class="text-muted-vs">Help the community discover it — submit a place and our team will verify it.</p>
+      <a href="submit-place.html" class="btn btn-vs-primary">Submit a Place</a>
+    </div>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/mock-data.js"></script>
+<script src="js/components.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const container = document.getElementById("featuredPlaces");
+    const featured = MOCK_PLACES.slice(0, 3);
+    container.innerHTML = featured.map(renderPlaceCard).join("");
+  });
+</script>
+</body>
+</html>

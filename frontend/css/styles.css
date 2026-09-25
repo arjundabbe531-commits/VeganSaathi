@@ -1,0 +1,286 @@
+/* ==========================================================================
+   VeganSaathi — styles.css
+   Visual direction: clean, natural, trustworthy — not a food-delivery clone.
+   See docs/UI_PLAN.md for the reasoning behind these choices.
+   ========================================================================== */
+
+:root {
+  /* Natural / green palette — used as accents, not to carry meaning alone */
+  --vs-green-700: #2f6b3f;
+  --vs-green-600: #3a7d4c;
+  --vs-green-500: #4c9a61;
+  --vs-green-100: #e8f3ea;
+  --vs-cream: #faf8f3;
+  --vs-text: #24291f;
+  --vs-text-muted: #5b6459;
+  --vs-border: #dfe3da;
+  --vs-white: #ffffff;
+
+  /* Diet badge colors — always paired with a text label, never color-only */
+  --vs-vegan: #2f6b3f;
+  --vs-vegetarian: #4c8bd1;
+  --vs-eggetarian: #b8862f;
+  --vs-jain: #8a4fb0;
+
+  --vs-verified: #1f7a4d;
+  --vs-unverified: #8a7a4f;
+
+  --vs-radius: 10px;
+  --vs-shadow: 0 1px 3px rgba(30, 40, 25, 0.08), 0 1px 2px rgba(30, 40, 25, 0.06);
+  --vs-focus: 0 0 0 3px rgba(76, 154, 97, 0.35);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--vs-cream);
+  color: var(--vs-text);
+  line-height: 1.55;
+}
+
+a { color: var(--vs-green-700); text-decoration: none; }
+a:hover { color: var(--vs-green-600); text-decoration: underline; }
+
+/* Visible focus state for keyboard navigation */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--vs-focus);
+  border-radius: 4px;
+}
+
+h1, h2, h3, h4 { font-weight: 700; color: var(--vs-text); }
+
+.text-muted-vs { color: var(--vs-text-muted); }
+
+/* ---------------- Navbar ---------------- */
+.vs-navbar {
+  background-color: var(--vs-white);
+  border-bottom: 1px solid var(--vs-border);
+}
+.vs-navbar .navbar-brand {
+  font-weight: 800;
+  color: var(--vs-green-700);
+  font-size: 1.25rem;
+}
+.vs-navbar .nav-link {
+  color: var(--vs-text);
+  font-weight: 500;
+}
+.vs-navbar .nav-link.active {
+  color: var(--vs-green-700);
+  font-weight: 700;
+}
+.vs-navbar .btn-vs-primary {
+  margin-left: 0.5rem;
+}
+
+/* ---------------- Buttons ---------------- */
+.btn-vs-primary {
+  background-color: var(--vs-green-600);
+  border-color: var(--vs-green-600);
+  color: #fff;
+}
+.btn-vs-primary:hover {
+  background-color: var(--vs-green-700);
+  border-color: var(--vs-green-700);
+  color: #fff;
+}
+.btn-vs-outline {
+  background-color: transparent;
+  border: 1px solid var(--vs-green-600);
+  color: var(--vs-green-700);
+}
+.btn-vs-outline:hover {
+  background-color: var(--vs-green-100);
+  color: var(--vs-green-700);
+}
+
+/* ---------------- Hero ---------------- */
+.vs-hero {
+  background: linear-gradient(180deg, var(--vs-green-100) 0%, var(--vs-cream) 100%);
+  padding: 3.5rem 0 3rem;
+}
+.vs-hero h1 { font-size: 2.25rem; margin-bottom: 0.75rem; }
+.vs-hero p.lead { color: var(--vs-text-muted); max-width: 42rem; }
+
+/* ---------------- Cards ---------------- */
+.vs-card {
+  background-color: var(--vs-white);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-radius);
+  box-shadow: var(--vs-shadow);
+  overflow: hidden;
+}
+
+/* Place card */
+.vs-place-card { height: 100%; display: flex; flex-direction: column; }
+.vs-place-card__image {
+  height: 150px;
+  background-color: var(--vs-green-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vs-green-700);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.vs-place-card__body { padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; flex-grow: 1; }
+.vs-place-card__title { font-size: 1.05rem; margin: 0; }
+.vs-place-card__meta { font-size: 0.85rem; color: var(--vs-text-muted); }
+
+/* Diet badges */
+.vs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.vs-badge-vegan { background-color: #e8f3ea; color: var(--vs-vegan); border-color: #c7e2ce; }
+.vs-badge-vegetarian { background-color: #e7f0fb; color: var(--vs-vegetarian); border-color: #c7dcf5; }
+.vs-badge-eggetarian { background-color: #f8f0e0; color: var(--vs-eggetarian); border-color: #edddb3; }
+.vs-badge-jain { background-color: #f3e9f8; color: var(--vs-jain); border-color: #e2c9ee; }
+
+/* Verification / trust indicator */
+.vs-verify {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--vs-verified);
+  font-weight: 600;
+}
+.vs-verify.unverified { color: var(--vs-unverified); }
+.vs-verify__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background-color: currentColor; flex-shrink: 0;
+}
+.vs-verify-note {
+  font-size: 0.78rem;
+  color: var(--vs-text-muted);
+  font-style: italic;
+}
+
+/* ---------------- Sections ---------------- */
+.vs-section { padding: 3rem 0; }
+.vs-section--muted { background-color: var(--vs-green-100); }
+.vs-section-title { margin-bottom: 1.75rem; }
+
+/* Community verification flow */
+.vs-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+}
+.vs-flow__step {
+  background-color: var(--vs-white);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-radius);
+  padding: 0.9rem 1.1rem;
+  font-weight: 600;
+  min-width: 150px;
+  text-align: center;
+}
+.vs-flow__arrow { color: var(--vs-green-600); font-size: 1.25rem; }
+
+/* ---------------- Filter bar (Explore) ---------------- */
+.vs-filter-bar {
+  background-color: var(--vs-white);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-radius);
+  padding: 1rem;
+}
+.vs-filter-chip {
+  border: 1px solid var(--vs-border);
+  background-color: var(--vs-white);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.vs-filter-chip.active {
+  background-color: var(--vs-green-600);
+  color: #fff;
+  border-color: var(--vs-green-600);
+}
+
+#vs-map,
+#vs-detail-map {
+  border-radius: var(--vs-radius);
+  border: 1px solid var(--vs-border);
+  background-color: var(--vs-green-100);
+  overflow: hidden;
+}
+#vs-map { height: 420px; }
+
+/* ---------------- Forms ---------------- */
+.vs-form-note {
+  background-color: var(--vs-green-100);
+  border: 1px solid #c7e2ce;
+  color: var(--vs-green-700);
+  border-radius: var(--vs-radius);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* ---------------- Footer ---------------- */
+.vs-footer {
+  background-color: #22291f;
+  color: #dfe6da;
+  padding: 2.5rem 0 1.25rem;
+  margin-top: 3rem;
+}
+.vs-footer h5 { color: #fff; font-size: 0.95rem; }
+.vs-footer a { color: #c8d3c0; }
+.vs-footer a:hover { color: #fff; }
+.vs-footer__bottom {
+  border-top: 1px solid #3a4433;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  font-size: 0.8rem;
+  color: #9aa693;
+}
+
+/* ---------------- Admin ---------------- */
+.vs-admin-stat {
+  background-color: var(--vs-white);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-radius);
+  padding: 1.1rem;
+  text-align: center;
+}
+.vs-admin-stat__value { font-size: 1.6rem; font-weight: 800; color: var(--vs-green-700); }
+.vs-admin-stat__label { font-size: 0.8rem; color: var(--vs-text-muted); }
+
+/* ---------------- Utility ---------------- */
+.vs-empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--vs-text-muted);
+}
+.vs-mock-notice {
+  font-size: 0.75rem;
+  color: var(--vs-text-muted);
+  border-top: 1px dashed var(--vs-border);
+  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+}
+
+/* ---------------- Responsive ---------------- */
+@media (max-width: 767px) {
+  .vs-hero h1 { font-size: 1.75rem; }
+  #vs-map { height: 280px; }
+  .vs-flow { flex-direction: column; }
+  .vs-flow__arrow { transform: rotate(90deg); }
+}
