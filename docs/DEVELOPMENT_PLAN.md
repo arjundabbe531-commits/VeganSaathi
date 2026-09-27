@@ -40,17 +40,27 @@ begins. Do not skip ahead to later phases while an earlier one is incomplete.
   Required" in `docs/PROJECT_STATUS.md`). Hosting deploy is intentionally deferred past
   this phase regardless — see Phase 3's scope note below.
 
-## Phase 4 — Authentication 🚫 BLOCKED — not started
-- Register, login, logout, password reset, auth-state listener.
+## Phase 4 — Authentication ⚙️ IN PROGRESS — core flows implemented and tested; QA still pending
+- Register, login, logout, password reset, auth-state listener. — **Register, login,
+  Google sign-in, and password reset are implemented** (`auth-ui.js`). **Auth-state
+  listener, dynamic navbar, and logout are implemented** (`auth-state.js`, `app.js`).
 - Gate contribution actions (submit/review/report/save) behind login; browsing stays open.
+  — **Implemented**: Submit Place, Save/Review/Report on Place Details, and the whole
+  Profile/Saved Places pages are all gated (disabled controls or a sign-in prompt),
+  everything else stays open to visitors.
 - **Exit test:** a fresh account can register, log in, log out, reset password; an
-  unauthenticated visitor can still browse Explore/Place Details.
-- **Blocked on:** `frontend/js/firebase-config.js` still holds placeholder values — no real
-  Firebase Web config has been inserted, so no authentication code can be written and
-  actually tested yet. See `docs/PROJECT_STATUS.md` "BLOCKED" section for exactly what's
-  needed to unblock this. (A related architecture correction — removing Firebase Storage,
-  since this project uses Cloudinary for media instead — was completed during the Phase 4
-  audit, independent of this blocker; see `docs/PROJECT_STATUS.md`.)
+  unauthenticated visitor can still browse Explore/Place Details. — **Verified as far as
+  this sandbox allows**: a stubbed-Firebase-SDK test suite (34 checks) confirms the
+  register/login/Google/logout code paths execute correctly and the navbar/guards update
+  live with zero console errors, across signed-out, signed-in, and orphaned-profile
+  scenarios. **Not yet verified**: an actual run against the real `vegansaathi-88d2f`
+  project in a real browser (this sandbox has no outbound network access to reach Firebase
+  itself) — see `docs/PHASE_4_TEST_RESULTS.md` for exactly what was and wasn't tested, and
+  do this real-browser pass before marking Phase 4 fully complete.
+- Real bug found and fixed during this pass: `logoutUser()` called `auth.signOut()` (the
+  old v8 namespaced API), which does not exist on the modular `Auth` object this project
+  uses — clicking Logout would have thrown `TypeError: auth.signOut is not a function`.
+  Fixed to `signOut(auth)`. See `docs/PHASE_4_TEST_RESULTS.md`.
 
 ## Phase 5 — Places (core feature)
 - Firestore `places` collection wired to Explore page (replace mock data).

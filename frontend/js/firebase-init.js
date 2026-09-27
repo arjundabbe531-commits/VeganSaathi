@@ -17,10 +17,12 @@
    a specific SDK version so an unrelated Firebase release can't change this
    project's behavior without the team noticing.
 
-   NOT YET IMPORTED BY ANY PAGE. frontend/js/firebase-config.js still holds
-   placeholder values (no real Firebase project config has been inserted yet
-   — see docs/FIREBASE_SETUP.md). Importing this module before that config is
-   real would throw on initializeApp() and break whichever page loaded it.
+   Imported (directly or transitively) by every page as of Phase 4 —
+   frontend/js/firebase-config.js now holds real project values for
+   vegansaathi-88d2f. auth-state.js, auth-ui.js, profile-page.js,
+   saved-page.js, place-details.js, and submit-place-guard.js all import
+   getFirebaseAuth()/getFirebaseDb() from here rather than initializing
+   Firebase themselves.
    ========================================================================== */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";

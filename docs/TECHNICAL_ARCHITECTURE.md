@@ -93,28 +93,27 @@ frontend/
 ├── css/
 │   └── styles.css
 └── js/
-    ├── firebase-config.js    (Phase 3 — public config; STILL PLACEHOLDER, see docs/PROJECT_STATUS.md)
-    ├── firebase-init.js      (Phase 3 — the ONLY place initializeApp() is called; not yet imported by any page)
-    ├── mock-data.js          (Phase 2 — dev-only mock data, still in use; not yet replaced by Firestore)
-    ├── components.js         (Phase 2 — navbar/footer/card/badge render helpers)
-    ├── app.js                (Phase 2 — injects navbar/footer on every page)
-    ├── explore.js            (Phase 2 — search/filter/map against mock data)
-    ├── place-details.js      (Phase 2 — place detail rendering against mock data)
-    ├── auth-ui.js            (Phase 2 — client-side-only form validation, no backend calls)
-    ├── auth-service.js       (Phase 4 — register/login/Google/logout/reset/auth-state; not yet created, blocked on real Firebase config)
-    ├── user-service.js       (Phase 4 — Firestore users/{uid} profile create/read/update; not yet created, blocked on real Firebase config)
-    ├── places.js             (Phase 5 — not yet created)
-    ├── reviews.js             (Phase 6 — not yet created)
-    ├── reports.js              (Phase 6 — not yet created)
-    └── admin.js                 (Phase 7 — not yet created)
+    ├── firebase-config.js    (Phase 3/4 — public config; holds real values for project vegansaathi-88d2f)
+    ├── firebase-init.js      (Phase 3 — the ONLY place initializeApp() is called; imported by every page as of Phase 4)
+    ├── auth-state.js         (Phase 4 — the ONE shared onAuthStateChanged subscription: onAuthChange(), getCurrentUser(), fetchUserProfile())
+    ├── auth-ui.js            (Phase 4 — registration, login, Google sign-in, password reset, logout: the actual Firebase Auth/Firestore calls)
+    ├── profile-page.js       (Phase 4 — loads/renders the real users/{uid} Firestore document on profile.html)
+    ├── saved-page.js         (Phase 4 — auth guard for saved.html; saved-place data itself is still mock, real persistence is Phase 6)
+    ├── submit-place-guard.js (Phase 4 — auth guard + form handling for submit-place.html's still-demo submission)
+    ├── mock-data.js          (Phase 2 — dev-only mock place/review data; still in use for Explore/Place Details/Saved demo content until Phase 5/6 replace it with Firestore)
+    ├── components.js         (Phase 2/4 — navbar/footer/card/badge render helpers; renderNavbar() is now auth-aware)
+    ├── app.js                (Phase 2/4 — injects navbar/footer, subscribes to auth state, wires Logout — loaded as an ES module on every page)
+    ├── explore.js            (Phase 2 — search/filter/map against mock data; not yet Firestore-backed)
+    └── place-details.js      (Phase 2/4 — place detail rendering against mock data; Save/Review/Report are now auth-gated)
 ```
 
-`firebase-init.js` is deliberately **not** referenced by any `<script>` tag yet. It's a
-working ES module, ready to be imported once `firebase-config.js` holds a real project's
-values (see `docs/FIREBASE_SETUP.md`) — importing it any earlier would throw on
-`initializeApp()` with the placeholder config and break whichever page loaded it.
-`firebase-config.js` still holds placeholder values as of Phase 4 — see
-`docs/PROJECT_STATUS.md` for the exact blocker.
+Every page loads `app.js` as `<script type="module">`, since it imports from `auth-state.js`
+(which imports from `firebase-init.js`) and from `auth-ui.js` (to reuse the one real
+`logoutUser()`/`signOut()` implementation). `mock-data.js` and `components.js` are still
+loaded as plain classic scripts *before* `app.js` in every page, so their globals
+(`renderNavbar`, `MOCK_PLACES`, etc.) are already on `window` by the time the module scripts
+that follow them run — see `docs/AUTHENTICATION.md` for the full reasoning and
+`docs/PHASE_4_TEST_RESULTS.md` for how this was verified.
 
 ## 4. Security Model (summary — full rules live in `firebase/firestore.rules`; full
 explanation in `docs/FIREBASE_SECURITY.md`)

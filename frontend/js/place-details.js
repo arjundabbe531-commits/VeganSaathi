@@ -3,7 +3,13 @@
    Reads ?id= from the URL and renders the matching mock place. No backend —
    Save/Write Review/Report all show a clear "coming in a later phase"
    message rather than pretending to persist anything.
+
+   Phase 4: Save/Write Review/Report now require sign-in. Loaded as an ES
+   module so it can share the one auth-state listener with the rest of the
+   app (see auth-state.js) — browsing the place itself stays open to anyone.
    ========================================================================== */
+
+import { onAuthChange, getCurrentUser } from "./auth-state.js";
 
 document.addEventListener("DOMContentLoaded", function () {
   const params = new URLSearchParams(window.location.search);
@@ -18,6 +24,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // failure can never take the rest of the page down with it.
   wireActionButtons(place);
   safelyInitDetailMap(place);
+
+  onAuthChange(updateActionAvailability);
 });
 
 function safelyInitDetailMap(place) {
@@ -67,12 +75,38 @@ function initDetailMap(place) {
   L.marker([place.latitude, place.longitude]).addTo(map).bindPopup(place.name);
 }
 
+// Enable/disable the three protected controls to match current auth state,
+// matching the same disabled+title pattern already used elsewhere in this
+// app (e.g. the Google sign-in button, the Profile page's Edit button).
+function updateActionAvailability(user) {
+  const signedIn = !!user;
+
+  const saveBtn = document.getElementById("saveBtn");
+  if (saveBtn) {
+    saveBtn.disabled = !signedIn;
+    saveBtn.title = signedIn ? "" : "Sign in to save places";
+  }
+
+  const reviewSubmit = document.querySelector('#reviewForm button[type="submit"]');
+  if (reviewSubmit) {
+    reviewSubmit.disabled = !signedIn;
+    reviewSubmit.title = signedIn ? "" : "Sign in to write a review";
+  }
+
+  const reportSubmit = document.querySelector('#reportForm button[type="submit"]');
+  if (reportSubmit) {
+    reportSubmit.disabled = !signedIn;
+    reportSubmit.title = signedIn ? "" : "Sign in to report incorrect information";
+  }
+}
+
 function wireActionButtons(place) {
   const isSaved = MOCK_SAVED_PLACES.indexOf(place.id) !== -1;
   const saveBtn = document.getElementById("saveBtn");
   updateSaveButton(saveBtn, isSaved);
 
   saveBtn.addEventListener("click", function () {
+    if (!getCurrentUser()) return; // button is disabled in this state, but guard anyway
     const nowSaved = saveBtn.getAttribute("data-saved") === "true";
     updateSaveButton(saveBtn, !nowSaved);
     // Phase 2 note: this only changes the button's visual state; nothing is persisted yet.
@@ -80,9 +114,20 @@ function wireActionButtons(place) {
 
   document.getElementById("reviewForm").addEventListener("submit", function (e) {
     e.preventDefault();
+    const feedback = document.getElementById("reviewFeedback");
+
+    if (!getCurrentUser()) {
+      feedback.className = "vs-form-note mt-2";
+      feedback.style.backgroundColor = "#fbeaea";
+      feedback.style.borderColor = "#f0c3c3";
+      feedback.style.color = "#8a2f2f";
+      feedback.textContent = "Please sign in to write a review.";
+      feedback.classList.remove("d-none");
+      return;
+    }
+
     const rating = document.getElementById("reviewRating").value;
     const comment = document.getElementById("reviewComment").value.trim();
-    const feedback = document.getElementById("reviewFeedback");
 
     if (!rating || comment.length < 3) {
       feedback.className = "vs-form-note mt-2";
@@ -102,8 +147,15 @@ function wireActionButtons(place) {
 
   document.getElementById("reportForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    const reason = document.getElementById("reportReason").value;
     const feedback = document.getElementById("reportFeedback");
+
+    if (!getCurrentUser()) {
+      feedback.textContent = "Please sign in to report incorrect information.";
+      feedback.classList.remove("d-none");
+      return;
+    }
+
+    const reason = document.getElementById("reportReason").value;
 
     if (!reason) {
       feedback.textContent = "Please choose a reason for the report.";

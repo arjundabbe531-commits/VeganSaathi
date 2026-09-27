@@ -25,6 +25,7 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithPopup,
+  signOut,
   GoogleAuthProvider,
   browserLocalPersistence,
   browserSessionPersistence,
@@ -459,10 +460,6 @@ function wireGoogleSignIn() {
 
   if (!button) return;
 
-  button.disabled = false;
-  button.removeAttribute("title");
-  button.textContent = "Sign in with Google";
-
   button.addEventListener("click", async function () {
     try {
       setButtonLoading(
@@ -541,7 +538,7 @@ function wireGoogleSignIn() {
 export async function logoutUser() {
   const auth = getFirebaseAuth();
 
-  await auth.signOut();
+  await signOut(auth);
 }
 
 

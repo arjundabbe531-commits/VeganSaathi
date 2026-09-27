@@ -15,9 +15,18 @@
 <section class="vs-section">
   <div class="container">
     <h1 class="h4 mb-3">My Profile</h1>
-    <p class="vs-mock-notice mb-4">Development note: this page shows a mock signed-in profile for UI testing. Real accounts and data will be connected in Phase 4/5.</p>
 
-    <div class="row g-4">
+    <!-- Shown only while we don't yet know the auth state, or while signed out -->
+    <div id="profileSignedOut" class="vs-card p-4 d-none">
+      <p class="mb-2">Please sign in to view your profile.</p>
+      <a href="login.html" class="btn btn-vs-primary btn-sm">Login</a>
+      <a href="register.html" class="btn btn-vs-outline btn-sm">Register</a>
+    </div>
+
+    <div id="profileLoading" class="text-muted-vs">Loading your profile...</div>
+
+    <!-- Real profile content, shown once we know someone is signed in and their Firestore doc has loaded -->
+    <div id="profileContent" class="row g-4 d-none">
       <div class="col-lg-4">
         <div class="vs-card p-3">
           <h2 class="h6">Profile Information</h2>
@@ -27,27 +36,29 @@
             <dt>Dietary preference</dt><dd id="profileDiet"></dd>
             <dt>Member since</dt><dd id="profileSince"></dd>
           </dl>
-          <button type="button" class="btn btn-vs-outline btn-sm" disabled title="Editing will be enabled once Firebase is connected">Edit Profile (Phase 4)</button>
+          <button type="button" class="btn btn-vs-outline btn-sm" disabled title="Profile editing is planned for a later phase">Edit Profile</button>
         </div>
       </div>
 
       <div class="col-lg-8">
         <div class="vs-card p-3 mb-3">
           <h2 class="h6">My Submissions</h2>
-          <ul class="list-group list-group-flush" id="mySubmissionsList"></ul>
+          <p class="text-muted-vs mb-0" id="mySubmissionsList">Place submissions aren't stored yet — this will show your real submissions once that's built (Phase 6).</p>
         </div>
 
         <div class="vs-card p-3 mb-3">
           <h2 class="h6">My Reviews</h2>
-          <ul class="list-group list-group-flush" id="myReviewsList"></ul>
+          <p class="text-muted-vs mb-0" id="myReviewsList">Reviews aren't stored yet — this will show your real reviews once that's built (Phase 6).</p>
         </div>
 
         <div class="vs-card p-3">
           <h2 class="h6">Saved Places</h2>
-          <p class="mb-2"><a href="saved.html">View all saved places →</a></p>
+          <p class="mb-2"><a href="saved.html">View saved places →</a></p>
         </div>
       </div>
     </div>
+
+    <div id="profileError" class="vs-form-note mt-3 d-none" style="background-color:#fbeaea;border-color:#f0c3c3;color:#8a2f2f;"></div>
   </div>
 </section>
 
@@ -56,35 +67,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/mock-data.js"></script>
 <script src="js/components.js"></script>
-<script src="js/app.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("profileName").textContent = MOCK_USER.name;
-    document.getElementById("profileEmail").textContent = MOCK_USER.email;
-    document.getElementById("profileDiet").innerHTML = renderDietBadges([MOCK_USER.dietPreference]);
-    document.getElementById("profileSince").textContent = MOCK_USER.createdAt;
-
-    const subsList = document.getElementById("mySubmissionsList");
-    if (MOCK_MY_SUBMISSIONS.length === 0) {
-      subsList.innerHTML = '<li class="list-group-item text-muted-vs">You have not submitted any places yet.</li>';
-    } else {
-      subsList.innerHTML = MOCK_MY_SUBMISSIONS.map(function (s) {
-        return '<li class="list-group-item d-flex justify-content-between align-items-center">' +
-          s.name + '<span class="badge bg-warning text-dark">' + s.status + "</span></li>";
-      }).join("");
-    }
-
-    const reviewsList = document.getElementById("myReviewsList");
-    if (MOCK_MY_REVIEWS.length === 0) {
-      reviewsList.innerHTML = '<li class="list-group-item text-muted-vs">You have not written any reviews yet.</li>';
-    } else {
-      reviewsList.innerHTML = MOCK_MY_REVIEWS.map(function (r) {
-        return '<li class="list-group-item">' +
-          "<strong>" + r.placeName + "</strong> — " + r.rating + "/5<br>" +
-          '<span class="text-muted-vs">' + r.comment + "</span></li>";
-      }).join("");
-    }
-  });
-</script>
+<script type="module" src="js/app.js"></script>
+<script type="module" src="js/profile-page.js"></script>
 </body>
 </html>

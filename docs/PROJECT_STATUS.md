@@ -6,127 +6,111 @@ truth for "where the project currently stands" — for the team and for any AI a
 
 ## Completed
 - Phase 0 — Environment audit
-- Phase 1 — Foundation docs (PROJECT_SPEC, DATABASE_SCHEMA, TECHNICAL_ARCHITECTURE,
-  DEVELOPMENT_PLAN, USER_FLOWS, UI_PLAN, CEP_REQUIREMENTS, README)
-- Phase 2 — Static frontend shell: 12 pages, shared navbar/footer, reusable components,
-  Leaflet+OSM map, client-side-only form validation, clearly-labeled mock data. Verified
-  with a live headless-browser pass (zero console errors, zero overflow, 25/25 interaction
-  checks across mobile/tablet/desktop). Full detail in `docs/PHASE_2_NOTES.md`.
-- Phase 3 — Firebase Foundation:
-  - `firebase/firestore.rules` — full security model (visitor/user/admin), no
-    `allow read, write: if true` anywhere, validated for balanced syntax.
-  - `firebase/firestore.indexes.json` — the one composite index the schema needs
-    (`places`: `status` + `dietTags` array-contains), defined ahead of Phase 5.
-  - `firebase.json` (project root) — wires the CLI to the files above plus
-    `hosting.public: "frontend"`. Deliberately placed at the root rather than inside
-    `firebase/`, see `docs/TECHNICAL_ARCHITECTURE.md` for why.
-  - `frontend/js/firebase-config.js` — placeholder public web config (not a secret; see
-    `docs/FIREBASE_SECURITY.md`), ready to be filled with real values.
-  - `frontend/js/firebase-init.js` — the one place `initializeApp()` is called, exporting
-    `getFirebaseAuth()`/`getFirebaseDb()`. **Not yet imported by any page.**
-  - `docs/FIREBASE_SETUP.md`, `docs/FIREBASE_SECURITY.md` — setup guide + access-model docs.
-  - Corrected two real schema issues: `reports.reason` value `closed` renamed to
-    `place-closed`; added `places.submittedByName`/`reviews.authorName` (denormalized
-    display names) so the UI doesn't need broad read access to `users`.
-- Phase 3.5 — Architecture correction (during the Phase 4 audit): **removed Firebase
-  Storage from the project entirely.** The project's media-storage plan changed to
-  Cloudinary (a later, not-yet-implemented phase) partway through Phase 3, and Phase 3's
-  own output hadn't caught up — `firebase-init.js` still imported/initialized
-  `getStorage()`, `firebase/storage.rules` still existed, and `firebase.json` still had a
-  `storage` section. All three are now removed, and every doc that described Firebase
-  Storage as part of the stack (`README.md`, `TECHNICAL_ARCHITECTURE.md`,
-  `FIREBASE_SETUP.md`, `FIREBASE_SECURITY.md`, `DATABASE_SCHEMA.md`, `DEVELOPMENT_PLAN.md`,
-  `PHASE_2_NOTES.md`) has been corrected to say Firebase Auth + Firestore + Cloudinary
-  (Cloudinary not yet implemented), not Firebase Storage. This was safe to do without a
-  real Firebase project, since it's a codebase/documentation correction, not something
-  that needs live testing.
+- Phase 1 — Foundation docs
+- Phase 2 — Static frontend shell (12 pages, mock data, components, Leaflet map).
+  Verified with a live headless-browser pass. See `docs/PHASE_2_NOTES.md`.
+- Phase 3 — Firebase Foundation: `firebase/firestore.rules`, `firebase/firestore.indexes.json`,
+  `firebase.json`, `firebase-config.js`/`firebase-init.js` scaffolding, `docs/FIREBASE_SETUP.md`,
+  `docs/FIREBASE_SECURITY.md`. Firebase Storage was later removed from the architecture
+  entirely — this project uses Cloudinary (not yet implemented) for media instead.
 
-## BLOCKED — Phase 4 (Authentication + User Profile) has NOT started
-`frontend/js/firebase-config.js` still contains **all 6 placeholder values**
-(`apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, `appId` are all
-`REPLACE_WITH_YOUR_...`). No real Firebase Web app config has been inserted yet, even
-though a real Firebase project (`vegansaathi-88d2f`) has reportedly been created.
+## In Progress — Phase 4 (Authentication + User Profile)
 
-**No authentication or user-profile code has been written or wired up.** Writing
-`auth-service.js`, `user-service.js`, or connecting `login.html`/`register.html`/
-`profile.html` to Firebase now — using placeholder credentials that cannot actually
-authenticate anyone — would produce code nobody can verify works, and this project's own
-Phase 4 instructions were explicit: do not pretend authentication is connected if the
-configuration is missing. So none of it exists yet.
+**Real Firebase project connected.** `frontend/js/firebase-config.js` holds real values for
+project `vegansaathi-88d2f` (confirmed present, values not reproduced here — see
+`docs/FIREBASE_SECURITY.md` for why that's fine to keep in the repo).
 
-**To unblock:** paste the real config object from Firebase Console → Project settings →
-General → Your apps → Web app → "SDK setup and configuration" into
-`frontend/js/firebase-config.js`, replacing every placeholder. See
-`docs/FIREBASE_SETUP.md` steps 1–2 (project/app already exist per this session — just the
-config copy-paste and Auth/Firestore enablement, if not already done, remain).
+**Implemented and passing a stubbed-SDK test suite (34 checks — see
+`docs/PHASE_4_TEST_RESULTS.md` for exactly what that does and doesn't prove):**
+- Email/password registration, writing `users/{uid}` with `role` hard-coded to `"user"`.
+- Email/password login, with Remember-me controlling session persistence.
+- Google sign-in, creating a profile only on first sign-in (never overwriting an existing
+  one).
+- Password reset.
+- Logout.
+- A shared `onAuthChange` listener (`auth-state.js`) driving a navbar that switches between
+  Login/Register and Profile/Logout **live, without a page reload**.
+- A real Firestore-backed Profile page (`profile-page.js`), replacing the old Phase 2 mock
+  data entirely, including an explicit error state for the (shouldn't-normally-happen) case
+  of a signed-in user with no Firestore profile document.
+- Authentication guards on Submit Place, Save/Review/Report (Place Details), and the whole
+  Saved Places page — disabled controls with explanatory text when signed out; the guard
+  re-checks at the moment of the actual click/submit, not just at page load.
 
-## User Action Required (cannot be done from this environment)
-1. Confirm Authentication is enabled in the Firebase Console for `vegansaathi-88d2f`
-   (Email/Password + Google sign-in methods) — see `docs/FIREBASE_SETUP.md` step 3.
-2. Confirm Firestore is enabled (production mode) — step 4.
-3. **Paste the real Web app config into `frontend/js/firebase-config.js`** (this is the
-   actual blocker — see above).
-4. Install the Firebase CLI locally (`npm install -g firebase-tools`) — this sandbox has no
-   outbound network access, so this genuinely could not be done here.
-5. Run `firebase login`, then `firebase use --add` from the project root, selecting
-   `vegansaathi-88d2f`.
-6. Deploy the rules: `firebase deploy --only firestore:rules,firestore:indexes`.
-7. Come back and ask for Phase 4 again — real authentication code can then be written and
-   actually tested against the real project.
+**Cleanup pass:** `docs/TECHNICAL_ARCHITECTURE.md` resynchronized with the actual current
+file list (it still described Phase-3-era placeholders and two files that were never
+actually created under those names). A real UI bug found and fixed: `profile.html`'s error
+message wasn't cleared on sign-out, so a stale error could sit on screen underneath the
+"please sign in" prompt — `profile-page.js` now clears it at the start of every auth-state
+transition. 4 new tests confirm the fix; see `docs/PHASE_4_TEST_RESULTS.md`.
+
+**A real bug found and fixed:** `logoutUser()` called the old v8 `auth.signOut()`, which
+does not exist on this project's modular `Auth` object — clicking Logout would have thrown
+a runtime error. Fixed to the modular `signOut(auth)`. Full detail in
+`docs/PHASE_4_TEST_RESULTS.md`.
+
+**Two smaller issues found and fixed:**
+- `submit-place.html` loaded `auth-ui.js` (which uses ES `import`) as a classic script —
+  a hard syntax error that silently broke the page. Replaced with a dedicated
+  `submit-place-guard.js`, loaded correctly as a module.
+- `login.html`'s Google button still had Phase-2 leftover `disabled`/"coming in Phase 4"
+  markup (JS patched it at runtime, but was fragile). Cleaned up directly in the HTML.
+
+**Stale documentation corrected:** `firebase-config.js` and `firebase-init.js` header
+comments no longer claim placeholder config / "not yet imported" / reference the deleted
+`firebase/storage.rules`.
+
+## NOT YET DONE — before Phase 4 can be marked fully complete
+Everything above was verified with static checks and a stubbed-Firebase-SDK headless-browser
+test suite in a sandbox with no outbound network access. **None of it has been run against
+the real `vegansaathi-88d2f` project in a real browser yet.** Specifically still needed:
+1. A real registration, confirmed in the Firebase Console (Authentication tab + Firestore
+   `users` collection).
+2. A real login, logout, and refresh-while-logged-in.
+3. A real password-reset email, confirmed received.
+4. A real Google OAuth sign-in, completed end-to-end.
+5. A manual responsive check (mobile/tablet/desktop) in an actual browser.
+6. A check of the actual browser console for anything the stub test couldn't surface.
 
 ## Not Started
-- Phase 4 — Authentication + User Profile (blocked, see above).
-- Phase 5 — Places (Firestore-backed Explore/Place Details, replacing `mock-data.js`;
-  real fieldwork seed data — see `docs/CEP_REQUIREMENTS.md`, do not fabricate this).
+- Phase 5 — Places (Firestore-backed Explore/Place Details; real fieldwork seed data — see
+  `docs/CEP_REQUIREMENTS.md`, do not fabricate this).
 - Phase 6 — Community features (submit place, reviews, reports, saved places wired to
-  Firestore).
-- Phase 7 — Admin backend (real permission checks, moderation actions wired to Firestore).
+  Firestore for real; Cloudinary image upload).
+- Phase 7 — Admin backend (real permission checks, moderation actions; admin-aware navbar
+  item; route protection for `admin/dashboard.html` — none of this exists yet, it's a
+  static shell with mock data and no auth check at all).
 - Phase 8 — Vegan awareness content sourcing/citation review.
-- Phase 9 — QA pass, `docs/TEST_PLAN.md`/`docs/TEST_RESULTS.md`.
-- Firebase Hosting deployment — deferred until there's real functionality beyond the
-  Phase 2 static shell to serve.
-- Cloudinary integration — not started; no upload code, presets, or credentials exist
-  anywhere in this codebase.
-- `docs/FIELDWORK_GUIDE.md`, `docs/COMMUNITY_SURVEY.md` — scheduled for Phase 5.
-- `docs/AUTHENTICATION.md`, `docs/PHASE_4_TEST_RESULTS.md` — not created; would describe
-  work that doesn't exist yet.
+- Phase 9 — QA pass, `docs/TEST_PLAN.md`.
+- Profile editing (name/diet preference are currently read-only after registration).
+- Firebase Hosting deployment.
 
 ## Known Bugs
-- None in existing (Phase 0–3) work. Phase 2's verification pass (see
-  `docs/PHASE_2_NOTES.md`) found and fixed two real issues; the Phase 3.5 Storage removal
-  was re-validated (JSON/JS syntax checks, see "Test Status") with zero regressions.
+- None outstanding. See "In Progress" above for what was found and fixed this phase.
 
 ## Firebase Setup State
-- **Rules and config: written, not yet deployed.** `firebase/firestore.rules` and
-  `firebase/firestore.indexes.json` are ready but nothing has been pushed to Firestore yet.
-- **Web app config: still placeholder.** See "BLOCKED" above — this is the actual gate on
-  all of Phase 4.
-- **No Storage.** Confirmed removed from `firebase-init.js`, `firebase.json`, and the
-  `firebase/` folder — this project does not and will not use Firebase Storage.
+- Real project (`vegansaathi-88d2f`) connected, real config in `firebase-config.js`.
+- `firebase/firestore.rules` reviewed against Phase 4's actual code and found to already be
+  correct — not modified.
+- Still unconfirmed from this sandbox: whether rules have actually been deployed
+  (`firebase deploy --only firestore:rules,firestore:indexes`) — do this if it hasn't
+  happened yet, since Firestore defaults to denying everything until rules are deployed.
+- No Firebase Storage anywhere in the codebase (confirmed via full-repo search).
 
 ## Test Status
-- Phase 2: still green — JS syntax check and local-link-resolution check both pass.
-- Phase 3: `firebase.json` and `firebase/firestore.indexes.json` are valid JSON.
-  `firebase/firestore.rules` has balanced braces/parens/brackets and follows documented
-  Rules v2 syntax. `firebase-config.js`/`firebase-init.js` pass `node --check`;
-  `firebase-config.js` was actually imported as an ES module to confirm its exports.
-  **Still not validated (no Firebase CLI/network access in this environment):** an actual
-  `firebase deploy`, or the Firebase Console's own rules linter.
-- Phase 3.5 (Storage removal): re-ran the JSON validity check on `firebase.json` and the
-  `node --check` syntax check on `firebase-init.js` after editing both — both still pass.
-  Confirmed `git rm` removed `firebase/storage.rules` cleanly.
-- Phase 4: no tests — no code was written.
+See `docs/PHASE_4_TEST_RESULTS.md` for the complete breakdown (static checks, the 34-check
+stubbed-SDK browser suite, the security/ownership review, and exactly what still needs a
+real browser).
 
 ## Documentation Status
-- Phase 1 docs: complete.
-- Phase 2: `docs/PHASE_2_NOTES.md` complete (Storage references corrected).
-- Phase 3: `docs/FIREBASE_SETUP.md` and `docs/FIREBASE_SECURITY.md` complete (Storage
-  sections removed/replaced with the Cloudinary note); `docs/TECHNICAL_ARCHITECTURE.md`
-  and `docs/DATABASE_SCHEMA.md` updated to match.
-- `docs/FIELDWORK_GUIDE.md`, `docs/COMMUNITY_SURVEY.md`, `docs/TEST_PLAN.md`,
-  `docs/TEST_RESULTS.md`, `docs/AUTHENTICATION.md`, `docs/PHASE_4_TEST_RESULTS.md`: not yet
-  created.
+- Phase 1–3 docs: complete, Storage references removed.
+- Phase 4: `docs/AUTHENTICATION.md` (architecture) and `docs/PHASE_4_TEST_RESULTS.md`
+  (test results) created. `docs/DEVELOPMENT_PLAN.md` updated to reflect actual Phase 4
+  progress.
+- Still not created: `docs/FIELDWORK_GUIDE.md`, `docs/COMMUNITY_SURVEY.md`,
+  `docs/TEST_PLAN.md` — scheduled for Phases 5/9.
 
 ## Next Task
-- Complete the "User Action Required" steps above — specifically, paste the real Firebase
-  Web config into `frontend/js/firebase-config.js` — then ask for Phase 4 again.
+1. Run the real-browser checks listed under "NOT YET DONE" above, against the real
+   Firebase project.
+2. Once those pass, mark Phase 4 complete and begin Phase 5 — Places.

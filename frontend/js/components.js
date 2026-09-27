@@ -12,7 +12,11 @@ function vsBase() {
 }
 
 /* ---------------- Navbar ---------------- */
-function renderNavbar(activePage) {
+// `user` is optional: undefined/null renders the logged-out state
+// (Login/Register); a Firebase Auth User object renders the logged-in state
+// (Profile/Logout). app.js calls this again every time auth state changes,
+// so the navbar updates live without a page reload.
+function renderNavbar(activePage, user) {
   const base = vsBase();
   const el = document.getElementById("navbar-placeholder");
   if (!el) return;
@@ -29,6 +33,12 @@ function renderNavbar(activePage) {
     return '<li class="nav-item"><a class="nav-link' + activeClass + '" href="' + l.href + '">' + l.label + "</a></li>";
   }).join("");
 
+  const authHtml = user
+    ? '<a href="' + base + 'profile.html" class="btn btn-vs-outline btn-sm me-2">Profile</a>' +
+      '<button type="button" id="navLogoutBtn" class="btn btn-vs-primary btn-sm">Logout</button>'
+    : '<a href="' + base + 'login.html" class="btn btn-vs-outline btn-sm me-2">Login</a>' +
+      '<a href="' + base + 'register.html" class="btn btn-vs-primary btn-sm">Register</a>';
+
   el.innerHTML =
     '<nav class="navbar navbar-expand-lg vs-navbar sticky-top">' +
     '<div class="container">' +
@@ -37,8 +47,7 @@ function renderNavbar(activePage) {
     '<span class="navbar-toggler-icon"></span></button>' +
     '<div class="collapse navbar-collapse" id="vsNavCollapse">' +
     '<ul class="navbar-nav me-auto mb-2 mb-lg-0">' + linkHtml + "</ul>" +
-    '<a href="' + base + 'login.html" class="btn btn-vs-outline btn-sm me-2">Login</a>' +
-    '<a href="' + base + 'register.html" class="btn btn-vs-primary btn-sm">Register</a>' +
+    authHtml +
     "</div></div></nav>";
 }
 
