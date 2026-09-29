@@ -62,15 +62,24 @@ begins. Do not skip ahead to later phases while an earlier one is incomplete.
   uses — clicking Logout would have thrown `TypeError: auth.signOut is not a function`.
   Fixed to `signOut(auth)`. See `docs/PHASE_4_TEST_RESULTS.md`.
 
-## Phase 5 — Places (core feature)
-- Firestore `places` collection wired to Explore page (replace mock data).
-- Seed data entered manually from `research/place_data_template.csv` (real fieldwork only —
-  see `CEP_REQUIREMENTS.md`).
-- Search + filter by diet tag, place type, price range.
-- Leaflet/OSM map view alongside list view.
-- Place Details page pulling real Firestore data, showing "last verified" date.
+## Phase 5 — Places + Discovery ⚙️ IN PROGRESS
+Full approved plan: `docs/PHASE_5_PLAN.md` (decisions D1–D5 are settled there).
+- Firestore `places` collection wired to Explore, Place Details, Home's featured places
+  and the map (replacing mock data on public pages).
+- Team-seeded places entered by hand in the Firebase Console with readable stable slug IDs
+  (D1, D2), from real fieldwork only — see `docs/FIELDWORK_GUIDE.md` and
+  `docs/CEP_REQUIREMENTS.md`. No fabricated places.
+- Search (client-side substring) + filter by diet tag, place type, price range and
+  verified-only. All published places are fetched in one query and filtered in the browser.
+- Leaflet/OSM map view alongside list view, with pins from real coordinates.
+- Place Details pulling real Firestore data, showing "last verified" date, with a soft
+  90-day "re-check due" cue that never changes `verificationStatus` (D5).
+- Saved page shows an honest empty state until Phase 6 (D3).
+- **Task status:** 5.0 docs + fieldwork prerequisites — done. 5.1 shared-component hardening
+  — done (awaiting review). 5.2–5.8 — not started.
 - **Exit test:** filtering and search return correct results against real seed data; map
-  pins match list entries.
+  pins match list entries; a signed-out visitor in an incognito window sees the published
+  places and never a `pending` one.
 
 ## Phase 6 — Community Features
 - Submit New Place form → writes with `status: "pending"`.

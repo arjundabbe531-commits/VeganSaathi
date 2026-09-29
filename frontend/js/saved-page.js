@@ -28,13 +28,13 @@ function renderSaved() {
     return (
       '<div class="col-sm-6 col-lg-4">' +
       '<div class="vs-card vs-place-card">' +
-      '<div class="vs-place-card__image">' + place.imageLabel + " (mock photo)</div>" +
+      '<div class="vs-place-card__image">' + escapeHtml(placeImageLabel(place)) + "</div>" +
       '<div class="vs-place-card__body">' +
-      '<h3 class="vs-place-card__title">' + place.name + "</h3>" +
+      '<h3 class="vs-place-card__title">' + escapeHtml(place.name) + "</h3>" +
       "<div>" + renderDietBadges(place.dietTags) + "</div>" +
       '<div class="d-flex gap-2 mt-2">' +
-      '<a href="place-details.html?id=' + place.id + '" class="btn btn-vs-primary btn-sm">View Details</a>' +
-      '<button type="button" class="btn btn-vs-outline btn-sm" data-remove-id="' + place.id + '">Remove</button>' +
+      '<a href="' + escapeHtml(placeDetailsUrl(place.id)) + '" class="btn btn-vs-primary btn-sm">View Details</a>' +
+      '<button type="button" class="btn btn-vs-outline btn-sm" data-remove-id="' + escapeHtml(place.id) + '">Remove</button>' +
       "</div></div></div></div>"
     );
   }).join("");

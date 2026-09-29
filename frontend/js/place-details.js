@@ -72,7 +72,7 @@ function initDetailMap(place) {
     attribution: "&copy; OpenStreetMap contributors",
     maxZoom: 19
   }).addTo(map);
-  L.marker([place.latitude, place.longitude]).addTo(map).bindPopup(place.name);
+  L.marker([place.latitude, place.longitude]).addTo(map).bindPopup(escapeHtml(place.name));
 }
 
 // Enable/disable the three protected controls to match current auth state,

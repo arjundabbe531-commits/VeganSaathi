@@ -19,3 +19,8 @@ node_modules/
 Thumbs.db
 .vscode/
 *.swp
+
+# Fieldwork ledgers contain visit logs and vendor consent notes — never commit them.
+# Only the header-only research/place_data_template.csv belongs in the repository.
+research/*
+!research/place_data_template.csv

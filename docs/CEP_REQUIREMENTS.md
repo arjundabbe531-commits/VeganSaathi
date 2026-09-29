@@ -10,23 +10,24 @@ real, dated evidence — nothing here is pre-filled with invented numbers.
    analysis, India-specific dietary taxonomy.)
 2. **We identified real problems.** (See `PROJECT_SPEC.md` §1.)
 3. **We interacted with community members.** (Surveys + interviews — see below.)
-4. **We collected real local information.** (Fieldwork — see `FIELDWORK_GUIDE.md`, to be
-   created before Phase 5 seed data entry.)
+4. **We collected real local information.** (Fieldwork — see `FIELDWORK_GUIDE.md`.)
 5. **We built a digital solution.** (This codebase.)
 6. **Community members can contribute information.** (Submit Place, Reviews, Reports.)
 7. **The information can be reviewed/verified.** (Admin approval + re-verification flow.)
 8. **We measured/documented the impact.** (Metrics below, filled in only with real data.)
 
 ## Required Supporting Documents (create alongside fieldwork, not fabricated in advance)
-- `docs/FIELDWORK_GUIDE.md` — what to record per site visit (name, location, food category,
-  dietary suitability, price range, operating status, photo with permission, date checked,
-  source, notes).
+- `docs/FIELDWORK_GUIDE.md` — **written (Phase 5, Task 5.0).** What to record per site
+  visit, what "verified" and each diet tag mean, how to capture coordinates, consent and
+  privacy rules, and how to enter a place in the Firebase Console.
 - `docs/COMMUNITY_SURVEY.md` — survey questions for vegan/vegetarian/Jain/eggetarian
   students, hostel residents, general users, and vendors. Target roughly 100–150
   respondents for the survey and 8–15 short interviews, as an exploratory (not
   statistically representative) sample.
-- `research/place_data_template.csv` — the exact fields fieldwork entries must capture
-  before they go into Firestore.
+- `research/place_data_template.csv` — **created (Phase 5, Task 5.0), headers only.** The
+  exact fields fieldwork entries must capture before they go into Firestore. Keep filled
+  ledgers in a private Google Sheet: the repository is public, and `.gitignore` blocks any
+  other file in `research/`.
 
 ## Ethics & Consent (non-negotiable)
 - Tell participants plainly this is a college project, not a company.

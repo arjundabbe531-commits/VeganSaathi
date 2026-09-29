@@ -153,9 +153,9 @@ function renderMapMarkers(places) {
   places.forEach(function (place) {
     const marker = L.marker([place.latitude, place.longitude]).addTo(vsMap);
     marker.bindPopup(
-      "<strong>" + place.name + "</strong><br>" +
-      capitalize(place.placeType) + "<br>" +
-      '<a href="place-details.html?id=' + place.id + '">View details</a>'
+      "<strong>" + escapeHtml(place.name) + "</strong><br>" +
+      escapeHtml(capitalize(place.placeType)) + "<br>" +
+      '<a href="' + escapeHtml(placeDetailsUrl(place.id)) + '">View details</a>'
     );
     vsMapMarkers.push(marker);
   });

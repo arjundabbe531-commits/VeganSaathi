@@ -146,11 +146,3 @@ const MOCK_ADMIN_REPORTS = [
 ];
 
 const MOCK_ADMIN_REVIEWS = MOCK_REVIEWS;
-
-/* Diet tag → label/color class lookup, shared by components.js */
-const DIET_TAG_LABELS = {
-  vegan: { label: "Vegan", cssClass: "vs-badge-vegan" },
-  vegetarian: { label: "Vegetarian", cssClass: "vs-badge-vegetarian" },
-  eggetarian: { label: "Eggetarian", cssClass: "vs-badge-eggetarian" },
-  jain: { label: "Jain", cssClass: "vs-badge-jain" }
-};

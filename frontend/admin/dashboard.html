@@ -109,26 +109,26 @@
     document.getElementById("statUsers").textContent = MOCK_ADMIN_STATS.totalUsers;
 
     document.getElementById("pendingTableBody").innerHTML = MOCK_ADMIN_PENDING.map(function (p) {
-      return "<tr><td>" + p.name + "</td><td>" + p.submittedBy + "</td><td>" + p.submittedAt + "</td>" +
+      return "<tr><td>" + escapeHtml(p.name) + "</td><td>" + escapeHtml(p.submittedBy) + "</td><td>" + escapeHtml(p.submittedAt) + "</td>" +
         '<td><button class="btn btn-vs-primary btn-sm" disabled title="Approve/Reject connects to Firestore in Phase 7">Approve</button> ' +
         '<button class="btn btn-vs-outline btn-sm" disabled title="Approve/Reject connects to Firestore in Phase 7">Reject</button></td></tr>';
     }).join("");
 
     document.getElementById("reportsTableBody").innerHTML = MOCK_ADMIN_REPORTS.map(function (r) {
-      return "<tr><td>" + r.placeName + "</td><td>" + r.reason + "</td><td>" + r.status + "</td><td>" + r.reportedAt + "</td>" +
+      return "<tr><td>" + escapeHtml(r.placeName) + "</td><td>" + escapeHtml(r.reason) + "</td><td>" + escapeHtml(r.status) + "</td><td>" + escapeHtml(r.reportedAt) + "</td>" +
         '<td><button class="btn btn-vs-primary btn-sm" disabled title="Connects to Firestore in Phase 7">Resolve</button> ' +
         '<button class="btn btn-vs-outline btn-sm" disabled title="Connects to Firestore in Phase 7">Dismiss</button></td></tr>';
     }).join("");
 
     document.getElementById("reviewsAdminList").innerHTML = MOCK_ADMIN_REVIEWS.map(function (r) {
       return '<div class="d-flex justify-content-between align-items-center border-bottom py-2">' +
-        "<div><strong>" + r.userName + "</strong> — " + r.rating + "/5<br>" +
-        '<span class="text-muted-vs" style="font-size:0.85rem;">' + r.comment + "</span></div>" +
+        "<div><strong>" + escapeHtml(r.userName) + "</strong> — " + escapeHtml(r.rating) + "/5<br>" +
+        '<span class="text-muted-vs" style="font-size:0.85rem;">' + escapeHtml(r.comment) + "</span></div>" +
         '<button class="btn btn-vs-outline btn-sm" disabled title="Connects to Firestore in Phase 7">Remove</button></div>';
     }).join("");
 
     document.getElementById("verificationTableBody").innerHTML = MOCK_PLACES.map(function (p) {
-      return "<tr><td>" + p.name + "</td><td>" + renderVerificationBadge(p) + "</td><td>" + (p.lastVerifiedAt || "—") + "</td>" +
+      return "<tr><td>" + escapeHtml(p.name) + "</td><td>" + renderVerificationBadge(p) + "</td><td>" + escapeHtml(p.lastVerifiedAt || "—") + "</td>" +
         '<td><button class="btn btn-vs-primary btn-sm" disabled title="Connects to Firestore in Phase 7">Mark Re-Verified</button></td></tr>';
     }).join("");
   });

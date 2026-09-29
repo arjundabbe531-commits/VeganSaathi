@@ -93,8 +93,76 @@ function renderFooter() {
     "</div></footer>";
 }
 
+/* ---------------- Shared helpers ---------------- */
+
+// Escape text before it is placed inside an HTML string that will be assigned to
+// innerHTML. Once place/review data comes from Firestore (and, later, from
+// community submissions), any field could contain markup — this turns it into
+// harmless literal text. Do NOT use it for text assigned via textContent (that is
+// already safe, and escaping it too would show "&amp;" on screen).
+function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Turn a date-like value into "YYYY-MM-DD" (the same format the mock data already
+// displays, so nothing changes visually). Accepts a Firestore Timestamp (anything
+// with a toDate() method), a JS Date, an ISO-style string, or a millisecond number.
+// Returns "" when the value is missing or not a valid date.
+function formatDate(value) {
+  if (value === null || value === undefined || value === "") return "";
+
+  let date = null;
+  if (typeof value === "object" && typeof value.toDate === "function") {
+    date = value.toDate();
+  } else if (value instanceof Date) {
+    date = value;
+  } else if (typeof value === "string") {
+    // Already "YYYY-MM-DD..." — keep the date part as written. Re-parsing it with
+    // new Date() would treat it as UTC midnight and can shift the day locally.
+    const isoDate = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (isoDate) return isoDate[1];
+    date = new Date(value);
+  } else if (typeof value === "number") {
+    date = new Date(value);
+  }
+
+  if (!date || isNaN(date.getTime())) return "";
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return date.getFullYear() + "-" + month + "-" + day;
+}
+
+// Link to a place's detail page. The id is URL-encoded so an unusual id can't
+// break out of the query string.
+function placeDetailsUrl(placeId) {
+  const id = placeId === null || placeId === undefined ? "" : String(placeId);
+  return vsBase() + "place-details.html?id=" + encodeURIComponent(id);
+}
+
+// Text shown in the photo slot. Real photos arrive with the image phase (Cloudinary);
+// until then a place without a mock label says so plainly instead of "undefined".
+function placeImageLabel(place) {
+  return place.imageLabel ? place.imageLabel + " (mock photo)" : "No photo yet";
+}
+
 /* ---------------- Diet badges ---------------- */
+// Real configuration (not mock data), so it lives here rather than in mock-data.js:
+// removing mock-data.js from a page must never break the diet badges.
+const DIET_TAG_LABELS = {
+  vegan: { label: "Vegan", cssClass: "vs-badge-vegan" },
+  vegetarian: { label: "Vegetarian", cssClass: "vs-badge-vegetarian" },
+  eggetarian: { label: "Eggetarian", cssClass: "vs-badge-eggetarian" },
+  jain: { label: "Jain", cssClass: "vs-badge-jain" }
+};
+
 function renderDietBadges(dietTags) {
+  if (!Array.isArray(dietTags)) return "";
   return dietTags.map(function (tag) {
     const info = DIET_TAG_LABELS[tag];
     if (!info) return "";
@@ -104,10 +172,11 @@ function renderDietBadges(dietTags) {
 
 /* ---------------- Verification badge ---------------- */
 function renderVerificationBadge(place) {
-  if (place.verificationStatus === "verified" && place.lastVerifiedAt) {
+  const verifiedOn = formatDate(place.lastVerifiedAt);
+  if (place.verificationStatus === "verified" && verifiedOn) {
     return (
       '<span class="vs-verify"><span class="vs-verify__dot"></span>Verified — last checked ' +
-      place.lastVerifiedAt +
+      escapeHtml(verifiedOn) +
       "</span>"
     );
   }
@@ -116,40 +185,51 @@ function renderVerificationBadge(place) {
 
 /* ---------------- Place card ---------------- */
 function renderPlaceCard(place) {
-  const base = vsBase();
+  // Type and area are both optional-ish: join only the parts that exist so a place
+  // with no area doesn't render "Mess · undefined".
+  const metaText = [capitalize(place.placeType), place.area]
+    .filter(Boolean)
+    .map(escapeHtml)
+    .join(" &middot; ");
+  const priceText = place.priceRange ? capitalize(place.priceRange) : "Price not listed";
+
   return (
     '<div class="col-sm-6 col-lg-4">' +
     '<div class="vs-card vs-place-card">' +
-    '<div class="vs-place-card__image">' + place.imageLabel + " (mock photo)</div>" +
+    '<div class="vs-place-card__image">' + escapeHtml(placeImageLabel(place)) + "</div>" +
     '<div class="vs-place-card__body">' +
-    '<h3 class="vs-place-card__title">' + place.name + "</h3>" +
-    '<div class="vs-place-card__meta">' + capitalize(place.placeType) + " &middot; " + place.area + "</div>" +
+    '<h3 class="vs-place-card__title">' + escapeHtml(place.name) + "</h3>" +
+    '<div class="vs-place-card__meta">' + metaText + "</div>" +
     '<div>' + renderDietBadges(place.dietTags) + "</div>" +
     '<div class="d-flex justify-content-between align-items-center mt-1">' +
-    '<span class="text-muted-vs" style="font-size:0.85rem;">' + capitalize(place.priceRange) + "</span>" +
+    '<span class="text-muted-vs" style="font-size:0.85rem;">' + escapeHtml(priceText) + "</span>" +
     renderVerificationBadge(place) +
     "</div>" +
-    '<a href="' + base + "place-details.html?id=" + place.id + '" class="btn btn-vs-primary btn-sm mt-2">View Details</a>' +
+    '<a href="' + escapeHtml(placeDetailsUrl(place.id)) + '" class="btn btn-vs-primary btn-sm mt-2">View Details</a>' +
     "</div></div></div>"
   );
 }
 
 function capitalize(str) {
   if (!str) return "";
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  const text = String(str);
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /* ---------------- Review card ---------------- */
 function renderReviewCard(review) {
-  const stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
+  // Clamp to a whole number 0-5 so an unexpected value (e.g. a string or -1) can't
+  // make String.repeat() throw and take the whole reviews list down with it.
+  const rating = Math.max(0, Math.min(5, Math.round(Number(review.rating)) || 0));
+  const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
   return (
     '<div class="vs-card p-3 mb-2">' +
     '<div class="d-flex justify-content-between">' +
-    "<strong>" + review.userName + "</strong>" +
-    '<span aria-label="' + review.rating + ' out of 5 stars" style="color:#b8862f;">' + stars + "</span>" +
+    "<strong>" + escapeHtml(review.userName) + "</strong>" +
+    '<span aria-label="' + rating + ' out of 5 stars" style="color:#b8862f;">' + stars + "</span>" +
     "</div>" +
-    '<p class="mb-1">' + review.comment + "</p>" +
-    '<div class="text-muted-vs" style="font-size:0.78rem;">' + review.createdAt + "</div>" +
+    '<p class="mb-1">' + escapeHtml(review.comment) + "</p>" +
+    '<div class="text-muted-vs" style="font-size:0.78rem;">' + escapeHtml(formatDate(review.createdAt)) + "</div>" +
     "</div>"
   );
 }

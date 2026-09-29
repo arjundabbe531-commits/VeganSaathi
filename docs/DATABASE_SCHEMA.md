@@ -20,24 +20,70 @@ Document ID = Firebase Auth UID (so a user's auth account and profile share one 
 
 ## Collection: `places`
 
+**Document ID.** Team-seeded places use a **readable, stable slug** (lowercase letters,
+numbers, hyphens — e.g. `ssgmce-main-canteen`), typed in by hand in the Firebase Console.
+Once created a slug is **never renamed**, because reviews and reports will reference it.
+Community submissions (Phase 6) use auto-generated IDs.
+
 | Field | Type | Required | Purpose |
 |---|---|---|---|
-| name | string | yes | Place name |
-| description | string | no | Short description |
+| name | string | yes | Place name, 2–100 characters |
+| description | string | no | Short factual description, ≤ 500 characters |
 | placeType | string (enum) | yes | restaurant / mess / canteen / cafe / dhaba / other |
-| address | string | yes | Human-readable address |
-| latitude | number | yes | For map pin |
-| longitude | number | yes | For map pin |
-| dietTags | array<string> | yes | Subset of [vegan, vegetarian, eggetarian, jain] |
-| priceRange | string (enum) | no | budget / moderate / premium |
+| address | string | yes | Human-readable address. Free text; informal is fine for messes and hostels |
+| area | string | no | Short landmark/locality shown on cards (e.g. "near hostel gate"). More useful than a formal address in a small town |
+| latitude | number | yes | For map pin. 5 decimals. Validated client-side against a pilot bounding box to catch swapped values |
+| longitude | number | yes | For map pin. 5 decimals |
+| dietTags | array<string> | yes, non-empty | Subset of [vegan, vegetarian, eggetarian, jain]. A tag means **the team confirmed at least one real meal option meets that definition**. Tag every category that applies (a vegan place gets `vegan` **and** `vegetarian`); no implicit inference in code |
+| dietNotes | string | no | What the team was told, in plain words (e.g. dish-level caveats). The honesty layer that the tags alone cannot carry. ≤ 300 characters |
+| priceRange | string (enum) | no | budget / moderate / premium (thresholds agreed by the team — see `docs/FIELDWORK_GUIDE.md`). If missing, the UI shows "Price not listed" |
+| openingInfo | string | no | Free-text opening information, only if confirmed |
 | imageUrl | string | no | Cloudinary URL (future phase — not yet implemented) |
-| status | string (enum) | yes | pending / published / rejected — **admin-controlled** |
-| verificationStatus | string (enum) | yes | unverified / verified |
-| lastVerifiedAt | timestamp | no | Set only when admin marks re-verified |
-| submittedBy | string (uid) | yes | Reference to `users` doc — used by security rules for ownership checks |
+| status | string (enum) | yes | pending / published / rejected — **admin-controlled**. Controls visibility only |
+| verificationStatus | string (enum) | yes | unverified / verified. **admin-controlled** |
+| lastVerifiedAt | timestamp | conditional | **Required when `verificationStatus == "verified"`.** The date a team member physically visited and confirmed the details |
+| verificationNote | string | no | What was checked and how, ≤ 300 characters |
+| source | string (enum) | yes | `fieldwork` (entered by the team from a real visit) or `community` (submitted by a user, Phase 6). Powers the CEP metrics ("places researched via fieldwork" vs "community-submitted") |
+| submittedBy | string (uid) | yes | Reference to `users` doc — used by security rules for ownership checks. For team-seeded places, the uid of the teammate who entered it |
 | submittedByName | string | yes | Denormalized display name, captured at submission time, so the admin dashboard and public UI can show "submitted by X" without a second read of the `users` collection |
 | createdAt | timestamp | yes | |
 | updatedAt | timestamp | yes | |
+
+### Status and verification model
+
+`status` controls **visibility**. `verificationStatus` + `lastVerifiedAt` communicate **trust**.
+
+| `status` | `verificationStatus` | Meaning | Visible to visitors? |
+|---|---|---|---|
+| pending | unverified | Submitted, awaiting review | No |
+| published | unverified | Approved but not yet visited | Yes — shown as "Not yet verified" |
+| published | verified | Team visited on `lastVerifiedAt` | Yes — "Verified, last checked {date}" |
+| rejected | any | Declined | No |
+
+A `verified` document without `lastVerifiedAt` is invalid; the UI treats it as "Not yet
+verified".
+
+### Last-verified model and the 90-day freshness cue
+
+"Verified" means a team member **physically visited on the date shown and confirmed the
+listed details**. It is a statement about that date only, never a guarantee.
+
+The UI may show a soft **"re-check due"** cue when `lastVerifiedAt` is more than **90 days**
+old. This cue is presentation only: it **never** changes `verificationStatus` automatically.
+Only a person, after a visit, changes verification data. The absolute date is always shown.
+
+### Validation notes
+
+- **Console writes bypass security rules**, so a wrong type or a wrongly capitalised enum
+  (`"Vegan"`) is not caught by the database. The Phase 5 data layer (`normalizePlace()`)
+  will skip invalid documents with a console warning instead of crashing the page.
+- **List queries must include `where("status", "==", "published")`.** Firestore rules are
+  not filters; a visitor's list query without it is rejected.
+- **`source` is not yet enforced by rules.** No client writes places until Phase 6; at that
+  point the create rule should pin `source == "community"` so the metric cannot be spoofed.
+- **Privacy:** `submittedBy` / `submittedByName` are readable by anyone on a published
+  place (rules work per document). Fine for team-seeded data; revisit before Phase 6
+  community submissions.
 
 ## Collection: `reviews`
 
