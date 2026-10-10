@@ -32,7 +32,7 @@ Community submissions (Phase 6) use auto-generated IDs.
 | placeType | string (enum) | yes | restaurant / mess / canteen / cafe / dhaba / other |
 | address | string | yes | Human-readable address. Free text; informal is fine for messes and hostels |
 | area | string | no | Short landmark/locality shown on cards (e.g. "near hostel gate"). More useful than a formal address in a small town |
-| latitude | number | yes | For map pin. 5 decimals. Validated client-side against a pilot bounding box to catch swapped values |
+| latitude | number | yes | For map pin. 5 decimals. Validated client-side against a pilot bounding box (lat 20.70–20.90, lon 76.55–76.80 — see `places-service.js`'s `PILOT_BOUNDS`) to catch swapped values |
 | longitude | number | yes | For map pin. 5 decimals |
 | dietTags | array<string> | yes, non-empty | Subset of [vegan, vegetarian, eggetarian, jain]. A tag means **the team confirmed at least one real meal option meets that definition**. Tag every category that applies (a vegan place gets `vegan` **and** `vegetarian`); no implicit inference in code |
 | dietNotes | string | no | What the team was told, in plain words (e.g. dish-level caveats). The honesty layer that the tags alone cannot carry. ≤ 300 characters |
@@ -75,8 +75,8 @@ Only a person, after a visit, changes verification data. The absolute date is al
 ### Validation notes
 
 - **Console writes bypass security rules**, so a wrong type or a wrongly capitalised enum
-  (`"Vegan"`) is not caught by the database. The Phase 5 data layer (`normalizePlace()`)
-  will skip invalid documents with a console warning instead of crashing the page.
+  (`"Vegan"`) is not caught by the database. `normalizePlace()` in `frontend/js/places-service.js`
+  skips invalid documents with a console warning instead of crashing the page.
 - **List queries must include `where("status", "==", "published")`.** Firestore rules are
   not filters; a visitor's list query without it is rejected.
 - **`source` is not yet enforced by rules.** No client writes places until Phase 6; at that

@@ -169,6 +169,11 @@ h1, h2, h3, h4 { font-weight: 700; color: var(--vs-text); }
   color: var(--vs-text-muted);
   font-style: italic;
 }
+.vs-verify-stale {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--vs-eggetarian);
+}
 
 /* ---------------- Sections ---------------- */
 .vs-section { padding: 3rem 0; }

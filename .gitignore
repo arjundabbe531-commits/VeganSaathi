@@ -24,3 +24,7 @@ Thumbs.db
 # Only the header-only research/place_data_template.csv belongs in the repository.
 research/*
 !research/place_data_template.csv
+
+# Python temporary files
+__pycache__/
+*.py[cod]

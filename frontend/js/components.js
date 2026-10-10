@@ -171,13 +171,27 @@ function renderDietBadges(dietTags) {
 }
 
 /* ---------------- Verification badge ---------------- */
+// 90-day soft "re-check due" cue (Phase 5 decision D5, docs/PHASE_5_PLAN.md).
+// Presentation only — never changes verificationStatus itself, and the
+// absolute verified date is always still shown alongside it.
+const VS_RECHECK_DUE_DAYS = 90;
+
+function isRecheckDue(lastVerifiedAt) {
+  if (!(lastVerifiedAt instanceof Date) || isNaN(lastVerifiedAt.getTime())) return false;
+  const ageMs = Date.now() - lastVerifiedAt.getTime();
+  return ageMs > VS_RECHECK_DUE_DAYS * 24 * 60 * 60 * 1000;
+}
+
 function renderVerificationBadge(place) {
   const verifiedOn = formatDate(place.lastVerifiedAt);
   if (place.verificationStatus === "verified" && verifiedOn) {
+    const staleNote = isRecheckDue(place.lastVerifiedAt instanceof Date ? place.lastVerifiedAt : null)
+      ? ' <span class="vs-verify-stale">(re-check due)</span>'
+      : "";
     return (
       '<span class="vs-verify"><span class="vs-verify__dot"></span>Verified — last checked ' +
       escapeHtml(verifiedOn) +
-      "</span>"
+      "</span>" + staleNote
     );
   }
   return '<span class="vs-verify unverified"><span class="vs-verify__dot"></span>Not yet verified</span>';

@@ -1,20 +1,78 @@
 /* ==========================================================================
    VeganSaathi — place-details.js
-   Reads ?id= from the URL and renders the matching mock place. No backend —
-   Save/Write Review/Report all show a clear "coming in a later phase"
-   message rather than pretending to persist anything.
+   ============================================================================
+   Task 5.5 — reads ?id= from the URL and fetches that place through
+   fetchPlaceById() in places-service.js — no direct Firestore access here,
+   no second Firebase initialization, and critically: no fallback to
+   MOCK_PLACES[0] or any other arbitrary place if the requested id doesn't
+   resolve. An unknown/invalid/inaccessible id shows an honest "not
+   available" state instead.
 
-   Phase 4: Save/Write Review/Report now require sign-in. Loaded as an ES
-   module so it can share the one auth-state listener with the rest of the
-   app (see auth-state.js) — browsing the place itself stays open to anyone.
+   Reviews and the Save button's "already saved?" check are explicitly OUT
+   of scope for this task (real Reviews/Saved Places are Phase 6) and still
+   read from MOCK_REVIEWS/MOCK_SAVED_PLACES as a preserved UI shell — this
+   degrades correctly on its own for a real place, since a real Firestore
+   id will simply never match any mock id, honestly showing "no reviews
+   yet" / "not saved" rather than fabricating either.
+
+   Loaded as an ES module (already was, since Phase 4) so it can share the
+   one auth-state listener with the rest of the app (see auth-state.js) —
+   browsing a place's details stays open to anyone; only the Save/Review/
+   Report actions require sign-in.
    ========================================================================== */
 
 import { onAuthChange, getCurrentUser } from "./auth-state.js";
+import { fetchPlaceById } from "./places-service.js";
 
 document.addEventListener("DOMContentLoaded", function () {
   const params = new URLSearchParams(window.location.search);
-  const id = params.get("id");
-  const place = MOCK_PLACES.find(function (p) { return p.id === id; }) || MOCK_PLACES[0];
+  const id = params.get("id"); // null if ?id= is missing entirely — fetchPlaceById() already treats that as not-found, no extra guard needed here
+
+  loadPlace(id);
+  onAuthChange(updateActionAvailability);
+});
+
+async function loadPlace(id) {
+  showPlaceState("loading");
+
+  let result;
+  try {
+    result = await fetchPlaceById(id);
+  } catch (error) {
+    // fetchPlaceById() is designed to catch its own errors and return a
+    // status instead of throwing, but guard here too in case something
+    // upstream (e.g. Firebase init itself) throws before that.
+    console.error("VeganSaathi Place Details: unexpected error loading place.", error);
+    showPlaceState("error");
+    return;
+  }
+
+  if (result.status === "not-found" || result.status === "invalid") {
+    // Both are shown the same way: from a visitor's perspective, "this
+    // document doesn't exist" and "this document exists but is malformed"
+    // both mean the same thing — there is nothing valid here to show them.
+    // (Distinguished only in developer-facing logging, never in the UI.)
+    if (result.status === "invalid") {
+      console.warn("VeganSaathi Place Details: place \"" + id + "\" exists but failed validation — see places-service.js's own warning above for the exact reason.");
+    }
+    showPlaceState("not-found");
+    return;
+  }
+
+  if (result.status === "permission-denied") {
+    console.error("VeganSaathi Place Details: Firestore denied the read (permission-denied) for place \"" + id + "\". Check firebase/firestore.rules and that they're actually deployed.");
+    showPlaceState("error");
+    return;
+  }
+
+  if (result.status === "error") {
+    console.error("VeganSaathi Place Details: failed to load place \"" + id + "\".", result.error);
+    showPlaceState("error");
+    return;
+  }
+
+  // result.status === "ok"
+  const place = result.place;
 
   renderPlaceDetail(place);
   renderReviewsFor(place.id);
@@ -25,8 +83,24 @@ document.addEventListener("DOMContentLoaded", function () {
   wireActionButtons(place);
   safelyInitDetailMap(place);
 
-  onAuthChange(updateActionAvailability);
-});
+  showPlaceState("content");
+}
+
+// Shows exactly one of the four page states; hides the other three.
+function showPlaceState(state) {
+  const ids = {
+    loading: "placeLoadingState",
+    notFound: "placeNotFoundState",
+    error: "placeErrorState",
+    content: "placeContent"
+  };
+  const targetId = state === "not-found" ? ids.notFound : ids[state];
+  Object.values(ids).forEach(function (elId) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.classList.toggle("d-none", elId !== targetId);
+  });
+}
 
 function safelyInitDetailMap(place) {
   try {
@@ -44,7 +118,10 @@ function safelyInitDetailMap(place) {
 function renderPlaceDetail(place) {
   document.title = place.name + " — VeganSaathi";
 
-  document.getElementById("placeImage").textContent = place.imageLabel + " (mock photo)";
+  // placeImageLabel() (components.js) already handles "no photo available"
+  // correctly for a real place (which has imageUrl, not the mock-only
+  // imageLabel field) — reused here rather than duplicated.
+  document.getElementById("placeImage").textContent = placeImageLabel(place);
   document.getElementById("placeName").textContent = place.name;
   document.getElementById("placeType").textContent = capitalize(place.placeType);
   document.getElementById("placeArea").textContent = place.area;
@@ -66,7 +143,13 @@ function renderReviewsFor(placeId) {
 }
 
 function initDetailMap(place) {
-  // DEVELOPMENT MOCK DATA — replace with field-verified locations before final deployment.
+  // place.latitude/longitude are real, normalized Firestore coordinates by
+  // the time this ever runs — normalizePlace() already rejects any place
+  // whose coordinates aren't valid numbers inside the pilot bounding box
+  // (places-service.js's PILOT_BOUNDS), so fetchPlaceById() would have
+  // returned "invalid" long before reaching here. No second coordinate
+  // check is duplicated in this file — that rule lives in exactly one
+  // place (places-service.js).
   const map = L.map("vs-detail-map", { scrollWheelZoom: false }).setView([place.latitude, place.longitude], 15);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",

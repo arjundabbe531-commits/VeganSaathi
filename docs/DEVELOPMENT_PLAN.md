@@ -76,7 +76,41 @@ Full approved plan: `docs/PHASE_5_PLAN.md` (decisions D1–D5 are settled there)
   90-day "re-check due" cue that never changes `verificationStatus` (D5).
 - Saved page shows an honest empty state until Phase 6 (D3).
 - **Task status:** 5.0 docs + fieldwork prerequisites — done. 5.1 shared-component hardening
-  — done (awaiting review). 5.2–5.8 — not started.
+  — done (awaiting review). Places data-access layer (`places-service.js`:
+  `fetchPublishedPlaces()`, `fetchPlaceById()`, `normalizePlace()`) — done, unit-tested
+  (`docs/PHASE_5_PLAN.md` calls this step "5.2"; the task that implemented it was labeled
+  "Task 5.1c" — same deliverable, two different numbers used in two places; not reconciled
+  here, flagged for the team to pick one). **Task 5.3 — Explore migrated to Firestore via
+  `places-service.js` — done, tested.** Loading/empty-database/no-results/error states,
+  search, filters, browser-side sort (verified-first, most-recent, name), and the 90-day
+  re-check-due cue (shared in `components.js`'s `renderVerificationBadge()`, display-only,
+  never touches `verificationStatus`) are all implemented and covered by
+  `tests/browser/test_explore_firestore.py`. Home/Place Details/Saved/Admin are still on
+  mock data — untouched by this task, remaining migration work for Tasks 5.4–5.7.
+  **A real test-infrastructure gap was closed this task:** the Phase 4 and Task 5.1b
+  browser-test suites had only ever existed in an unversioned scratch location, not in this
+  repository — anyone re-running "the existing regression suite" before now could not
+  actually have done so. Both are now committed at `tests/browser/test_phase4_regression.py`
+  and `tests/browser/test_5_1b_hardening.py`, runnable directly by anyone with Playwright
+  installed. Porting also surfaced a real correctness issue: the 5.1b suite's Explore XSS
+  check previously worked by mutating `MOCK_PLACES`, which Task 5.3 just made irrelevant to
+  that page — it's been corrected to inject through the Firestore stub instead, so it still
+  exercises Explore's actual rendering path rather than silently passing without testing
+  anything. **Task 5.4 — Leaflet map robustness — done, tested.** A real `layerGroup`
+  (`vsMarkersLayer`) replaces manual marker-array tracking in `explore.js`; markers are
+  revalidated against `places-service.js`'s own `PILOT_BOUNDS` (now exported, not
+  duplicated) before creation; `invalidateSize()` fires on every List→Map switch, not just
+  the first. `tests/browser/test_5_4_map_robustness.py` (16/16) covers all 12 required
+  scenarios, including that `clearLayers()`/`invalidateSize()` each fire the correct number
+  of times across repeated switching, not just once.
+  **Task 5.5 — Place Details → Firestore — done, tested (stubbed/automated only).**
+  `place-details.js` reads `?id=`, calls `fetchPlaceById()` from `places-service.js`
+  (no fetch-all lookup, no `MOCK_PLACES[0]` fallback), and handles every service status
+  explicitly (not-found/invalid → "isn't available"; permission-denied/error →
+  "unable to load"). `tests/browser/test_place_details_firestore.py` passes 41/41 with a
+  stubbed Firestore SDK; no real-Firebase run has been made. Reviews and Save/Report remain
+  Phase 6 demo shells. **Task 5.6 — Home featured places on Firestore — is next, not
+  started.**
 - **Exit test:** filtering and search return correct results against real seed data; map
   pins match list entries; a signed-out visitor in an incognito window sees the published
   places and never a `pending` one.

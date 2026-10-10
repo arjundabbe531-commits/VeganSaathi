@@ -15,7 +15,18 @@
 
 <section class="vs-section">
   <div class="container">
-    <div class="row g-4">
+    <div id="placeLoadingState" class="vs-empty-state">
+      <p>Loading place details…</p>
+    </div>
+    <div id="placeNotFoundState" class="vs-empty-state d-none">
+      <p>This place isn't available. It may have been removed, or the link may be incorrect.</p>
+      <a href="explore.html" class="btn btn-vs-primary btn-sm">Back to Explore</a>
+    </div>
+    <div id="placeErrorState" class="vs-empty-state d-none">
+      <p>Unable to load this place right now. Please try again in a moment.</p>
+      <a href="explore.html" class="btn btn-vs-outline btn-sm">Back to Explore</a>
+    </div>
+    <div id="placeContent" class="row g-4 d-none">
       <div class="col-lg-7">
         <div class="vs-card mb-3">
           <div class="vs-place-card__image" id="placeImage" style="height:220px;"></div>
@@ -102,8 +113,8 @@
           <a href="explore.html" class="btn btn-vs-outline btn-sm">Back to Explore</a>
         </div>
       </div>
+      <p class="vs-mock-notice">Development note: the place details above are live from Firestore. Reviews and the Save button's saved/not-saved status are still local demo data — the real Reviews and Saved Places backend is Phase 6.</p>
     </div>
-    <p class="vs-mock-notice">Development note: this page is showing placeholder/mock data (place details, reviews) for frontend testing only.</p>
   </div>
 </section>
 
