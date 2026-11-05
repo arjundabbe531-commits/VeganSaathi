@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Indian Vegan Alternatives Guide — VeganSaathi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="../css/styles.css" rel="stylesheet">
+<script>
+  window.VS_BASE = "../";
+  window.VS_ACTIVE_PAGE = "alternatives";
+</script>
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<!-- Hero Section -->
+<section class="vs-section pb-4 bg-light border-bottom">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-8">
+        <div class="d-inline-flex align-items-center gap-2 mb-2 px-2 py-1 rounded bg-white border" style="font-size:0.75rem; font-weight:700; color:var(--vs-green-700);">
+          <span>INDIAN PLANT-BASED KITCHEN COMPANION</span>
+          <span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--vs-green-600);"></span>
+          <span class="text-muted">CEP RESEARCH INITIATIVE</span>
+        </div>
+        <h1 class="display-6 fw-bold mb-2" style="color:var(--vs-green-800);">Indian Vegan Alternatives Guide</h1>
+        <p class="lead text-secondary mb-3" style="font-size: 1.1rem;">
+          Navigating dairy-heavy Indian food traditions? Discover practical, affordable, and culturally authentic plant-based swaps for milk, paneer, dahi, ghee, chai, mithai, and eggs.
+        </p>
+        <div class="d-flex flex-wrap gap-2 text-muted small">
+          <span class="badge bg-white text-dark border px-2 py-1">🌾 Zero Dairy / Lactose-Free</span>
+          <span class="badge bg-white text-dark border px-2 py-1">🇮🇳 Authentic Indian Culinary Tips</span>
+          <span class="badge bg-white text-dark border px-2 py-1">💰 Pocket-Friendly Student Options</span>
+          <span class="badge bg-white text-dark border px-2 py-1">🥣 Homemade &amp; Store-Bought</span>
+        </div>
+      </div>
+      <div class="col-lg-4 d-none d-lg-block text-center">
+        <div class="p-4 bg-white rounded-3 shadow-sm border">
+          <div style="font-size: 3rem;">🫖🥛🍲</div>
+          <h5 class="fw-bold mt-2 mb-1" style="color: var(--vs-green-800);">Chai to Paneer</h5>
+          <p class="text-muted small mb-0">Learn how to brew curd-free soy chai, set thick peanut dahi, and make stretchy cashew mozzarella at home.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Filter and Search Section -->
+<section class="vs-section py-4">
+  <div class="container">
+    
+    <!-- Controls Bar -->
+    <div class="card p-3 shadow-sm border-0 mb-4" style="background-color: #ffffff; border-radius: 12px; border: 1px solid #e2ebe3 !important;">
+      <div class="row g-3 align-items-center">
+        <!-- Search Input -->
+        <div class="col-md-7 col-lg-8">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">🔍</span>
+            <input type="text" id="altSearchInput" class="form-control border-start-0" placeholder="Search by traditional food, ingredient, dish (e.g., chai, dahi, paneer, kheer)...">
+          </div>
+        </div>
+
+        <!-- Allergen Filter -->
+        <div class="col-md-5 col-lg-4">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0 small">Exclude Allergen:</span>
+            <select id="altAllergenSelect" class="form-select border-start-0">
+              <option value="">None (Show All)</option>
+              <option value="Soy">Exclude Soy</option>
+              <option value="Peanut">Exclude Peanuts</option>
+              <option value="Nut">Exclude Tree Nuts (Cashew/Almond)</option>
+              <option value="Gluten">Exclude Gluten</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="mt-3 pt-3 border-top">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small fw-semibold text-secondary text-uppercase" style="letter-spacing: 0.5px;">Browse by Food Category:</span>
+          <span id="altResultsCount" class="small text-muted fw-semibold">Loading alternatives…</span>
+        </div>
+        <div id="altCategoryPills" class="d-flex flex-wrap overflow-auto pb-1" style="max-height: 120px;">
+          <!-- Category buttons dynamically rendered -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div id="altGridContainer" class="row">
+      <!-- Alternative Cards dynamically rendered -->
+    </div>
+
+    <!-- Educational Footer Callout -->
+    <div class="mt-5 p-4 rounded-3 text-center" style="background-color: #f1f7f2; border: 1px solid #d8ebd9;">
+      <h4 class="fw-bold" style="color: var(--vs-green-800);">Have a favorite vegan swap or family recipe?</h4>
+      <p class="text-secondary mb-3" style="max-width: 650px; margin: 0 auto;">
+        VeganSaathi is a collaborative community initiative. If you make plant-based curd, butter, or sweets at home in Maharashtra, share your tips with fellow students and food lovers.
+      </p>
+      <div class="d-flex justify-content-center gap-3">
+        <a href="../submit-place.html" class="btn btn-vs-primary">Submit a Vegan Place</a>
+        <a href="../awareness/plant-based-indian-foods.html" class="btn btn-outline-secondary">Read Plant Foods Guide</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/mock-data.js"></script>
+<script src="../js/components.js"></script>
+<script type="module" src="../js/app.js"></script>
+<script type="module" src="../js/alternatives-page.js"></script>
+</body>
+</html>

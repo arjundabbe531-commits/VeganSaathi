@@ -24,9 +24,13 @@ function renderNavbar(activePage, user, isAdmin) {
   const links = [
     { key: "home", label: "Home", href: base + "index.html" },
     { key: "explore", label: "Explore", href: base + "explore.html" },
-    { key: "awareness", label: "Awareness", href: base + "awareness/what-is-veganism.html" },
-    { key: "community", label: "Community", href: base + "submit-place.html" }
+    { key: "alternatives", label: "Alternatives", href: base + "alternatives/index.html" },
+    { key: "awareness", label: "Awareness", href: base + "awareness/what-is-veganism.html" }
   ];
+
+  if (user) {
+    links.push({ key: "community", label: "Contribute", href: base + "submit-place.html" });
+  }
 
   const linkHtml = links.map(function (l) {
     const activeClass = l.key === activePage ? " active" : "";
@@ -77,6 +81,7 @@ function renderFooter() {
     '<div class="col-6 col-md-2">' +
     "<h5>Explore</h5><ul class=\"list-unstyled\">" +
     '<li><a href="' + base + 'explore.html">Find places</a></li>' +
+    '<li><a href="' + base + 'alternatives/index.html">Vegan alternatives</a></li>' +
     '<li><a href="' + base + 'submit-place.html">Submit a place</a></li>' +
     '<li><a href="' + base + 'saved.html">Saved places</a></li>' +
     "</ul></div>" +

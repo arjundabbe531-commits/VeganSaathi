@@ -52,8 +52,24 @@
       </div>
     </div>
 
-    <!-- Main Form -->
-    <div class="vs-card p-4 p-md-5">
+    <!-- Community Authentication Gate (shown for public visitors) -->
+    <div id="spAuthGate" class="vs-card p-4 p-md-5 text-center d-none" style="max-width:680px; margin:0 auto;">
+      <div class="mb-3" style="font-size:3rem;">🌱</div>
+      <h2 class="h4 mb-2" style="color:var(--vs-green-900);">Community Member Access Required</h2>
+      <p class="text-muted-vs mb-4" style="font-size:1rem; line-height:1.6;">
+        VeganSaathi is a student-led, community-verified initiative. To ensure the authenticity of local foodways and prevent spam, <strong>only registered community members</strong> can submit new listings, upload photos, and contribute reviews.
+      </p>
+      <div class="d-flex flex-column flex-sm-row justify-content-center gap-2 mb-3">
+        <a href="login.html" class="btn btn-vs-primary btn-lg px-4" id="spGateLoginBtn">Sign In to Submit a Place</a>
+        <a href="register.html" class="btn btn-vs-outline btn-lg px-4" id="spGateRegisterBtn">Join the Community</a>
+      </div>
+      <p class="text-muted-vs mb-0" style="font-size:0.875rem;">
+        Looking for food right now? <a href="explore.html" style="font-weight:600; color:var(--vs-green-700);">Explore verified places in Shegaon &amp; Maharashtra →</a>
+      </p>
+    </div>
+
+    <!-- Main Form Container (shown for authenticated community members) -->
+    <div id="spFormContainer" class="vs-card p-4 p-md-5">
       <form id="submitPlaceForm" novalidate>
         
         <!-- Group 1: Basic Information -->
@@ -176,38 +192,93 @@
           </div>
         </div>
 
-        <!-- Group 4: Photo Dropzone -->
+        <!-- Group 4: Place Photograph (Two Distinct Ways) -->
         <div class="mb-4 pb-3 border-bottom">
-          <h2 class="h6 text-uppercase text-muted-vs mb-3" style="letter-spacing:0.04em; font-weight:700;">4. Storefront / Menu Photo (Optional)</h2>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h6 text-uppercase text-muted-vs mb-0" style="letter-spacing:0.04em; font-weight:700;">4. Storefront / Menu Photo (Optional)</h2>
+            <span class="badge bg-light text-dark border" style="font-size:0.75rem;">Verified Media</span>
+          </div>
+          <p class="text-muted-vs mb-3" style="font-size:0.875rem;">
+            Provide a clear photo of the storefront, seating, or menu. You can either upload a photo directly or paste a direct image web link.
+          </p>
 
-          <div class="mb-3">
-            <label for="spPhoto" class="form-label" style="font-weight:600;">Select Image</label>
-            <input type="file" class="form-control" id="spPhoto" accept="image/jpeg,image/png,image/webp">
-            <div class="form-text">Storefront or menu photo (JPG, PNG, WebP up to 5 MB). Uploaded securely via Cloudinary.</div>
-            <div id="spPhotoFeedback" class="form-text text-danger d-none mt-1"></div>
+          <!-- Method Selection Tabs -->
+          <ul class="nav nav-pills vs-photo-nav-pills mb-3" id="photoMethodTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tabUploadPhoto" data-bs-toggle="pill" data-bs-target="#panelUploadPhoto" type="button" role="tab" aria-selected="true">
+                📁 Option A: Upload Photo
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tabUrlPhoto" data-bs-toggle="pill" data-bs-target="#panelUrlPhoto" type="button" role="tab" aria-selected="false">
+                🔗 Option B: Add from Web Address
+              </button>
+            </li>
+          </ul>
 
-            <!-- Image preview container -->
-            <div id="spPhotoPreviewContainer" class="vs-photo-preview-container d-none">
-              <img id="spPhotoPreviewImg" class="vs-photo-preview-img" alt="Photo preview" />
-              <div class="vs-photo-preview-info">
-                <span id="spPhotoFileName" class="text-truncate me-2 text-muted-vs" style="max-width:200px;"></span>
-                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" id="spRemovePhotoBtn" title="Remove selected photo">✕ Remove</button>
+          <div class="tab-content" id="photoMethodContent">
+            <!-- Option A: File Upload / Camera -->
+            <div class="tab-pane fade show active" id="panelUploadPhoto" role="tabpanel">
+              <div class="vs-dropzone p-4 text-center border rounded-3 bg-light" id="spDropzone">
+                <input type="file" class="d-none" id="spPhoto" accept="image/jpeg,image/png,image/webp" capture="environment">
+                <div class="mb-2" style="font-size:1.75rem;">📷</div>
+                <div class="fw-semibold mb-1">Click to select photo or drag and drop here</div>
+                <div class="text-muted-vs" style="font-size:0.8rem;">Supports JPG, PNG, or WebP up to 5 MB. Mobile camera supported.</div>
+                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="spSelectFileBtn">Browse Files…</button>
               </div>
             </div>
 
-            <!-- Upload Progress indicator -->
-            <div id="spUploadProgressContainer" class="vs-upload-progress-container d-none">
-              <div class="d-flex justify-content-between text-muted-vs" style="font-size:0.75rem;">
-                <span>Uploading photo…</span>
-                <span id="spUploadPercent">0%</span>
-              </div>
-              <div class="progress vs-upload-progress mt-1">
-                <div id="spProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            <!-- Option B: Direct Image Web URL -->
+            <div class="tab-pane fade" id="panelUrlPhoto" role="tabpanel">
+              <div class="p-3 border rounded-3 bg-light">
+                <label for="spImageUrlInput" class="form-label fw-semibold" style="font-size:0.875rem;">Direct Image Web Address (URL)</label>
+                <div class="input-group mb-2">
+                  <span class="input-group-text bg-white">🔗</span>
+                  <input type="url" class="form-control" id="spImageUrlInput" placeholder="https://example.com/photos/storefront.jpg">
+                  <button type="button" class="btn btn-vs-outline" id="spVerifyUrlBtn">Verify &amp; Preview</button>
+                </div>
+                <div class="text-muted-vs" style="font-size:0.8rem; line-height:1.4;">
+                  <strong>Important:</strong> Must be a direct link to an image file (e.g. ending in <code>.jpg</code>, <code>.png</code>, or <code>.webp</code>). Search result pages, Instagram/Facebook posts, or regular webpage links cannot be used.
+                </div>
+                <div id="spUrlFeedback" class="form-text mt-1 d-none"></div>
               </div>
             </div>
           </div>
 
-          <div class="mb-3">
+          <!-- Common Feedback & Verification Message -->
+          <div id="spPhotoFeedback" class="form-text text-danger d-none mt-2"></div>
+
+          <!-- Unified Image Preview Container -->
+          <div id="spPhotoPreviewContainer" class="vs-photo-preview-container d-none mt-3 p-3 border rounded-3 bg-white">
+            <div class="d-flex align-items-center gap-3">
+              <img id="spPhotoPreviewImg" class="vs-photo-preview-img rounded" style="width:110px; height:80px; object-fit:cover; border:1px solid var(--vs-border);" alt="Place photo preview" />
+              <div class="flex-grow-1 overflow-hidden">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="badge bg-success text-white" id="spPhotoSourceBadge" style="font-size:0.75rem;">Photo Attached</span>
+                  <span id="spPhotoFileName" class="text-truncate fw-semibold" style="font-size:0.85rem; max-width:260px;"></span>
+                </div>
+                <div class="text-muted-vs mb-2" id="spPhotoStatusNote" style="font-size:0.75rem;">Ready to attach to your submission.</div>
+                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" id="spRemovePhotoBtn" style="font-size:0.8rem;">✕ Remove / Replace Photo</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload Progress indicator -->
+          <div id="spUploadProgressContainer" class="vs-upload-progress-container d-none mt-2">
+            <div class="d-flex justify-content-between text-muted-vs" style="font-size:0.75rem;">
+              <span id="spUploadStatusText">Processing media…</span>
+              <span id="spUploadPercent">0%</span>
+            </div>
+            <div class="progress vs-upload-progress mt-1">
+              <div id="spProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+          </div>
+
+          <div class="form-text mt-2" style="font-size:0.75rem; color:#6b7280;">
+            ⚖️ <strong>Ethics &amp; Copyright:</strong> Please only contribute photos you captured yourself or have permission to share. Do not upload copyrighted images from commercial delivery platforms.
+          </div>
+
+          <div class="mb-3 mt-3">
             <label for="spNotes" class="form-label" style="font-weight:600;">Optional reviewer notes</label>
             <textarea class="form-control" id="spNotes" rows="2" placeholder="Private tips for our field inspection team (e.g. best time to visit, owner contact)"></textarea>
           </div>
@@ -217,9 +288,6 @@
         <button type="submit" class="btn btn-vs-primary btn-lg w-100 py-2" id="submitPlaceBtn">
           Submit Place for Verification →
         </button>
-        <p id="submitPlaceAuthNote" class="text-muted-vs mt-2 text-center d-none" style="font-size:0.9rem;">
-          <a href="login.html" style="font-weight:700;">Sign in</a> to submit a place.
-        </p>
         <div id="submitPlaceFeedback" class="vs-form-note mt-3 d-none"></div>
       </form>
     </div>

@@ -9,7 +9,9 @@ import {
   validateImageFile,
   buildOptimizedImageUrl,
   isValidCloudinaryUrl,
-  uploadImageToCloudinary
+  uploadImageToCloudinary,
+  validateDirectImageUrl,
+  uploadRemoteImageToCloudinary
 } from "../frontend/js/cloudinary-service.js";
 import { CLOUDINARY_CONFIG } from "../frontend/js/cloudinary-config.js";
 
@@ -364,6 +366,80 @@ await asyncTest("uploadImageToCloudinary: handles XHR abort cancellation gracefu
     assert.match(res.error, /cancelled/i);
   } finally {
     globalThis.XMLHttpRequest = originalXHR;
+    CLOUDINARY_CONFIG.isConfigured = false;
+  }
+});
+
+/* ==========================================================================
+   Remote Image & URL Ingestion Tests (Priority 1)
+   ========================================================================== */
+
+test("validateDirectImageUrl: rejects missing or non-string inputs", () => {
+  assert.equal(validateDirectImageUrl("").valid, false);
+  assert.equal(validateDirectImageUrl(null).valid, false);
+  assert.equal(validateDirectImageUrl(undefined).valid, false);
+  assert.equal(validateDirectImageUrl(123).valid, false);
+});
+
+test("validateDirectImageUrl: rejects unsafe schemes and non-HTTPS URLs", () => {
+  assert.equal(validateDirectImageUrl("javascript:alert(1)").valid, false);
+  assert.equal(validateDirectImageUrl("data:image/png;base64,123").valid, false);
+  assert.equal(validateDirectImageUrl("file:///C:/secret.png").valid, false);
+  assert.equal(validateDirectImageUrl("http://example.com/photo.jpg").valid, false);
+});
+
+test("validateDirectImageUrl: rejects web pages, search results, and video links", () => {
+  assert.equal(validateDirectImageUrl("https://www.google.com/search?q=vegan+food").valid, false);
+  assert.equal(validateDirectImageUrl("https://www.instagram.com/p/abc123/").valid, false);
+  assert.equal(validateDirectImageUrl("https://www.youtube.com/watch?v=12345").valid, false);
+  assert.equal(validateDirectImageUrl("https://en.wikipedia.org/wiki/Veganism").valid, false);
+});
+
+test("validateDirectImageUrl: accepts valid direct HTTPS images and CDNs", () => {
+  assert.equal(validateDirectImageUrl("https://example.com/photos/dosa.jpg").valid, true);
+  assert.equal(validateDirectImageUrl("https://example.com/photos/curd.png").valid, true);
+  assert.equal(validateDirectImageUrl("https://example.com/photos/mithai.webp").valid, true);
+  assert.equal(validateDirectImageUrl("https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800").valid, true);
+  assert.equal(validateDirectImageUrl("https://res.cloudinary.com/vegansaathi/image/upload/v1/dish.jpg").valid, true);
+});
+
+await asyncTest("uploadRemoteImageToCloudinary: rejects invalid remote URL before network request", async () => {
+  const res = await uploadRemoteImageToCloudinary("javascript:void(0)");
+  assert.equal(res.success, false);
+  assert.match(res.error, /unsafe url scheme|invalid/i);
+});
+
+await asyncTest("uploadRemoteImageToCloudinary: unconfigured/demo mode returns mock result safely", async () => {
+  CLOUDINARY_CONFIG.isConfigured = false;
+  const res = await uploadRemoteImageToCloudinary("https://images.unsplash.com/photo-1540420773420-3366772f4999");
+  assert.equal(res.success, true);
+  assert.equal(res.isMock, true);
+});
+
+await asyncTest("uploadRemoteImageToCloudinary: posts valid remote URL when configured", async () => {
+  CLOUDINARY_CONFIG.isConfigured = true;
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (url, options) => {
+    assert.match(url, /api\.cloudinary\.com/);
+    assert.equal(options.method, "POST");
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        secure_url: "https://res.cloudinary.com/vegansaathi/image/upload/v999/vegansaathi/places/remote_mirror.jpg",
+        public_id: "vegansaathi/places/remote_mirror"
+      })
+    };
+  };
+
+  try {
+    const res = await uploadRemoteImageToCloudinary("https://example.com/my-vegan-dish.jpg");
+    assert.equal(res.success, true);
+    assert.equal(res.isMock, false);
+    assert.equal(res.secureUrl, "https://res.cloudinary.com/vegansaathi/image/upload/v999/vegansaathi/places/remote_mirror.jpg");
+  } finally {
+    globalThis.fetch = originalFetch;
     CLOUDINARY_CONFIG.isConfigured = false;
   }
 });

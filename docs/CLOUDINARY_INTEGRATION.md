@@ -223,3 +223,30 @@ When the team creates their free Cloudinary account:
    - Exif data: `Discard Exif data` (checked)
 5. Save preset.
 6. Update `cloudName` and `isConfigured: true` in `frontend/js/cloudinary-config.js`.
+
+---
+
+## 9. Web Image Address Ingestion & Dual Photo Experience
+
+### 9.1 The Problem Solved
+Community submitters frequently find place photographs from restaurant menus, reviews, or photo galleries online. Pasting arbitrary web links previously resulted in validation failures or broken previews because:
+1. Pasted URLs were often full HTML web pages (e.g., Google Search result links, Instagram posts, YouTube videos) rather than direct image binaries.
+2. The submission pipeline previously rejected non-file inputs or strictly required pre-existing `res.cloudinary.com` addresses.
+
+### 9.2 Architecture of the Solution
+The Submit Place interface provides two clearly demarcated, mutual options:
+- **Option A (Device Upload / Camera / Dropzone):**
+  - Allows selecting from local device storage, mobile camera, or drag-and-drop.
+  - Progress bar indicates client-to-Cloudinary upload status.
+- **Option B (Direct Image Web Address):**
+  - Text input for pasting direct image URLs.
+  - Client-side pre-validation via `validateDirectImageUrl(url)` detects and rejects HTML webpage links, search engine wrappers, and video sites, providing immediate, actionable guidance.
+  - Live pre-flight render via an in-memory `new Image()` verifies that the image is publicly accessible and not blocked by remote hotlinking / CORS protections.
+  - During form submission, `uploadRemoteImageToCloudinary(url)` dispatches the verified URL to Cloudinary's remote upload API (`file: <remote_url>`), creating an optimized, permanently hosted asset on Cloudinary.
+  - If Cloudinary is unconfigured (demo mode) or remote mirroring encounters restrictive CORS headers, the system safely falls back without crashing, informing the submitter.
+
+### 9.3 Unified Preview Card
+Regardless of whether Option A or Option B is used, a single unified preview card displays:
+- A rendered image preview with responsive aspect-ratio containment.
+- File metadata (file name and size for local uploads; host domain and pixel dimensions for web URLs).
+- A single "Remove Photo" control that completely resets both inputs and preview states.

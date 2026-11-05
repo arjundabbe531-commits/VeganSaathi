@@ -15,7 +15,12 @@
 
 import { onAuthChange, getCurrentUser } from "./auth-state.js";
 import { submitCommunityPlace, COORD_BOUNDS } from "./places-service.js";
-import { validateImageFile, uploadImageToCloudinary } from "./cloudinary-service.js";
+import {
+  validateImageFile,
+  uploadImageToCloudinary,
+  validateDirectImageUrl,
+  uploadRemoteImageToCloudinary
+} from "./cloudinary-service.js";
 
 // Default map view when no user location is known — centred on India at a
 // continent-level zoom so any place in the country is reachable without
@@ -59,75 +64,231 @@ function setCoordFeedback(msg) {
 }
 
 let selectedPhotoFile = null;
+let verifiedWebImageUrl = "";
 let photoPreviewObjectUrl = null;
 
 function clearPhotoSelection() {
   selectedPhotoFile = null;
-  const input = document.getElementById("spPhoto");
-  if (input) input.value = "";
+  verifiedWebImageUrl = "";
+
+  const fileInput = document.getElementById("spPhoto");
+  if (fileInput) fileInput.value = "";
+
+  const urlInput = document.getElementById("spImageUrlInput");
+  if (urlInput) urlInput.value = "";
+
   const preview = document.getElementById("spPhotoPreviewContainer");
   if (preview) preview.classList.add("d-none");
+
   const previewImg = document.getElementById("spPhotoPreviewImg");
   if (previewImg) previewImg.src = "";
+
+  const sourceInfo = document.getElementById("spPhotoSourceInfo");
+  if (sourceInfo) sourceInfo.textContent = "";
+
   const feedback = document.getElementById("spPhotoFeedback");
   if (feedback) {
     feedback.textContent = "";
     feedback.classList.add("d-none");
   }
+
+  const urlFeedback = document.getElementById("spUrlFeedback");
+  if (urlFeedback) {
+    urlFeedback.textContent = "";
+    urlFeedback.classList.add("d-none");
+  }
+
   const progressCont = document.getElementById("spUploadProgressContainer");
   if (progressCont) progressCont.classList.add("d-none");
+
   const progressBar = document.getElementById("spProgressBar");
   if (progressBar) progressBar.style.width = "0%";
+
   const progressPercent = document.getElementById("spUploadPercent");
   if (progressPercent) progressPercent.textContent = "0%";
+
   if (photoPreviewObjectUrl && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
     URL.revokeObjectURL(photoPreviewObjectUrl);
     photoPreviewObjectUrl = null;
   }
 }
 
-function wirePhotoUpload() {
-  const input = document.getElementById("spPhoto");
+function handleLocalFile(file) {
   const feedback = document.getElementById("spPhotoFeedback");
   const previewCont = document.getElementById("spPhotoPreviewContainer");
   const previewImg = document.getElementById("spPhotoPreviewImg");
-  const fileNameSpan = document.getElementById("spPhotoFileName");
-  const removeBtn = document.getElementById("spRemovePhotoBtn");
+  const sourceInfo = document.getElementById("spPhotoSourceInfo");
 
-  if (!input) return;
+  if (!file) return;
 
-  input.addEventListener("change", function () {
-    if (!input.files || input.files.length === 0) {
-      clearPhotoSelection();
-      return;
-    }
-
-    const file = input.files[0];
-    const validation = validateImageFile(file);
-    if (!validation.valid) {
-      if (feedback) {
-        feedback.textContent = validation.error;
-        feedback.classList.remove("d-none");
-      }
-      clearPhotoSelection();
-      return;
-    }
-
+  const validation = validateImageFile(file);
+  if (!validation.valid) {
     if (feedback) {
-      feedback.textContent = "";
-      feedback.classList.add("d-none");
+      feedback.textContent = validation.error;
+      feedback.classList.remove("d-none");
+    }
+    clearPhotoSelection();
+    return;
+  }
+
+  if (feedback) {
+    feedback.textContent = "";
+    feedback.classList.add("d-none");
+  }
+
+  // Clear any web URL when selecting a file
+  verifiedWebImageUrl = "";
+  const urlInput = document.getElementById("spImageUrlInput");
+  if (urlInput) urlInput.value = "";
+
+  selectedPhotoFile = file;
+
+  if (typeof URL !== "undefined" && typeof URL.createObjectURL === "function") {
+    if (photoPreviewObjectUrl) URL.revokeObjectURL(photoPreviewObjectUrl);
+    photoPreviewObjectUrl = URL.createObjectURL(file);
+    if (previewImg) previewImg.src = photoPreviewObjectUrl;
+  }
+
+  if (sourceInfo) {
+    sourceInfo.textContent = "Device photo: " + file.name + " (" + (file.size / 1024).toFixed(0) + " KB)";
+  }
+
+  if (previewCont) previewCont.classList.remove("d-none");
+}
+
+function handleWebImageUrl(rawUrl) {
+  const urlFeedback = document.getElementById("spUrlFeedback");
+  const previewCont = document.getElementById("spPhotoPreviewContainer");
+  const previewImg = document.getElementById("spPhotoPreviewImg");
+  const sourceInfo = document.getElementById("spPhotoSourceInfo");
+
+  const trimmed = (rawUrl || "").trim();
+  if (!trimmed) {
+    if (urlFeedback) {
+      urlFeedback.textContent = "Please enter or paste an image URL.";
+      urlFeedback.classList.remove("d-none");
+      urlFeedback.style.color = "#8a2f2f";
+    }
+    return;
+  }
+
+  const validation = validateDirectImageUrl(trimmed);
+  if (!validation.valid) {
+    if (urlFeedback) {
+      urlFeedback.textContent = validation.error;
+      urlFeedback.classList.remove("d-none");
+      urlFeedback.style.color = "#8a2f2f";
+    }
+    return;
+  }
+
+  if (urlFeedback) {
+    urlFeedback.textContent = "Verifying direct image accessibility…";
+    urlFeedback.classList.remove("d-none");
+    urlFeedback.style.color = "#2f6b3f";
+  }
+
+  // Test loading image in the browser to ensure it's not a broken or 404/hotlinked-blocked URL
+  const testImg = new Image();
+  testImg.onload = function () {
+    // Clear local file if any
+    selectedPhotoFile = null;
+    const fileInput = document.getElementById("spPhoto");
+    if (fileInput) fileInput.value = "";
+    if (photoPreviewObjectUrl && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+      URL.revokeObjectURL(photoPreviewObjectUrl);
+      photoPreviewObjectUrl = null;
     }
 
-    selectedPhotoFile = file;
-    if (fileNameSpan) fileNameSpan.textContent = file.name;
+    verifiedWebImageUrl = trimmed;
 
-    if (typeof URL !== "undefined" && typeof URL.createObjectURL === "function") {
-      if (photoPreviewObjectUrl) URL.revokeObjectURL(photoPreviewObjectUrl);
-      photoPreviewObjectUrl = URL.createObjectURL(file);
-      if (previewImg) previewImg.src = photoPreviewObjectUrl;
+    if (urlFeedback) {
+      urlFeedback.textContent = "Image verified successfully!";
+      urlFeedback.style.color = "#2f6b3f";
+    }
+
+    if (previewImg) previewImg.src = trimmed;
+    if (sourceInfo) {
+      try {
+        const u = new URL(trimmed);
+        sourceInfo.textContent = "Web Image: " + u.hostname + " (" + testImg.naturalWidth + "×" + testImg.naturalHeight + "px)";
+      } catch (e) {
+        sourceInfo.textContent = "Web Image verified";
+      }
     }
     if (previewCont) previewCont.classList.remove("d-none");
-  });
+  };
+
+  testImg.onerror = function () {
+    if (urlFeedback) {
+      urlFeedback.textContent = "Unable to load image from this address. The link may be broken, private, or protected against direct hotlinking by the host server.";
+      urlFeedback.style.color = "#8a2f2f";
+    }
+  };
+
+  testImg.src = trimmed;
+}
+
+function wirePhotoUpload() {
+  const fileInput = document.getElementById("spPhoto");
+  const selectFileBtn = document.getElementById("spSelectFileBtn");
+  const dropzone = document.getElementById("spDropzone");
+  const removeBtn = document.getElementById("spRemovePhotoBtn");
+  const urlInput = document.getElementById("spImageUrlInput");
+  const verifyUrlBtn = document.getElementById("spVerifyUrlBtn");
+
+  if (selectFileBtn && fileInput) {
+    selectFileBtn.addEventListener("click", function () {
+      fileInput.click();
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener("change", function () {
+      if (!fileInput.files || fileInput.files.length === 0) {
+        clearPhotoSelection();
+        return;
+      }
+      handleLocalFile(fileInput.files[0]);
+    });
+  }
+
+  if (dropzone) {
+    dropzone.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      dropzone.classList.add("border-success");
+      dropzone.style.backgroundColor = "#e8f3ea";
+    });
+
+    dropzone.addEventListener("dragleave", function (e) {
+      e.preventDefault();
+      dropzone.classList.remove("border-success");
+      dropzone.style.backgroundColor = "#f9fbf9";
+    });
+
+    dropzone.addEventListener("drop", function (e) {
+      e.preventDefault();
+      dropzone.classList.remove("border-success");
+      dropzone.style.backgroundColor = "#f9fbf9";
+
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleLocalFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
+
+  if (verifyUrlBtn && urlInput) {
+    verifyUrlBtn.addEventListener("click", function () {
+      handleWebImageUrl(urlInput.value);
+    });
+
+    urlInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleWebImageUrl(urlInput.value);
+      }
+    });
+  }
 
   if (removeBtn) {
     removeBtn.addEventListener("click", function () {
@@ -139,10 +300,26 @@ function wirePhotoUpload() {
 function updateGuardUI(user) {
   const btn = document.getElementById("submitPlaceBtn");
   const note = document.getElementById("submitPlaceAuthNote");
-  if (!btn || !note) return;
+  const authGate = document.getElementById("spAuthGate");
+  const formContainer = document.getElementById("spFormContainer");
 
   const signedIn = !!user;
-  btn.disabled = !signedIn;
+
+  if (authGate) {
+    authGate.classList.toggle("d-none", signedIn);
+  }
+  if (formContainer) {
+    formContainer.classList.toggle("d-none", !signedIn);
+  }
+
+  if (btn) {
+    btn.disabled = !signedIn;
+    btn.title = signedIn ? "" : "Sign in to submit a place";
+  }
+  if (note) {
+    note.classList.toggle("d-none", signedIn);
+  }
+}
   btn.title = signedIn ? "" : "Sign in to submit a place";
   note.classList.toggle("d-none", signedIn);
 }
@@ -318,6 +495,20 @@ function wireSubmitPlaceForm() {
           );
         } else {
           uploadedImageUrl = uploadResult.secureUrl || "";
+        }
+      } else if (verifiedWebImageUrl) {
+        submitBtn.textContent = "Processing image…";
+        try {
+          const remoteResult = await uploadRemoteImageToCloudinary(verifiedWebImageUrl);
+          if (remoteResult && remoteResult.success && !remoteResult.isMock && remoteResult.secureUrl) {
+            uploadedImageUrl = remoteResult.secureUrl;
+          } else {
+            // Direct URL verified and accepted
+            uploadedImageUrl = verifiedWebImageUrl;
+          }
+        } catch (e) {
+          // Fallback to direct verified URL
+          uploadedImageUrl = verifiedWebImageUrl;
         }
       }
 

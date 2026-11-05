@@ -1,23 +1,47 @@
 # TEST_RESULTS.md — VeganSaathi
 
-## Canonical test count (current) — read this first
+## Canonical test count (Candidate Baseline 2026-11-05) — read this first
 
 | Category | Count | How it is produced |
 |---|---|---|
-| Node unit test checks (PASS lines) | 149 | `test-places-service.mjs` 43 + `test-admin-service.mjs` 30 + `test-geolocation.mjs` 14 + `test-import-validator.mjs` 23 + `test-cloudinary-service.mjs` 25 + `test-controlled-integration.mjs` 14 |
-| Browser test checks (PASS lines) | 245 | 17 + 16 + 21 + 66 + 28 + 38 + 41 + 18 across 8 Playwright suites (100% PASS on Windows host via Playwright Chromium/Edge) |
-| Static gates (pass/fail, one each) | 2 | duplicate-global checker across 16 pages (`check-duplicate-globals.js`); rules-fixture consistency check (`check_fixture_static.py`) |
-| `node --check` syntax pass | 39 files | All JS/MJS syntax valid. |
-| Firestore Emulator Security Rules | 62 | 50 current-behaviour (`firestore.rules.test.mjs`) + 12 proposed R1–R3 (`firestore.rules.proposed.test.mjs`) cases (100% PASS on local Firestore emulator) |
-| **Total Automated Local Verifications** | **497** | 149 unit + 245 browser + 2 static gates + 39 syntax + 62 emulator security rules checks. 100% PASS. |
-| **Explicitly unverified / deferred** | Live Cloudinary + Live Firebase | Live Cloudinary upload (isConfigured: false pending authorization); live Firestore project writes & production deployment to `vegansaathi-88d2f`. |
+| Node unit test checks (PASS lines) | **162** | `test-places-service.mjs` (43) + `test-admin-service.mjs` (30) + `test-cloudinary-service.mjs` (32) + `test-geolocation.mjs` (14) + `test-import-validator.mjs` (23) + `test-controlled-integration.mjs` (14) + `test-alternatives.mjs` (6) |
+| Browser test checks (PASS lines) | **245** | 17 + 16 + 21 + 66 + 28 + 38 + 41 + 18 across 8 Playwright suites (100% PASS on Windows host via Microsoft Edge / Playwright) |
+| Static gates (pass/fail, one each) | **2** | duplicate-global checker across 17 pages (`check-duplicate-globals.js`); rules-fixture consistency check (`check_fixture_static.py`) |
+| `node --check` syntax pass | **42 files** | All JS/MJS syntax valid (0 syntax errors). |
+| Firestore Emulator Security Rules | **62** | 50 current-behaviour (`firestore.rules.test.mjs`) + 12 proposed R1–R3 (`firestore.rules.proposed.test.mjs`) cases |
+| **Total Automated Local Verifications** | **513** | 162 unit + 245 browser + 2 static gates + 42 syntax + 62 emulator security rules checks. 100% PASS. |
+| **Explicitly unverified / deferred** | Live Cloudinary + Live Firebase | Live Cloudinary upload (isConfigured: false pending production credentials); live Firestore project writes & production deployment to `vegansaathi-88d2f`. |
 
-Historical figures in this file (310, 278, 227, 288, 125, 106, 96, 82) come from earlier runs and the original handoff. They are updated by the Technovate Phase 4 audit and implementation below.
+---
 
+## 1. Summary of Recent Improvements (November 2026 Candidate Update)
 
-*Recorded at the end of Phase 9 (QA Pass). This document is the single source of truth for
-automated test coverage and results. All numbers were recorded from a clean run on
-2026-10-13 against the Phase 9 codebase.*
+1. **Cloudinary Dual Photo Workflow**:
+   - Added Option A (local file upload, camera, drag-and-drop with progress bar).
+   - Added Option B (direct image web address verification with client pre-flight checks and Cloudinary remote ingestion).
+   - Unified preview card with metadata readout and safe reset.
+   - Comprehensive test suite in `tests/test-cloudinary-service.mjs` (32 passed, 0 failed).
+
+2. **Community Access Gating**:
+   - Universal browsing for public visitors on Home, Explore, Alternatives, Awareness.
+   - Dynamic navbar configuration (`renderNavbar`) adapting to auth state.
+   - Explicit authentication gate card on `submit-place.html` (`#spAuthGate`) providing clear context and login/register redirect buttons.
+
+3. **Indian Vegan Alternatives Section**:
+   - Interactive reference covering 10 distinct Indian culinary categories (Dairy milk, paneer, dahi, ghee, butter, chai/coffee, sweets, cheese, malai, egg swaps).
+   - Client-side instant query engine supporting category pills, keyword search, and allergen exclusion.
+   - Verified by `tests/test-alternatives.mjs` (6 passed, 0 failed).
+
+4. **Performance & Caching Optimization**:
+   - `fetchPublishedPlaces`: in-memory and `sessionStorage` caching with 5-minute TTL. Repeat page loads drop from ~800ms network reads to <1ms in-memory cache hits.
+   - `fetchUserProfile`: cached profile reads eliminate redundant Firestore lookups on every page navigation.
+   - Explore skeleton loaders: animated shimmer cards replace blank loading spinners.
+   - Added explicit manual Refresh control on `explore.html`.
+
+5. **Maharashtra Regional Data Expansion**:
+   - Curated 22 high-fidelity research leads in `research/maharashtra_research_leads.csv` across 8 Maharashtra urban centers.
+   - Strict adherence to `research_lead` verification boundary.
+
 
 ---
 

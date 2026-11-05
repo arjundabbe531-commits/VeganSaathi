@@ -87,6 +87,10 @@
           title="Sort results by distance from your current location">
           📍 Use my location
         </button>
+        <button type="button" id="refreshPlacesBtn" class="btn btn-outline-secondary btn-sm"
+          title="Refresh listings from server">
+          🔄 Refresh
+        </button>
         <span id="locationNote" class="text-muted-vs d-none" style="font-size:0.85rem;"></span>
       </div>
       <div class="btn-group" role="group" aria-label="Toggle list or map view">
@@ -99,11 +103,51 @@
 
 <section class="vs-section pt-0">
   <div class="container">
-    <div id="loadingState" class="vs-empty-state">
-      <div class="spinner-border text-success mb-3" role="status" style="width:2.5rem; height:2.5rem;">
-        <span class="visually-hidden">Loading…</span>
+    <div id="loadingState">
+      <div class="text-center py-2 mb-3">
+        <div class="spinner-border text-success" role="status" style="width:1.8rem; height:1.8rem;">
+          <span class="visually-hidden">Loading…</span>
+        </div>
+        <p class="text-muted small mt-2 mb-0">Discovering conscious foodways…</p>
       </div>
-      <p>Loading places…</p>
+      <div class="row g-3">
+        <div class="col-md-6 col-lg-4">
+          <div class="vs-skeleton-card">
+            <div class="vs-skeleton mb-3" style="height: 140px; width: 100%;"></div>
+            <div class="vs-skeleton mb-2" style="height: 20px; width: 70%;"></div>
+            <div class="vs-skeleton mb-2" style="height: 14px; width: 45%;"></div>
+            <div class="vs-skeleton mb-3" style="height: 14px; width: 90%;"></div>
+            <div class="d-flex gap-2">
+              <div class="vs-skeleton" style="height: 24px; width: 60px; border-radius: 12px;"></div>
+              <div class="vs-skeleton" style="height: 24px; width: 75px; border-radius: 12px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="vs-skeleton-card">
+            <div class="vs-skeleton mb-3" style="height: 140px; width: 100%;"></div>
+            <div class="vs-skeleton mb-2" style="height: 20px; width: 60%;"></div>
+            <div class="vs-skeleton mb-2" style="height: 14px; width: 40%;"></div>
+            <div class="vs-skeleton mb-3" style="height: 14px; width: 85%;"></div>
+            <div class="d-flex gap-2">
+              <div class="vs-skeleton" style="height: 24px; width: 60px; border-radius: 12px;"></div>
+              <div class="vs-skeleton" style="height: 24px; width: 75px; border-radius: 12px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4 d-none d-lg-block">
+          <div class="vs-skeleton-card">
+            <div class="vs-skeleton mb-3" style="height: 140px; width: 100%;"></div>
+            <div class="vs-skeleton mb-2" style="height: 20px; width: 65%;"></div>
+            <div class="vs-skeleton mb-2" style="height: 14px; width: 50%;"></div>
+            <div class="vs-skeleton mb-3" style="height: 14px; width: 80%;"></div>
+            <div class="d-flex gap-2">
+              <div class="vs-skeleton" style="height: 24px; width: 60px; border-radius: 12px;"></div>
+              <div class="vs-skeleton" style="height: 24px; width: 75px; border-radius: 12px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="errorState" class="vs-empty-state d-none">
       <div style="font-size:2rem; margin-bottom:0.5rem;">⚠️</div>

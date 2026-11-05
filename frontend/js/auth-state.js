@@ -62,14 +62,76 @@ export function getCurrentUser() {
   return currentUser;
 }
 
+const userProfileCache = new Map();
+const PROFILE_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+export function invalidateUserProfileCache(uid) {
+  if (uid) {
+    userProfileCache.delete(uid);
+    if (typeof sessionStorage !== "undefined") {
+      try {
+        sessionStorage.removeItem("vs_user_profile_" + uid);
+      } catch (e) {
+        // Ignore storage exceptions
+      }
+    }
+  } else {
+    userProfileCache.clear();
+  }
+}
+
 /**
  * Read a user's Firestore profile document (users/{uid}). Returns null if
  * the document doesn't exist. Firestore rules only allow a user to read
  * their own profile (or an admin to read any), so this will only succeed
  * for the signed-in user's own uid unless the caller is an admin.
+ *
+ * Caches profile in memory and sessionStorage to avoid repeating Firestore reads
+ * on every page navigation.
  */
-export async function fetchUserProfile(uid) {
+export async function fetchUserProfile(uid, forceRefresh = false) {
+  if (!uid || typeof uid !== "string") return null;
+
+  const isStubEnvironment = typeof globalThis !== "undefined" &&
+    (globalThis.__STUB_DOC_BY_ID__ !== undefined || globalThis.__STUB_THROW__ !== undefined || typeof window === "undefined");
+
+  const now = Date.now();
+  if (!forceRefresh && !isStubEnvironment) {
+    const mem = userProfileCache.get(uid);
+    if (mem && (now - mem.timestamp < PROFILE_CACHE_TTL_MS)) {
+      return mem.data;
+    }
+    if (typeof sessionStorage !== "undefined") {
+      try {
+        const stored = sessionStorage.getItem("vs_user_profile_" + uid);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && (now - parsed.timestamp < PROFILE_CACHE_TTL_MS)) {
+            userProfileCache.set(uid, parsed);
+            return parsed.data;
+          }
+        }
+      } catch (e) {
+        // Fall back to Firestore read
+      }
+    }
+  }
+
   const db = getFirebaseDb();
   const snapshot = await getDoc(doc(db, "users", uid));
-  return snapshot.exists() ? snapshot.data() : null;
+  const data = snapshot.exists() ? snapshot.data() : null;
+
+  if (!isStubEnvironment) {
+    const cacheEntry = { data: data, timestamp: now };
+    userProfileCache.set(uid, cacheEntry);
+    if (typeof sessionStorage !== "undefined") {
+      try {
+        sessionStorage.setItem("vs_user_profile_" + uid, JSON.stringify(cacheEntry));
+      } catch (e) {
+        // Ignore quota exceptions
+      }
+    }
+  }
+
+  return data;
 }

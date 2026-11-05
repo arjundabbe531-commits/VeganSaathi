@@ -13,7 +13,7 @@
 
 import { getFirebaseDb } from "./firebase-init.js";
 import { fetchUserProfile } from "./auth-state.js";
-import { PILOT_BOUNDS, COORD_BOUNDS, normalizePlace, isValidImageUrl } from "./places-service.js";
+import { PILOT_BOUNDS, COORD_BOUNDS, normalizePlace, isValidImageUrl, isValidCloudinaryUrl } from "./places-service.js";
 import {
   collection,
   doc,
@@ -356,7 +356,7 @@ export async function updatePlaceByAdmin(placeId, fields, adminUser) {
   if (typeof fields.imageUrl === "string") {
     const rawImageUrl = fields.imageUrl.trim();
     if (rawImageUrl.length > 0) {
-      if (/^(javascript|data|vbscript|file):/i.test(rawImageUrl) || !isValidImageUrl(rawImageUrl)) {
+      if (/^(javascript|data|vbscript|file):/i.test(rawImageUrl) || !isValidCloudinaryUrl(rawImageUrl)) {
         return {
           status: "validation-error",
           message: "Photo URL must be a valid, secure Cloudinary image URL (https://res.cloudinary.com/...)."

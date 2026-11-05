@@ -46,17 +46,35 @@ document.addEventListener("DOMContentLoaded", function () {
   wireSearchAndSelects();
   wireViewToggle();
   wireLocationButton();
+  wireRefreshButton();
   setViewToggleEnabled(false); // nothing to show yet -- re-enabled once data loads successfully
 
-  loadPlaces();
+  loadPlaces(false);
 });
 
-async function loadPlaces() {
+function wireRefreshButton() {
+  const btn = document.getElementById("refreshPlacesBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", async function () {
+    btn.disabled = true;
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = "⏳ Refreshing…";
+    try {
+      await loadPlaces(true);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  });
+}
+
+async function loadPlaces(forceRefresh = false) {
   showOnly("loadingState");
 
   let result;
   try {
-    result = await fetchPublishedPlaces();
+    result = await fetchPublishedPlaces({ forceRefresh: forceRefresh });
   } catch (error) {
     // fetchPublishedPlaces() is designed to catch its own errors and return
     // a status instead of throwing, but guard here too in case something

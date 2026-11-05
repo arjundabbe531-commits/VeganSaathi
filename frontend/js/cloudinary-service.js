@@ -85,6 +85,189 @@ export function isValidCloudinaryUrl(url) {
 }
 
 /**
+ * Validates a direct web image URL entered by a community contributor.
+ * Detects common user mistakes (webpages, Google search URLs, social media links)
+ * and verifies that the address points to a direct, public image file.
+ *
+ * @param {string} url
+ * @returns {{ valid: boolean, error?: string, sanitizedUrl?: string }}
+ */
+export function validateDirectImageUrl(url) {
+  if (!url || typeof url !== "string") {
+    return { valid: false, error: "Please enter an image web address." };
+  }
+
+  const trimmed = url.trim();
+  if (trimmed.length === 0) {
+    return { valid: false, error: "Image address cannot be empty." };
+  }
+
+  if (trimmed.length > 1000) {
+    return { valid: false, error: "Image URL is too long (maximum 1000 characters)." };
+  }
+
+  // Strictly reject dangerous schemes
+  if (/^(javascript|data|vbscript|file):/i.test(trimmed)) {
+    return { valid: false, error: "Unsafe URL scheme detected. Only secure https:// web addresses are accepted." };
+  }
+
+  // Must be valid HTTP or HTTPS
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return { valid: false, error: "Invalid URL. Please enter a full web address starting with https://" };
+  }
+
+  // Discourage insecure HTTP
+  if (trimmed.startsWith("http://")) {
+    return { valid: false, error: "For security and privacy, please use a secure (https://) image address." };
+  }
+
+  // Disallow whitespace or raw quote characters
+  if (/[\s<>"'`\\]/.test(trimmed)) {
+    return { valid: false, error: "Image URL contains invalid characters or whitespace." };
+  }
+
+  // Parse URL to inspect host and path
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return { valid: false, error: "Please enter a valid, well-formed web address." };
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  const path = parsed.pathname.toLowerCase();
+
+  // Common mistake 1: Google Images search results page
+  if (host.includes("google.") && (path.includes("imgres") || path.includes("search") || path.includes("url"))) {
+    return {
+      valid: false,
+      error: "This is a Google search page URL, not a direct image. On the image, right-click and choose 'Copy Image Address' (it should end in .jpg, .png, or .webp)."
+    };
+  }
+
+  // Common mistake 2: Social media webpage links (Instagram, Facebook, Twitter, Pinterest)
+  if (host.includes("instagram.com") || host.includes("facebook.com") || host.includes("twitter.com") || host.includes("x.com") || host.includes("pinterest.com")) {
+    return {
+      valid: false,
+      error: "Social media post links cannot be used directly as image addresses. Please save the photo to your device and use 'Option A: Upload Photo' instead."
+    };
+  }
+
+  // Common mistake 3: YouTube or video links
+  if (host.includes("youtube.com") || host.includes("youtu.be") || host.includes("vimeo.com")) {
+    return {
+      valid: false,
+      error: "Video URLs cannot be used as place photographs. Please provide a direct image address or upload a photo."
+    };
+  }
+
+  // Direct image extension check
+  const hasImageExt = /\.(jpe?g|png|webp|avif|gif)(\?.*)?$/i.test(parsed.pathname);
+
+  // Common direct image CDN patterns (e.g. Cloudinary, Unsplash, Imgur, Wikimedia)
+  const isKnownImageCdn = host.includes("cloudinary.com") ||
+    host.includes("images.unsplash.com") ||
+    host.includes("imgur.com") ||
+    host.includes("wikimedia.org") ||
+    host.includes("wp.com") ||
+    parsed.searchParams.has("format") ||
+    parsed.searchParams.has("auto");
+
+  if (!hasImageExt && !isKnownImageCdn) {
+    return {
+      valid: false,
+      error: "This address does not appear to be a direct image file (e.g., ending in .jpg, .png, or .webp). Please check the link or upload the photo from your device."
+    };
+  }
+
+  return { valid: true, sanitizedUrl: trimmed };
+}
+
+/**
+ * Uploads a remote web image URL to Cloudinary using an unsigned upload preset.
+ * Cloudinary retrieves the asset server-to-server, applies optimization, and stores
+ * it safely under the project's folder.
+ *
+ * @param {string} remoteUrl
+ * @param {object} [options={}]
+ * @param {function(number):void} [options.onProgress]
+ * @returns {Promise<{ success: boolean, secureUrl?: string, publicId?: string, isMock?: boolean, error?: string }>}
+ */
+export async function uploadRemoteImageToCloudinary(remoteUrl, options = {}) {
+  const validation = validateDirectImageUrl(remoteUrl);
+  if (!validation.valid) {
+    return { success: false, error: validation.error };
+  }
+
+  const sanitized = validation.sanitizedUrl;
+  const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
+
+  // Offline / Demo fallback pathway
+  if (!CLOUDINARY_CONFIG.isConfigured) {
+    if (onProgress) {
+      onProgress(40);
+      await new Promise(r => setTimeout(r, 60));
+      onProgress(85);
+      await new Promise(r => setTimeout(r, 60));
+      onProgress(100);
+    }
+
+    return {
+      success: true,
+      secureUrl: sanitized,
+      publicId: `mock_remote_${Date.now()}`,
+      format: sanitized.split(".").pop().split("?")[0].toLowerCase() || "jpg",
+      isMock: true,
+      message: "Remote image verified in demonstration mode (Cloudinary credentials pending setup)."
+    };
+  }
+
+  // Active Cloudinary Remote Upload API
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUDINARY_CONFIG.cloudName)}/image/upload`;
+  const formData = new FormData();
+  formData.append("file", sanitized);
+  formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
+  if (CLOUDINARY_CONFIG.folder) {
+    formData.append("folder", CLOUDINARY_CONFIG.folder);
+  }
+
+  try {
+    if (onProgress) onProgress(35);
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      body: formData
+    });
+    if (onProgress) onProgress(80);
+
+    const data = await response.json();
+    if (!response.ok || !data.secure_url || !isValidCloudinaryUrl(data.secure_url)) {
+      let msg = (data && data.error && data.error.message) || `Remote upload failed (HTTP ${response.status})`;
+      // Provide clear guidance if Cloudinary was blocked by the remote host
+      if (/fetch|download|connect|status code|access/i.test(msg)) {
+        msg = "The website hosting this photo blocked Cloudinary from retrieving it (hotlink protection). Please save the photo to your device and use 'Option A: Upload Photo' instead.";
+      }
+      return { success: false, error: msg };
+    }
+
+    if (onProgress) onProgress(100);
+    return {
+      success: true,
+      secureUrl: data.secure_url,
+      publicId: data.public_id,
+      format: data.format,
+      width: data.width,
+      height: data.height,
+      isMock: false
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: (err && err.message) || "Network error occurred while fetching the remote image."
+    };
+  }
+}
+
+/**
  * Inserts Cloudinary transformation directives into a raw upload URL.
  * Automatically injects auto-format, auto-quality, and crop-fill dimensions.
  * Safe for non-Cloudinary URLs (returns unchanged if valid HTTP/HTTPS, rejects unsafe schemes).

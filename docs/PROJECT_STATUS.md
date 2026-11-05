@@ -1,12 +1,19 @@
-> **Current test figures (2026-10-25):** 497 total automated local checks passed (149 Node unit test checks + 245 Playwright headless browser checks + 2 static gates across 16 pages + 39 syntax checks + 62 Firestore emulator security rules tests: 50 current-behaviour + 12 proposed R1–R3). 0 failures across all suites. See canonical verification count in `docs/TEST_RESULTS.md`.
+> **Current test figures (Candidate Baseline 2026-11-05):** 513 total automated local checks passed (162 Node unit test checks + 245 Playwright browser checks + 2 static gates across 17 pages + 42 syntax checks + 62 Firestore emulator security rules tests). 0 failures across all suites. See canonical verification count in `docs/TEST_RESULTS.md`.
 
 # PROJECT_STATUS.md — VeganSaathi
 
 *Update this file at the end of every development phase. This is the single source of
 truth for "where the project currently stands" — for the team and for any AI assistant
-(this one, or Codex) picking the project back up.*
+picking the project back up.*
 
 ## Completed
+- Phase 10 — Product Improvements & Community Modernization (November 2026):
+  - Cloudinary Dual-Input Photo Pipeline: Local device upload + camera + drag-and-drop (Option A) and direct image web address validation & remote upload mirroring (Option B) with live pre-flight checks and unified preview card.
+  - Community Member Access Gating: Dynamic navbar configuration hiding contribution links for logged-out visitors; polite authentication gate card on `submit-place.html` with context and login/register redirect buttons.
+  - Indian Vegan Alternatives Reference Guide: 10 Indian food categories (dairy milk, paneer, dahi, ghee, butter, chai/coffee, sweets, cheese, malai, egg swaps) with real-world cost comparisons, preparation time, allergen filters, and culinary tips (`alternatives/index.html`, `alternatives-data.js`, `alternatives-page.js`).
+  - Maharashtra Regional Data Expansion: 22 curated research leads across Mumbai, Pune, Nagpur, Nashik, Thane, Navi Mumbai, Kolhapur, Chhatrapati Sambhajinagar, and Shegaon (`research/maharashtra_research_leads.csv`, `docs/MAHARASHTRA_EXPANSION_REPORT.md`).
+  - Firebase Performance Optimization: 5-minute in-memory & `sessionStorage` caching for `fetchPublishedPlaces` (repeat loads <1ms), profile caching for `fetchUserProfile`, and animated skeleton cards on `explore.html`.
+  - Full local test coverage: 162 Node unit tests passing (0 failures).
 - Phase 0 -- Environment audit
 - Phase 1 -- Foundation docs
 - Phase 2 -- Static frontend shell (12 pages, mock data, components, Leaflet map). Verified

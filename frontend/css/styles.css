@@ -732,3 +732,34 @@ h1, h2, h3, h4, h5, h6 {
     background-attachment: local, scroll, local, scroll;
   }
 }
+
+/* ---------------- Card Hover & Alternatives ---------------- */
+.vs-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.vs-card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(31, 46, 35, 0.12) !important;
+}
+
+/* ---------------- Skeleton Loading Shimmer ---------------- */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.vs-skeleton {
+  background: linear-gradient(90deg, #edf3ee 25%, #f6faf7 50%, #edf3ee 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+  border-radius: var(--vs-radius-sm);
+}
+
+.vs-skeleton-card {
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-radius);
+  background: var(--vs-white);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
