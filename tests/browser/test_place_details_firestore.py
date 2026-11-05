@@ -219,12 +219,12 @@ def main():
             log("11. no uncaught page errors initializing the map", len(errs) == 0, str(errs))
             ctx.close()
 
-            # ---- 11b. Out-of-pilot-bounds coordinates never reach the map or crash the page ----
-            # (places-service.js's normalizePlace() rejects them, so the page
-            # shows its "isn't available" state — no second coordinate rule
+            # ---- 11b. Out-of-bounds coordinates never reach the map or crash the page ----
+            # (places-service.js's normalizePlace() rejects them via COORD_BOUNDS [-90..90],
+            # so the page shows its "isn't available" state — no second coordinate rule
             # lives in place-details.js.)
             ctx, pg, errs = new_page(browser)
-            goto(pg, "place-details.html?id=badcoords-1", docs=[place("badcoords-1", latitude=19.0760, longitude=72.8777)])
+            goto(pg, "place-details.html?id=badcoords-1", docs=[place("badcoords-1", latitude=200.0, longitude=72.8777)])
             log("11b. out-of-bounds coordinates show the not-available state", not is_hidden(pg, "placeNotFoundState"))
             log("11b. content (and its map) never renders for them", is_hidden(pg, "placeContent"))
             popups = pg.evaluate("window.__STUB_MARKER_POPUPS__ || []")

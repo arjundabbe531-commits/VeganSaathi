@@ -24,8 +24,28 @@ tests/browser/README.md for details and prerequisites.
 
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
+
+# Automatically configure Playwright to use locally installed system browser (Edge or Chrome)
+# when default playwright-downloaded chromium is not present on the host machine.
+try:
+    from playwright.sync_api import BrowserType
+    _orig_launch = BrowserType.launch
+
+    def _smart_launch(self, *args, **kwargs):
+        if "channel" not in kwargs and "executable_path" not in kwargs:
+            for ch in ("msedge", "chrome"):
+                try:
+                    return _orig_launch(self, *args, channel=ch, **kwargs)
+                except Exception:
+                    pass
+        return _orig_launch(self, *args, **kwargs)
+
+    BrowserType.launch = _smart_launch
+except Exception:
+    pass
 
 TESTS_BROWSER_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = TESTS_BROWSER_DIR.parent.parent
@@ -54,7 +74,7 @@ def make_route_handler(base_url: str = BASE_URL):
             rel = path_only[len(base_url) + 1:] or "index.html"
             fp = FRONTEND_DIR / rel
             if fp.exists():
-                route.fulfill(status=200, content_type="text/html; charset=utf-8", body=strip_sri(fp.read_text()))
+                route.fulfill(status=200, content_type="text/html; charset=utf-8", body=strip_sri(fp.read_text(encoding="utf-8")))
                 return
             route.continue_()
         elif "bootstrap.min.css" in url:
@@ -72,7 +92,7 @@ def make_route_handler(base_url: str = BASE_URL):
             stub_name = name.replace(".js", ".browser-stub.js")
             stub_path = STUB_DIR / stub_name
             if stub_path.exists():
-                route.fulfill(status=200, content_type="application/javascript", body=stub_path.read_text())
+                route.fulfill(status=200, content_type="application/javascript", body=stub_path.read_text(encoding="utf-8"))
             else:
                 route.fulfill(status=404, body="no browser stub for " + name)
         else:
@@ -82,7 +102,7 @@ def make_route_handler(base_url: str = BASE_URL):
 
 
 class LocalFrontendServer:
-    """Context manager: starts `python3 -m http.server` over frontend/, stops it on exit."""
+    """Context manager: starts `http.server` over frontend/, stops it on exit."""
 
     def __init__(self, port: int = DEFAULT_PORT):
         self.port = port
@@ -90,7 +110,7 @@ class LocalFrontendServer:
 
     def __enter__(self):
         self._proc = subprocess.Popen(
-            ["python3", "-m", "http.server", str(self.port), "--bind", "127.0.0.1"],
+            [sys.executable, "-m", "http.server", str(self.port), "--bind", "127.0.0.1"],
             cwd=str(FRONTEND_DIR),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

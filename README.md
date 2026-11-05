@@ -15,7 +15,7 @@ eggetarian/Jain distinction underserved — especially in a small town like Sheg
 
 ## Objectives
 
-1. Help users discover vegan-friendly and relevant food places near SSGMCE/Shegaon.
+1. Help users discover vegan-friendly and relevant food places anywhere, with initial research originating from SSGMCE/Shegaon.
 2. Let the community contribute new places and information.
 3. Provide a "last verified" trust mechanism.
 4. Let users report outdated/incorrect information.
@@ -51,10 +51,12 @@ See `docs/TECHNICAL_ARCHITECTURE.md` for the full system diagram and folder layo
 ```
 VeganSaathi/
 ├── docs/        → project specification, schema, architecture, plans, status
-├── research/    → fieldwork templates, survey drafts, seed-data CSVs
+├── research/    → fieldwork templates, survey drafts, master research package
+├── scripts/     → offline validation and data pipeline tools (validate-import.mjs)
 ├── frontend/    → HTML/CSS/JS source
 ├── backend/     → reserved (Cloud Functions only if strictly needed)
 ├── firebase/    → firebase.json, security rules, indexes
+├── tests/       → unit and browser test suites
 └── assets/      → images/icons
 ```
 
@@ -74,8 +76,56 @@ frontend source — see `docs/TECHNICAL_ARCHITECTURE.md` §4 for why.
 
 ## Testing
 
-See `docs/TEST_PLAN.md` (created in Phase 9) and `docs/TEST_RESULTS.md` for test coverage
-and results.
+See `docs/TEST_RESULTS.md` for the canonical, up-to-date test count and suite-by-suite
+results. The figures there supersede any number quoted elsewhere, including older text in
+other docs — this project has been built across several sessions and tools, and test counts
+have changed as suites were added; `TEST_RESULTS.md` is the one place to trust.
+
+**Everything below runs locally, with no live Firebase project or network access needed,
+except the Firestore Emulator step, which needs Java and the Firebase CLI.**
+
+```bash
+# Node unit tests, duplicate-global check, and the rules-fixture static check:
+# On Windows PowerShell:
+powershell -ExecutionPolicy Bypass -File tests/run_all.ps1
+
+# On Linux, macOS, or Git Bash:
+bash tests/run_all.sh
+
+# Individual Node unit test suites:
+node tests/test-places-service.mjs
+node tests/test-admin-service.mjs
+node tests/test-geolocation.mjs
+node tests/test-import-validator.mjs
+node tests/test-cloudinary-service.mjs
+node tests/test-controlled-integration.mjs
+
+# Offline Research Import Validator:
+node scripts/validate-import.mjs tests/fixtures/sample_research_places.csv --report research/sample_validation_report.json
+
+# Offline Admin Research Reviewer (Sandbox):
+# Open frontend/admin/import-review.html in any browser.
+```
+
+Firestore security-rules tests run separately, against the **Firestore Emulator** (they
+exercise the real rules engine, not a stub):
+
+```powershell
+npm install -g firebase-tools
+cd tests\rules
+npm install
+cd ..\..
+firebase emulators:exec --only firestore --project vegansaathi-rules-test "node --test tests/rules/firestore.rules.test.mjs"
+```
+
+See `tests/rules/README.md` for the full setup and for the separate "proposed changes" suite
+(`firestore.rules.proposed.test.mjs`), which is expected to fail until the hardening changes
+in `docs/FIREBASE_SECURITY.md` are actually applied.
+
+**What is and isn't verified by these tests:** `tests/run_all.sh` proves application logic
+and rendering against stubbed services. The emulator suite proves the rules file's actual
+behaviour. Neither proves the live Firebase project works — that needs a manual pass with
+a real account, documented in `docs/PROJECT_STATUS.md`.
 
 ## Community Engagement
 
@@ -89,5 +139,4 @@ See `docs/PROJECT_STATUS.md` for what's built, in progress, and blocked.
 ## Future Scope (explicitly deferred, not v1)
 
 Dish-level tagging, Marathi/Hindi dietary phrase-card generator, a curated ingredient
-decoder, an event/RSVP dietary-headcount tool, and expansion beyond Shegaon to a second
-town.
+decoder, an event/RSVP dietary-headcount tool, and enhanced server-side geolocation radius queries.

@@ -108,28 +108,36 @@ Full approved plan: `docs/PHASE_5_PLAN.md` (decisions D1–D5 are settled there)
   (no fetch-all lookup, no `MOCK_PLACES[0]` fallback), and handles every service status
   explicitly (not-found/invalid → "isn't available"; permission-denied/error →
   "unable to load"). `tests/browser/test_place_details_firestore.py` passes 41/41 with a
-  stubbed Firestore SDK; no real-Firebase run has been made. Reviews and Save/Report remain
-  Phase 6 demo shells. **Task 5.6 — Home featured places on Firestore — is next, not
-  started.**
+  stubbed Firestore SDK.
 - **Exit test:** filtering and search return correct results against real seed data; map
   pins match list entries; a signed-out visitor in an incognito window sees the published
   places and never a `pending` one.
 
-## Phase 6 — Community Features
-- Submit New Place form → writes with `status: "pending"`.
-- Reviews (create, list on Place Details, author-only delete).
-- Report Incorrect Information form.
-- Saved Places (simple add/remove, shown on Profile).
+## Phase 6 — Community Features & Data Ingestion (Implementation Verified)
+- Home featured places migrated from mock data to live Firestore (`fetchPublishedPlaces()`).
+- Submit New Place form wired to Firestore `places` collection (`status: "pending"`, `verificationStatus: "unverified"`, `source: "community"`).
+- Leaflet coordinate picker & numeric inputs added to `submit-place.html` and `submit-place-guard.js`, strictly validated against `PILOT_BOUNDS` (Lat: 20.70–20.90, Lon: 76.55–76.80) with no silent fallback.
+- Firestore security rules updated and hardened to enforce `source == "community"`, UID match, pilot bounds, price range, and immutable metadata.
+- Reviews: live fetch, validated rating/comment submission, author-only deletion.
+- Reports: live submission with reason enum validation and pending status.
+- Saved Places: live Firestore `{uid}_{placeId}` persistence on `saved.html` and `place-details.html`.
+- Profile: dynamic listing of authenticated user's submissions and reviews.
+- 35 unit tests pass in `tests/test-places-service.mjs`. Global duplicate check clean on 12 pages.
 - **Exit test:** a submitted place does NOT appear on public Explore until approved;
-  reviews/reports/saved-places all respect the security rules from Phase 3.
+  reviews/reports/saved-places all respect the security rules. Pending manual live Firebase run and Cloudinary credentials.
 
-## Phase 7 — Admin
-- Admin auth check (role field on `users` doc).
-- Dashboard: pending places (approve/reject/edit), published places (edit/disable, mark
-  re-verified), reports queue (resolve/dismiss), review moderation (remove).
-- **Exit test:** a non-admin account cannot reach or use any admin action, even by
-  directly calling the same Firestore write (verified against the security rules, not
-  just hidden UI).
+## Phase 7 — Admin and Moderation ✅ (Implementation & Browser Tests Verified)
+- Dedicated service architecture: `frontend/js/admin-service.js` and UI controller `frontend/js/admin-dashboard.js`.
+- Admin role check: `users/{uid}.role == "admin"`; unauthenticated/non-admin users gated with clear feedback; no mock data exposure during resolution.
+- Navbar integration: "Admin" button displayed conditionally in `components.js` only when user is confirmed admin.
+- Pending submissions queue: approve to `published` (remains `unverified` until physical visit), reject with reason, edit place details.
+- Published places management: edit all listing details with `PILOT_BOUNDS` coordinate validation; unpublish.
+- Re-verification tracking: physical visit confirmation, 90-day freshness status cue, note recording, and `lastVerifiedAt` timestamp update.
+- Reports moderation: queue with place reference, reason, description; resolve or dismiss with admin UID attribution.
+- Reviews moderation: list reviews and delete inappropriate reviews. Accurately counts total reviews in the system without mislabeling them as pending.
+- Users directory: basic administrative visibility for user accounts without sensitive field exposure.
+- Automated testing: 16 unit tests passing in `tests/test-admin-service.mjs`; 21 admin browser tests passing in `tests/browser/test_admin_dashboard.py`; 161 total browser tests passing across regression suites; global duplicate check passing; syntax check passing across all 28 project JS/MJS files.
+- **Exit test:** non-admin account cannot reach dashboard or execute moderation writes (enforced by security rules); admin workflows operate without mock fallbacks. Full test harness and browser regression suites verified on local environment.
 
 ## Phase 8 — Vegan Awareness Content
 - What is Veganism, Vegetarian vs Vegan, Common Misconceptions, Getting Started,

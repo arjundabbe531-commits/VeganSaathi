@@ -76,15 +76,60 @@ def main():
                 log("XSS-ESCAPE / " + page_path + ": payload appears as literal escaped text", contains_literal_text)
                 log("XSS-ESCAPE / " + page_path + ": no uncaught page errors", len(errs) == 0, str(errs))
 
+            xss_pub_doc = {
+                "id": "xss-test-place",
+                "data": {
+                    "name": PAYLOAD_NAME,
+                    "placeType": "cafe",
+                    "address": "Test Address, Shegaon",
+                    "latitude": 20.79,
+                    "longitude": 76.69,
+                    "dietTags": ["vegan"],
+                    "status": "published",
+                    "verificationStatus": "unverified",
+                    "source": "fieldwork",
+                    "submittedBy": "u1",
+                    "submittedByName": "Tester"
+                }
+            }
+            xss_pend_doc = {
+                "id": "xss-pend-place",
+                "data": {
+                    "name": PAYLOAD_NAME,
+                    "placeType": "cafe",
+                    "address": "Test Address, Shegaon",
+                    "latitude": 20.79,
+                    "longitude": 76.69,
+                    "dietTags": ["vegan"],
+                    "status": "pending",
+                    "verificationStatus": "unverified",
+                    "source": "community",
+                    "submittedBy": "u1",
+                    "submittedByName": "Tester"
+                }
+            }
+
             for page_path in mock_driven_pages:
                 ctx = browser.new_context(viewport={"width": 1280, "height": 900})
                 pg = ctx.new_page()
                 pg.route("**/*", route_handler_with_mock_payload)
-                pg.add_init_script("window.__STUB_USER__ = " + json.dumps({"uid": "u1", "email": "u1@example.com"}) + ";")
+                user_obj = {"uid": "u1", "email": "u1@example.com"}
+                profile_obj = {"name": "Tester", "email": "u1@example.com", "role": "admin" if page_path == "admin/dashboard.html" else "user"}
+                docs_payload = [xss_pend_doc] if page_path == "admin/dashboard.html" else [xss_pub_doc]
+                saved_payload = [{"id": "u1_xss-test-place", "data": {"userId": "u1", "placeId": "xss-test-place"}}]
+                init_code = (
+                    "window.__STUB_USER__ = " + json.dumps(user_obj) + ";"
+                    "window.__STUB_PROFILE__ = " + json.dumps(profile_obj) + ";"
+                    "window.__STUB_PLACES_DOCS__ = " + json.dumps(docs_payload) + ";"
+                    "window.__STUB_PLACES_DOCS__[0].data.createdAt = { toDate: () => new Date() };"
+                    "window.__STUB_PLACES_DOCS__[0].data.updatedAt = { toDate: () => new Date() };"
+                    "window.__STUB_SAVED_DOCS__ = " + json.dumps(saved_payload) + ";"
+                )
+                pg.add_init_script(init_code)
                 errs = []
                 pg.on("pageerror", lambda e: errs.append(str(e)))
                 pg.goto(BASE_URL + "/" + page_path, wait_until="load")
-                pg.wait_for_timeout(400)
+                pg.wait_for_timeout(600)
                 assert_payload_escaped(pg, page_path, errs)
                 ctx.close()
 

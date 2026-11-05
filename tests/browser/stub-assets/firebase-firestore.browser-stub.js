@@ -66,6 +66,35 @@ export function serverTimestamp() {
   return { _stub: "serverTimestamp" };
 }
 
+export function orderBy(field, direction) {
+  return { _stub: "orderBy", field: field, direction: direction };
+}
+
+export async function addDoc(collectionRef, data) {
+  const id = "stub-doc-" + Math.random().toString(36).slice(2, 9);
+  if (typeof window !== "undefined") {
+    window.__STUB_WRITES__ = window.__STUB_WRITES__ || [];
+    window.__STUB_WRITES__.push({ collection: collectionRef.path, id: id, data: data });
+  }
+  return Promise.resolve({ id: id });
+}
+
+export async function deleteDoc(docRef) {
+  if (typeof window !== "undefined") {
+    window.__STUB_DELETES__ = window.__STUB_DELETES__ || [];
+    window.__STUB_DELETES__.push(docRef.path);
+  }
+  return Promise.resolve();
+}
+
+export async function updateDoc(docRef, data) {
+  if (typeof window !== "undefined") {
+    window.__STUB_UPDATES__ = window.__STUB_UPDATES__ || [];
+    window.__STUB_UPDATES__.push({ path: docRef.path, data: data });
+  }
+  return Promise.resolve();
+}
+
 /* ---- Added for Task 5.3 (Explore -> places-service.js -> fetchPublishedPlaces) ----
    Controlled by:
      window.__STUB_PLACES_DOCS__   -> array of {id, data} returned by getDocs()
@@ -94,7 +123,36 @@ export async function getDocs(q) {
     window.__STUB_PLACES_THROW__ = null;
     throw err;
   }
-  const docs = (typeof window !== "undefined" && window.__STUB_PLACES_DOCS__) || [];
+
+  const collPath = (q && q._stub === "query" && q.collectionRef) ? q.collectionRef.path : (q ? q.path : "places");
+  let docs = [];
+  if (typeof window !== "undefined") {
+    if (collPath === "reports") {
+      docs = window.__STUB_REPORTS_DOCS__ || [];
+    } else if (collPath === "reviews") {
+      docs = window.__STUB_REVIEWS_DOCS__ || [];
+    } else if (collPath === "users") {
+      docs = window.__STUB_USERS_DOCS__ || [];
+    } else if (collPath === "savedPlaces") {
+      docs = window.__STUB_SAVED_DOCS__ || [];
+    } else {
+      docs = window.__STUB_PLACES_DOCS__ || [];
+    }
+  }
+
+  if (q && q._stub === "query" && Array.isArray(q.constraints)) {
+    docs = docs.filter(function (d) {
+      return q.constraints.every(function (c) {
+        if (c && c._stub === "where") {
+          const val = d.data ? d.data[c.field] : undefined;
+          if (c.op === "==") return val === c.value;
+          if (c.op === "!=") return val !== c.value;
+        }
+        return true;
+      });
+    });
+  }
+
   return {
     forEach: function (callback) {
       docs.forEach(function (d) {

@@ -51,6 +51,22 @@ service cloud.firestore {
       return value in ["restaurant", "mess", "canteen", "cafe", "dhaba", "other"];
     }
 
+    function isValidPriceRange(value) {
+      return value in ["budget", "moderate", "premium", "Price not listed"];
+    }
+
+    // Global coordinate validation: accepts any well-formed lat/lon pair.
+    // VeganSaathi is not restricted to a single region; see COORD_BOUNDS in
+    // frontend/js/places-service.js for the matching client-side constant.
+    // NOTE: these rules have not yet been deployed to the live project.
+    // Deployment is an explicitly authorized step scheduled for Phase 4.
+    function isValidCoordinates(lat, lon) {
+      return (lat is int || lat is float)
+        && (lon is int || lon is float)
+        && lat >= -90 && lat <= 90
+        && lon >= -180 && lon <= 180;
+    }
+
     // ---------------- users ----------------
     // Document ID == Firebase Auth uid.
     match /users/{userId} {
@@ -81,19 +97,28 @@ service cloud.firestore {
         || isAdmin()
         || (isSignedIn() && resource.data.submittedBy == request.auth.uid);
 
-      // A new submission always starts pending/unverified — a user cannot
-      // publish or pre-verify their own listing.
+      // A new community submission always starts pending/unverified and source="community".
+      // A user cannot publish, pre-verify, or spoof fieldwork attribution.
       allow create: if isSignedIn()
         && request.resource.data.submittedBy == request.auth.uid
+        && request.resource.data.source == "community"
         && request.resource.data.status == "pending"
         && request.resource.data.verificationStatus == "unverified"
         && isValidPlaceType(request.resource.data.placeType)
-        && isValidDietTags(request.resource.data.dietTags);
+        && isValidDietTags(request.resource.data.dietTags)
+        && isValidPriceRange(request.resource.data.priceRange)
+        && isValidCoordinates(request.resource.data.latitude, request.resource.data.longitude)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.address is string
+        && request.resource.data.address.size() > 0
+        && request.resource.data.address.size() <= 300;
 
       // Admins can change anything (approve, reject, edit, re-verify).
       // The original submitter may still edit their OWN submission while it
-      // is still pending, but cannot use that edit to publish or verify it
-      // themselves — those transitions are admin-only.
+      // is still pending, but cannot use that edit to publish, verify,
+      // reassign ownership, change creation timestamp, or flip source to fieldwork.
       allow update: if isAdmin()
         || (
           isSignedIn()
@@ -101,7 +126,19 @@ service cloud.firestore {
           && resource.data.status == "pending"
           && request.resource.data.status == "pending"
           && request.resource.data.verificationStatus == "unverified"
+          && request.resource.data.source == "community"
           && request.resource.data.submittedBy == resource.data.submittedBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && isValidPlaceType(request.resource.data.placeType)
+          && isValidDietTags(request.resource.data.dietTags)
+          && isValidPriceRange(request.resource.data.priceRange)
+          && isValidCoordinates(request.resource.data.latitude, request.resource.data.longitude)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() >= 2
+          && request.resource.data.name.size() <= 100
+          && request.resource.data.address is string
+          && request.resource.data.address.size() > 0
+          && request.resource.data.address.size() <= 300
         );
 
       allow delete: if isAdmin();

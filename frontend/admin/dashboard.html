@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Admin Dashboard — VeganSaathi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="../css/styles.css" rel="stylesheet">
 <script>window.VS_BASE = "../"; window.VS_ACTIVE_PAGE = "";</script>
@@ -12,126 +15,414 @@
 
 <div id="navbar-placeholder"></div>
 
-<section class="vs-section">
-  <div class="container">
-    <h1 class="h4">Admin Dashboard</h1>
-    <p class="vs-mock-notice mb-4">Development note: this is a frontend shell only. No real permission check exists yet — real admin-only access control will be enforced by Firebase Authentication + Firestore Security Rules in Phase 7. All counts and records below are mock data.</p>
+<!-- 1. Gating: Loading Screen -->
+<div id="adminLoadingScreen" class="py-5 text-center">
+  <div class="container" style="max-width:550px;">
+    <div class="vs-card p-5">
+      <div class="spinner-border text-success mb-3" role="status" style="width:2.5rem; height:2.5rem;">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+      <h2 class="h5 mb-1" style="color:var(--vs-text);">Verifying Administrator Access</h2>
+      <p class="text-muted-vs mb-0" style="font-size:0.9rem;">Checking your credentials and administrative role permissions…</p>
+    </div>
+  </div>
+</div>
 
+<!-- 2. Gating: Unauthorized Screen -->
+<div id="adminUnauthorizedScreen" class="py-5 d-none text-center">
+  <div class="container" style="max-width:550px;">
+    <div class="vs-card p-5 border-danger shadow-md">
+      <div class="text-danger mb-3" style="font-size:2.8rem;">🔒</div>
+      <h2 class="h5 text-danger mb-2">Access Restricted</h2>
+      <p id="unauthorizedReason" class="text-muted-vs mb-4" style="font-size:0.95rem;">You must be signed in with an authorized administrator account to view this page.</p>
+      <div class="d-flex justify-content-center gap-2">
+        <a href="../login.html" class="btn btn-vs-primary px-4">Sign In</a>
+        <a href="../index.html" class="btn btn-vs-outline px-4">Return to Home</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Authorized Admin Content -->
+<section id="adminMainContent" class="vs-section d-none">
+  <div class="container" style="max-width:1380px;">
+    <div class="d-flex justify-content-between align-items-start align-items-md-center flex-wrap gap-3 mb-4">
+      <div>
+        <div class="d-inline-flex align-items-center gap-1.5 px-2.5 py-0.5 rounded bg-white border mb-1" style="font-size:0.75rem; font-weight:700; color:var(--vs-green-700);">
+          <span>SSGMCE CEP IT MODERATION</span>
+          <span style="display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--vs-green-600);"></span>
+          <span>ADMIN PORTAL</span>
+        </div>
+        <h1 class="h3 mb-1" style="color:var(--vs-text);">Admin &amp; Moderation Dashboard</h1>
+        <p class="text-muted-vs mb-0" style="font-size:0.92rem;">Manage community submissions, published listings, physical re-verifications, and user reports across Shegaon campus perimeters.</p>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <a href="import-review.html" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+          <span>🔬</span>
+          <span>Research Import Reviewer</span>
+        </a>
+        <div id="adminUserIdentity" class="badge bg-white text-dark border p-2 shadow-sm d-inline-flex align-items-center gap-1" style="font-size:0.85rem;"></div>
+      </div>
+    </div>
+
+    <!-- Alert container -->
+    <div id="adminAlert" class="alert d-none mb-4" role="alert"></div>
+
+    <!-- KPI Overview Stats (5-stat grid) -->
     <div class="row g-3 mb-4">
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-4 col-lg">
         <div class="vs-admin-stat">
-          <div class="vs-admin-stat__value" id="statPending"></div>
-          <div class="vs-admin-stat__label">Pending Places</div>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="vs-admin-stat__label">Pending Places</span>
+            <span style="font-size:1.1rem;">⏳</span>
+          </div>
+          <div class="vs-admin-stat__value" id="statPending">…</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Awaiting moderation</div>
         </div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-4 col-lg">
         <div class="vs-admin-stat">
-          <div class="vs-admin-stat__value" id="statPublished"></div>
-          <div class="vs-admin-stat__label">Published Places</div>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="vs-admin-stat__label">Published Places</span>
+            <span style="font-size:1.1rem;">🏬</span>
+          </div>
+          <div class="vs-admin-stat__value" id="statPublished" style="color:var(--vs-green-700);">…</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Active verified directory</div>
         </div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-4 col-lg">
         <div class="vs-admin-stat">
-          <div class="vs-admin-stat__value" id="statReports"></div>
-          <div class="vs-admin-stat__label">Open Reports</div>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="vs-admin-stat__label">Open Reports</span>
+            <span style="font-size:1.1rem;">🚩</span>
+          </div>
+          <div class="vs-admin-stat__value" id="statReports">…</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Flagged issues</div>
         </div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-4 col-lg">
         <div class="vs-admin-stat">
-          <div class="vs-admin-stat__value" id="statUsers"></div>
-          <div class="vs-admin-stat__label">Total Users</div>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="vs-admin-stat__label">Total Reviews</span>
+            <span style="font-size:1.1rem;">💬</span>
+          </div>
+          <div class="vs-admin-stat__value" id="statReviews">…</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Student dining feedback</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg">
+        <div class="vs-admin-stat">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="vs-admin-stat__label">Total Users</span>
+            <span style="font-size:1.1rem;">👥</span>
+          </div>
+          <div class="vs-admin-stat__value" id="statUsers">…</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Registered members</div>
         </div>
       </div>
     </div>
 
+    <!-- Tabs Navigation -->
     <ul class="nav nav-tabs mb-3" id="adminTabs" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pending" type="button" role="tab">Pending Submissions</button>
+        <button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#tab-pending" type="button" role="tab">Pending Submissions</button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reports" type="button" role="tab">Reports</button>
+        <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-published" type="button" role="tab">Published Listings</button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reviews" type="button" role="tab">Reviews</button>
+        <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-verification" type="button" role="tab">Re-Verification</button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-verification" type="button" role="tab">Verification</button>
+        <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-reports" type="button" role="tab">Reports</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-reviews" type="button" role="tab">Reviews</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#tab-users" type="button" role="tab">Users</button>
       </li>
     </ul>
 
+    <!-- Tabs Content -->
     <div class="tab-content">
+      <!-- 1. Pending Submissions Tab -->
       <div class="tab-pane fade show active" id="tab-pending" role="tabpanel">
-        <div class="vs-card p-3">
-          <table class="table align-middle mb-0">
-            <thead><tr><th>Place</th><th>Submitted by</th><th>Date</th><th>Actions</th></tr></thead>
-            <tbody id="pendingTableBody"></tbody>
-          </table>
+        <div class="vs-card p-4">
+          <div id="pendingLoading" class="text-center py-4 text-muted-vs d-none">
+            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+            Loading pending submissions…
+          </div>
+          <div id="pendingEmptyState" class="text-center py-4 text-muted-vs d-none">
+            <div style="font-size:2rem; margin-bottom:0.5rem;">✨</div>
+            <p class="mb-0">No pending submissions right now. The queue is clean!</p>
+          </div>
+          <p class="vs-table-scroll-hint">← Swipe to see all columns →</p>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="min-width:240px;">Place Details</th>
+                  <th>Coordinates</th>
+                  <th>Submitted by</th>
+                  <th style="min-width:180px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pendingTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <div class="tab-pane fade" id="tab-reports" role="tabpanel">
-        <div class="vs-card p-3">
-          <table class="table align-middle mb-0">
-            <thead><tr><th>Place</th><th>Reason</th><th>Status</th><th>Reported</th><th>Actions</th></tr></thead>
-            <tbody id="reportsTableBody"></tbody>
-          </table>
+      <!-- 2. Published Listings Tab -->
+      <div class="tab-pane fade" id="tab-published" role="tabpanel">
+        <div class="vs-card p-4">
+          <div id="publishedLoading" class="text-center py-4 text-muted-vs d-none">
+            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+            Loading published listings…
+          </div>
+          <div id="publishedEmptyState" class="text-center py-4 text-muted-vs d-none">
+            <p class="mb-0">No published places on file yet.</p>
+          </div>
+          <p class="vs-table-scroll-hint">← Swipe to see all columns →</p>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="min-width:220px;">Place Details</th>
+                  <th>Status</th>
+                  <th>Price</th>
+                  <th style="min-width:140px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="publishedTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <div class="tab-pane fade" id="tab-reviews" role="tabpanel">
-        <div class="vs-card p-3" id="reviewsAdminList"></div>
-      </div>
-
+      <!-- 3. Re-Verification Tab -->
       <div class="tab-pane fade" id="tab-verification" role="tabpanel">
-        <div class="vs-card p-3">
-          <p class="text-muted-vs">Mark a place as re-verified after a real field visit. This updates its "last verified" date shown to the public.</p>
-          <table class="table align-middle mb-0">
-            <thead><tr><th>Place</th><th>Status</th><th>Last verified</th><th>Actions</th></tr></thead>
-            <tbody id="verificationTableBody"></tbody>
-          </table>
+        <div class="vs-card p-4">
+          <div class="p-3 mb-3 rounded-3" style="background-color:var(--vs-green-50); border:1px solid var(--vs-green-200); font-size:0.88rem; color:var(--vs-green-800);">
+            <strong>CEP Freshness Standard:</strong> Verification confirms that a team member physically visited the establishment.
+            Listings older than <strong>90 days</strong> require re-checking to ensure dietary integrity.
+          </div>
+          <div id="verificationLoading" class="text-center py-4 text-muted-vs d-none">
+            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+            Loading verification status…
+          </div>
+          <div id="verificationEmptyState" class="text-center py-4 text-muted-vs d-none">
+            <p class="mb-0">No published listings available for verification.</p>
+          </div>
+          <p class="vs-table-scroll-hint">← Swipe to see all columns →</p>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="min-width:200px;">Place</th>
+                  <th>Freshness</th>
+                  <th>Last Verified</th>
+                  <th style="min-width:160px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="verificationTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Reports Tab -->
+      <div class="tab-pane fade" id="tab-reports" role="tabpanel">
+        <div class="vs-card p-4">
+          <div id="reportsLoading" class="text-center py-4 text-muted-vs d-none">
+            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+            Loading user reports…
+          </div>
+          <div id="reportsEmptyState" class="text-center py-4 text-muted-vs d-none">
+            <div style="font-size:2rem; margin-bottom:0.5rem;">🛡️</div>
+            <p class="mb-0">No open reports at this time.</p>
+          </div>
+          <p class="vs-table-scroll-hint">← Swipe to see all columns →</p>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Place ID</th>
+                  <th>Reason</th>
+                  <th style="min-width:200px;">Description</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th style="min-width:150px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="reportsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Reviews Moderation Tab -->
+      <div class="tab-pane fade" id="tab-reviews" role="tabpanel">
+        <div class="vs-card p-4">
+          <div id="reviewsLoading" class="text-center py-4 text-muted-vs d-none">
+            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+            Loading reviews…
+          </div>
+          <div id="reviewsEmptyState" class="text-center py-4 text-muted-vs d-none">
+            <p class="mb-0">No reviews have been posted yet.</p>
+          </div>
+          <div id="reviewsAdminList"></div>
+        </div>
+      </div>
+
+      <!-- 6. Users Directory Tab -->
+      <div class="tab-pane fade" id="tab-users" role="tabpanel">
+        <div class="vs-card p-4">
+          <p class="text-muted-vs mb-3" style="font-size:0.9rem;">
+            Registered community directory. Role permissions are enforced by Firestore security rules.
+          </p>
+          <div id="usersLoading" class="text-center py-4 text-muted-vs d-none">
+            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+            Loading users…
+          </div>
+          <div id="usersEmptyState" class="text-center py-4 text-muted-vs d-none">
+            <p class="mb-0">No users found.</p>
+          </div>
+          <p class="vs-table-scroll-hint">← Swipe to see all columns →</p>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Diet Preference</th>
+                  <th>Role</th>
+                  <th>Member Since</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
+<!-- Place Edit Modal -->
+<div class="modal fade" id="editPlaceModal" tabindex="-1" aria-labelledby="editPlaceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form id="adminEditPlaceForm" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title" id="editPlaceModalLabel">Edit Place Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editPlaceId">
+          <div class="mb-3">
+            <label for="editPlaceName" class="form-label fw-semibold">Place name</label>
+            <input type="text" class="form-control" id="editPlaceName" required>
+          </div>
+          <div class="row">
+            <div class="col-sm-6 mb-3">
+              <label for="editPlaceType" class="form-label fw-semibold">Place type</label>
+              <select id="editPlaceType" class="form-select" required>
+                <option value="restaurant">Restaurant</option>
+                <option value="mess">Mess</option>
+                <option value="canteen">Canteen</option>
+                <option value="cafe">Cafe</option>
+                <option value="dhaba">Dhaba</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="col-sm-6 mb-3">
+              <label for="editPlacePrice" class="form-label fw-semibold">Price range</label>
+              <select id="editPlacePrice" class="form-select">
+                <option value="budget">Budget</option>
+                <option value="moderate">Moderate</option>
+                <option value="premium">Premium</option>
+                <option value="Price not listed">Price not listed</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="editPlaceAddress" class="form-label fw-semibold">Address</label>
+            <input type="text" class="form-control" id="editPlaceAddress" required>
+          </div>
+          <div class="mb-3">
+            <label for="editPlaceArea" class="form-label fw-semibold">Area / Locality</label>
+            <input type="text" class="form-control" id="editPlaceArea">
+          </div>
+          <div class="row">
+            <div class="col-sm-6 mb-3">
+              <label for="editPlaceLat" class="form-label fw-semibold">Latitude</label>
+              <input type="number" step="any" class="form-control" id="editPlaceLat" required>
+            </div>
+            <div class="col-sm-6 mb-3">
+              <label for="editPlaceLon" class="form-label fw-semibold">Longitude</label>
+              <input type="number" step="any" class="form-control" id="editPlaceLon" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label d-block fw-semibold">Dietary categories</label>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="editPlaceDiet" value="vegan" id="editDietVegan">
+              <label class="form-check-label fw-bold" for="editDietVegan" style="color:var(--vs-vegan);">🌱 Vegan</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="editPlaceDiet" value="vegetarian" id="editDietVeg">
+              <label class="form-check-label fw-bold" for="editDietVeg" style="color:var(--vs-vegetarian);">🥗 Vegetarian</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="editPlaceDiet" value="eggetarian" id="editDietEgg">
+              <label class="form-check-label fw-bold" for="editDietEgg" style="color:var(--vs-eggetarian);">🥚 Eggetarian</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="editPlaceDiet" value="jain" id="editDietJain">
+              <label class="form-check-label fw-bold" for="editDietJain" style="color:var(--vs-jain);">🌿 Jain</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="editPlaceDesc" class="form-label fw-semibold">Description</label>
+            <textarea class="form-control" id="editPlaceDesc" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="editPlaceDietNotes" class="form-label fw-semibold">Diet Notes</label>
+            <textarea class="form-control" id="editPlaceDietNotes" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="editPlaceOpening" class="form-label fw-semibold">Opening Information</label>
+            <input type="text" class="form-control" id="editPlaceOpening">
+          </div>
+          <div class="mb-3">
+            <label for="editPlaceImageUrl" class="form-label fw-semibold">Photo URL (Cloudinary or image link)</label>
+            <input type="url" class="form-control" id="editPlaceImageUrl" placeholder="https://res.cloudinary.com/...">
+          </div>
+          <div class="mb-3">
+            <label for="editPlaceStatus" class="form-label fw-semibold">Status</label>
+            <select id="editPlaceStatus" class="form-select">
+              <option value="pending">Pending</option>
+              <option value="published">Published</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-vs-primary" id="saveEditPlaceBtn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div id="footer-placeholder"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/mock-data.js"></script>
 <script src="../js/components.js"></script>
 <script type="module" src="../js/app.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("statPending").textContent = MOCK_ADMIN_STATS.pendingPlaces;
-    document.getElementById("statPublished").textContent = MOCK_ADMIN_STATS.publishedPlaces;
-    document.getElementById("statReports").textContent = MOCK_ADMIN_STATS.openReports;
-    document.getElementById("statUsers").textContent = MOCK_ADMIN_STATS.totalUsers;
-
-    document.getElementById("pendingTableBody").innerHTML = MOCK_ADMIN_PENDING.map(function (p) {
-      return "<tr><td>" + escapeHtml(p.name) + "</td><td>" + escapeHtml(p.submittedBy) + "</td><td>" + escapeHtml(p.submittedAt) + "</td>" +
-        '<td><button class="btn btn-vs-primary btn-sm" disabled title="Approve/Reject connects to Firestore in Phase 7">Approve</button> ' +
-        '<button class="btn btn-vs-outline btn-sm" disabled title="Approve/Reject connects to Firestore in Phase 7">Reject</button></td></tr>';
-    }).join("");
-
-    document.getElementById("reportsTableBody").innerHTML = MOCK_ADMIN_REPORTS.map(function (r) {
-      return "<tr><td>" + escapeHtml(r.placeName) + "</td><td>" + escapeHtml(r.reason) + "</td><td>" + escapeHtml(r.status) + "</td><td>" + escapeHtml(r.reportedAt) + "</td>" +
-        '<td><button class="btn btn-vs-primary btn-sm" disabled title="Connects to Firestore in Phase 7">Resolve</button> ' +
-        '<button class="btn btn-vs-outline btn-sm" disabled title="Connects to Firestore in Phase 7">Dismiss</button></td></tr>';
-    }).join("");
-
-    document.getElementById("reviewsAdminList").innerHTML = MOCK_ADMIN_REVIEWS.map(function (r) {
-      return '<div class="d-flex justify-content-between align-items-center border-bottom py-2">' +
-        "<div><strong>" + escapeHtml(r.userName) + "</strong> — " + escapeHtml(r.rating) + "/5<br>" +
-        '<span class="text-muted-vs" style="font-size:0.85rem;">' + escapeHtml(r.comment) + "</span></div>" +
-        '<button class="btn btn-vs-outline btn-sm" disabled title="Connects to Firestore in Phase 7">Remove</button></div>';
-    }).join("");
-
-    document.getElementById("verificationTableBody").innerHTML = MOCK_PLACES.map(function (p) {
-      return "<tr><td>" + escapeHtml(p.name) + "</td><td>" + renderVerificationBadge(p) + "</td><td>" + escapeHtml(p.lastVerifiedAt || "—") + "</td>" +
-        '<td><button class="btn btn-vs-primary btn-sm" disabled title="Connects to Firestore in Phase 7">Mark Re-Verified</button></td></tr>';
-    }).join("");
-  });
-</script>
+<script type="module" src="../js/admin-dashboard.js"></script>
 </body>
 </html>

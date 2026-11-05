@@ -16,15 +16,32 @@
 
 import { register } from "node:module";
 import assert from "node:assert/strict";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 register("./firebase-stub-loader.mjs", import.meta.url);
 
-const { normalizePlace, fetchPublishedPlaces, fetchPlaceById } = await import(
+const placesServicePath = pathToFileURL(
   path.join(__dirname, "..", "frontend", "js", "places-service.js")
-);
+).href;
+
+const {
+  normalizePlace,
+  fetchPublishedPlaces,
+  fetchPlaceById,
+  submitCommunityPlace,
+  fetchReviewsForPlace,
+  submitReview,
+  deleteReview,
+  submitReport,
+  isPlaceSaved,
+  savePlace,
+  unsavePlace,
+  fetchSavedPlacesForUser,
+  fetchUserSubmissions,
+  fetchUserReviews
+} = await import(placesServicePath);
 
 let passed = 0;
 let failed = 0;
@@ -107,6 +124,25 @@ test("2. missing optional fields get safe presentational defaults", function () 
   assert.equal(result.dietNotes, "");
   assert.equal(result.openingInfo, "");
   assert.equal(result.imageUrl, null);
+  assert.equal(result.city, "");
+  assert.equal(result.state, "");
+  assert.equal(result.country, "");
+  assert.equal(result.postalCode, "");
+});
+
+test("2b. present structured location fields are preserved cleanly", function () {
+  const raw = basePlace({
+    city: "Shegaon",
+    state: "Maharashtra",
+    country: "India",
+    postalCode: "444203"
+  });
+  const result = normalizePlace(raw);
+  assert.ok(result, "expected a normalized object");
+  assert.equal(result.city, "Shegaon");
+  assert.equal(result.state, "Maharashtra");
+  assert.equal(result.country, "India");
+  assert.equal(result.postalCode, "444203");
 });
 
 /* ==========================================================================
@@ -169,16 +205,30 @@ test("8b. non-numeric coordinates are rejected", function () {
   assert.equal(normalizePlace(raw), null);
 });
 
-test("8c. swapped/out-of-pilot-box coordinates are rejected", function () {
-  // Shegaon's real lat/lon swapped -> latitude becomes ~76, far outside the
-  // pilot box (20.70-20.90), which is exactly the swap this check exists to catch.
+test("8c. coordinates with swapped Shegaon lat/lon are accepted globally (both values are within -90/90 and -180/180)", function () {
+  // Shegaon's real lat/lon swapped: latitude becomes ~76.7 (valid globally), longitude becomes ~20.8 (valid globally).
+  // With global bounds, both values are in range and the place is accepted.
+  // The former Shegaon PILOT_BOUNDS would have rejected this; the global COORD_BOUNDS cannot
+  // detect a swap for arbitrary coordinates — admins must verify physical data.
   const raw = basePlace({ latitude: 76.6977, longitude: 20.7935 });
-  assert.equal(normalizePlace(raw), null);
+  const result = normalizePlace(raw);
+  assert.ok(result, "swapped Shegaon coords are still within global ranges and must be accepted");
 });
 
-test("8d. coordinates from a totally different city are rejected", function () {
-  const raw = basePlace({ latitude: 19.0760, longitude: 72.8777 }); // Mumbai
+test("8d. coordinates from a city elsewhere in India are accepted globally", function () {
+  // Mumbai coordinates — previously rejected by PILOT_BOUNDS, now globally valid.
+  const raw = basePlace({ latitude: 19.0760, longitude: 72.8777 });
+  const result = normalizePlace(raw);
+  assert.ok(result, "Mumbai coords are valid globally and must be accepted");
+});
+
+test("8e. coordinates outside global ranges are rejected", function () {
+  // lat 200 is > 90 — genuinely impossible, not just outside a region.
+  const raw = basePlace({ latitude: 200, longitude: 76.69 });
   assert.equal(normalizePlace(raw), null);
+  // lon -200 is < -180.
+  const raw2 = basePlace({ latitude: 20.79, longitude: -200 });
+  assert.equal(normalizePlace(raw2), null);
 });
 
 /* ==========================================================================
@@ -284,7 +334,292 @@ await asyncTest("fetchPlaceById returns the correct single place, never a fallba
 });
 
 /* ==========================================================================
+   Phase 6 Community Features Tests
+   ========================================================================== */
+
+await asyncTest("submitCommunityPlace rejects unauthenticated user", async function () {
+  const result = await submitCommunityPlace({ name: "Test Place" }, null);
+  assert.equal(result.status, "unauthenticated");
+});
+
+await asyncTest("submitCommunityPlace enforces pending, unverified, and community source", async function () {
+  globalThis.__STUB_WRITES__ = [];
+  const submission = {
+    name: "Shiv Bhojanalaya",
+    placeType: "mess",
+    address: "Station Road, Shegaon",
+    dietTags: ["vegan", "vegetarian"],
+    latitude: 20.7936,
+    longitude: 76.6946
+  };
+  const user = { uid: "user-123", email: "user@ssgmce.ac.in", displayName: "Student A" };
+  const res = await submitCommunityPlace(submission, user);
+  assert.equal(res.status, "ok");
+  assert.ok(res.id);
+
+  const lastWrite = globalThis.__STUB_WRITES__[globalThis.__STUB_WRITES__.length - 1];
+  assert.equal(lastWrite.collection, "places");
+  assert.equal(lastWrite.data.name, "Shiv Bhojanalaya");
+  assert.equal(lastWrite.data.status, "pending");
+  assert.equal(lastWrite.data.verificationStatus, "unverified");
+  assert.equal(lastWrite.data.source, "community");
+  assert.equal(lastWrite.data.submittedBy, "user-123");
+  assert.equal(lastWrite.data.latitude, 20.7936);
+  assert.equal(lastWrite.data.longitude, 76.6946);
+});
+
+await asyncTest("submitCommunityPlace stores imageUrl when provided", async function () {
+  globalThis.__STUB_WRITES__ = [];
+  const submission = {
+    name: "Cafe Plantasia",
+    placeType: "cafe",
+    address: "MG Road, Pune",
+    area: "Camp",
+    latitude: 18.5204,
+    longitude: 73.8567,
+    dietTags: ["vegan"],
+    imageUrl: "https://res.cloudinary.com/vegansaathi/image/upload/v123/p1_sample.jpg"
+  };
+  const user = { uid: "user-photo-1", displayName: "Tester" };
+  const res = await submitCommunityPlace(submission, user);
+  assert.equal(res.status, "ok");
+
+  const lastWrite = globalThis.__STUB_WRITES__[globalThis.__STUB_WRITES__.length - 1];
+  assert.equal(lastWrite.data.imageUrl, "https://res.cloudinary.com/vegansaathi/image/upload/v123/p1_sample.jpg");
+});
+
+await asyncTest("submitCommunityPlace rejects unsafe or non-Cloudinary imageUrl", async function () {
+  const user = { uid: "user-photo-1" };
+  const res1 = await submitCommunityPlace({
+    name: "Unsafe Place",
+    placeType: "cafe",
+    address: "MG Road, Pune",
+    latitude: 18.5204,
+    longitude: 73.8567,
+    dietTags: ["vegan"],
+    imageUrl: "javascript:alert(1)"
+  }, user);
+  assert.equal(res1.status, "validation-error");
+
+  const res2 = await submitCommunityPlace({
+    name: "Non Cloudinary Place",
+    placeType: "cafe",
+    address: "MG Road, Pune",
+    latitude: 18.5204,
+    longitude: 73.8567,
+    dietTags: ["vegan"],
+    imageUrl: "https://evil.com/fake.jpg"
+  }, user);
+  assert.equal(res2.status, "validation-error");
+});
+
+await asyncTest("submitCommunityPlace rejects missing coordinates", async function () {
+  const user = { uid: "user-123" };
+  const res = await submitCommunityPlace({
+    name: "Testing Place",
+    placeType: "cafe",
+    address: "Main Road",
+    dietTags: ["vegan"]
+  }, user);
+  assert.equal(res.status, "validation-error");
+});
+
+await asyncTest("submitCommunityPlace rejects non-numeric coordinates", async function () {
+  const user = { uid: "user-123" };
+  const res = await submitCommunityPlace({
+    name: "Testing Place",
+    placeType: "cafe",
+    address: "Main Road",
+    dietTags: ["vegan"],
+    latitude: "not-a-number",
+    longitude: 76.6946
+  }, user);
+  assert.equal(res.status, "validation-error");
+});
+
+await asyncTest("submitCommunityPlace rejects out-of-bounds or swapped coordinates", async function () {
+  const user = { uid: "user-123" };
+  // lat 200 is genuinely out of global range (> 90)
+  const res1 = await submitCommunityPlace({
+    name: "Testing Place",
+    placeType: "cafe",
+    address: "Main Road",
+    dietTags: ["vegan"],
+    latitude: 200,
+    longitude: 20.7936
+  }, user);
+  assert.equal(res1.status, "validation-error");
+
+  // lon -200 is genuinely out of global range (< -180)
+  const res2 = await submitCommunityPlace({
+    name: "Testing Place",
+    placeType: "cafe",
+    address: "Main Road",
+    dietTags: ["vegan"],
+    latitude: 19.0760,
+    longitude: -200
+  }, user);
+  assert.equal(res2.status, "validation-error");
+
+  // Mumbai coords are valid globally and must be accepted now
+  globalThis.__STUB_WRITES__ = [];
+  const res3 = await submitCommunityPlace({
+    name: "Mumbai Test Place",
+    placeType: "cafe",
+    address: "Marine Lines, Mumbai",
+    dietTags: ["vegan"],
+    latitude: 19.0760,
+    longitude: 72.8777
+  }, user);
+  assert.equal(res3.status, "ok", "Mumbai coordinates are globally valid and must be accepted");
+});
+
+await asyncTest("submitReview rejects non-integer or out-of-range rating", async function () {
+  const user = { uid: "user-123" };
+  const res1 = await submitReview({ placeId: "p1", rating: 6, comment: "Great food", user: user });
+  assert.equal(res1.status, "validation-error");
+
+  const res2 = await submitReview({ placeId: "p1", rating: 0, comment: "Bad food", user: user });
+  assert.equal(res2.status, "validation-error");
+});
+
+await asyncTest("submitReview writes review document successfully", async function () {
+  globalThis.__STUB_WRITES__ = [];
+  const user = { uid: "user-456", displayName: "Ananya" };
+  const res = await submitReview({ placeId: "p1", rating: 5, comment: "Authentic vegan poha!", user: user });
+  assert.equal(res.status, "ok");
+
+  const lastWrite = globalThis.__STUB_WRITES__[globalThis.__STUB_WRITES__.length - 1];
+  assert.equal(lastWrite.collection, "reviews");
+  assert.equal(lastWrite.data.placeId, "p1");
+  assert.equal(lastWrite.data.userId, "user-456");
+  assert.equal(lastWrite.data.authorName, "Ananya");
+  assert.equal(lastWrite.data.rating, 5);
+});
+
+await asyncTest("fetchReviewsForPlace returns sorted reviews", async function () {
+  globalThis.__STUB_DOCS__ = [
+    { id: "r1", data: { placeId: "p1", rating: 4, comment: "Good", createdAt: stubTimestamp("2026-01-01T00:00:00Z") } },
+    { id: "r2", data: { placeId: "p1", rating: 5, comment: "Newest", createdAt: stubTimestamp("2026-02-01T00:00:00Z") } }
+  ];
+  const res = await fetchReviewsForPlace("p1");
+  assert.equal(res.status, "ok");
+  assert.equal(res.reviews.length, 2);
+  assert.equal(res.reviews[0].id, "r2"); // newest first
+});
+
+await asyncTest("deleteReview calls deleteDoc", async function () {
+  globalThis.__STUB_DELETES__ = [];
+  const res = await deleteReview("r1");
+  assert.equal(res.status, "ok");
+  assert.equal(globalThis.__STUB_DELETES__[0], "reviews/r1");
+});
+
+await asyncTest("submitReport rejects invalid reason and saves valid report", async function () {
+  const user = { uid: "user-789" };
+  const badRes = await submitReport({ placeId: "p1", reason: "not-a-real-reason", user: user });
+  assert.equal(badRes.status, "validation-error");
+
+  globalThis.__STUB_WRITES__ = [];
+  const goodRes = await submitReport({ placeId: "p1", reason: "place-closed", description: "Shut down", user: user });
+  assert.equal(goodRes.status, "ok");
+
+  const lastWrite = globalThis.__STUB_WRITES__[globalThis.__STUB_WRITES__.length - 1];
+  assert.equal(lastWrite.collection, "reports");
+  assert.equal(lastWrite.data.reason, "place-closed");
+  assert.equal(lastWrite.data.status, "pending");
+  assert.equal(lastWrite.data.reporterId, "user-789");
+});
+
+await asyncTest("savePlace, isPlaceSaved, and unsavePlace work correctly", async function () {
+  globalThis.__STUB_WRITES__ = [];
+  globalThis.__STUB_DELETES__ = [];
+
+  const saveRes = await savePlace("p1", "u1");
+  assert.equal(saveRes.status, "ok");
+  assert.equal(globalThis.__STUB_WRITES__[0].path, "savedPlaces/u1_p1");
+
+  globalThis.__STUB_DOC_BY_ID__ = function (id) {
+    return id === "u1_p1" ? { id: "u1_p1", data: { userId: "u1", placeId: "p1" } } : null;
+  };
+  const isSaved = await isPlaceSaved("p1", "u1");
+  assert.equal(isSaved, true);
+
+  const unsaveRes = await unsavePlace("p1", "u1");
+  assert.equal(unsaveRes.status, "ok");
+  assert.equal(globalThis.__STUB_DELETES__[0], "savedPlaces/u1_p1");
+});
+
+await asyncTest("fetchUserSubmissions returns user's submissions", async function () {
+  globalThis.__STUB_DOCS__ = [
+    { id: "sub-1", data: { name: "User Mess", status: "pending", verificationStatus: "unverified", createdAt: stubTimestamp("2026-03-01T00:00:00Z") } }
+  ];
+  const res = await fetchUserSubmissions("u1");
+  assert.equal(res.status, "ok");
+  assert.equal(res.submissions.length, 1);
+  assert.equal(res.submissions[0].name, "User Mess");
+});
+
+await asyncTest("fetchUserReviews returns user's reviews", async function () {
+  globalThis.__STUB_DOCS__ = [
+    { id: "rev-1", data: { placeId: "p1", rating: 5, comment: "Loved it!", createdAt: stubTimestamp("2026-03-02T00:00:00Z") } }
+  ];
+  const res = await fetchUserReviews("u1");
+  assert.equal(res.status, "ok");
+  assert.equal(res.reviews.length, 1);
+  assert.equal(res.reviews[0].comment, "Loved it!");
+});
+
+/* ==========================================================================
    Summary
    ========================================================================== */
+
+await asyncTest("submitCommunityPlace never publishes an email as submittedByName", async function () {
+  globalThis.__STUB_WRITES__ = [];
+  const submission = {
+    name: "Privacy Check Place", placeType: "mess", address: "Station Road, Shegaon",
+    dietTags: ["vegan"], latitude: 20.7936, longitude: 76.6946
+  };
+  const noName = { uid: "user-nn", email: "private.student@ssgmce.ac.in", displayName: null };
+  const res = await submitCommunityPlace(submission, noName);
+  assert.equal(res.status, "ok");
+  const lastWrite = globalThis.__STUB_WRITES__[globalThis.__STUB_WRITES__.length - 1];
+  assert.equal(lastWrite.data.submittedByName, "Community member");
+  assert.ok(!String(lastWrite.data.submittedByName).includes("@"), "email leaked into a public field");
+});
+
+await asyncTest("submitReview never publishes an email as authorName", async function () {
+  globalThis.__STUB_WRITES__ = [];
+  const user = { uid: "user-rv", email: "private.reviewer@ssgmce.ac.in", displayName: null };
+  const res = await submitReview({ placeId: "p1", rating: 4, comment: "Good thali", user: user });
+  assert.equal(res.status, "ok");
+  const lastWrite = globalThis.__STUB_WRITES__[globalThis.__STUB_WRITES__.length - 1];
+  assert.equal(lastWrite.data.authorName, "Community member");
+  assert.ok(!String(lastWrite.data.authorName).includes("@"), "email leaked into a public field");
+});
+
+
+await asyncTest("submitReview accepts a 500-character comment and refuses 501 with no write", async function () {
+  globalThis.__STUB_WRITES__ = [];
+  const user = { uid: "user-len", displayName: "Length Tester" };
+  const ok = await submitReview({ placeId: "p1", rating: 4, comment: "a".repeat(500), user: user });
+  assert.equal(ok.status, "ok");
+  const writesBefore = globalThis.__STUB_WRITES__.length;
+  const tooLong = await submitReview({ placeId: "p1", rating: 4, comment: "a".repeat(501), user: user });
+  assert.equal(tooLong.status, "validation-error");
+  assert.equal(globalThis.__STUB_WRITES__.length, writesBefore, "an over-long review must not be written");
+});
+
+await asyncTest("submitReport accepts a 500-character description and refuses 501 with no write", async function () {
+  globalThis.__STUB_WRITES__ = [];
+  const user = { uid: "user-rep" };
+  const ok = await submitReport({ placeId: "p1", reason: "outdated", description: "b".repeat(500), user: user });
+  assert.equal(ok.status, "ok");
+  const writesBefore = globalThis.__STUB_WRITES__.length;
+  const tooLong = await submitReport({ placeId: "p1", reason: "outdated", description: "b".repeat(501), user: user });
+  assert.equal(tooLong.status, "validation-error");
+  assert.equal(globalThis.__STUB_WRITES__.length, writesBefore, "an over-long report must not be written");
+});
+
 console.log("\n" + passed + " passed, " + failed + " failed");
 process.exit(failed > 0 ? 1 : 0);

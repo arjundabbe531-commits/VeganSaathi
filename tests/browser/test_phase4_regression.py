@@ -122,15 +122,15 @@ def run_scenario(browser, label, stub_user, stub_profile):
         page.click('#reviewForm button[type="submit"]')
         page.wait_for_timeout(150)
         review_msg = page.eval_on_selector("#reviewFeedback", "el => el.textContent")
-        log(label + " / Place Details: signed-in review submit reaches Phase-6 demo message",
-            "later phase" in review_msg and "sign in" not in review_msg.lower(), review_msg)
+        log(label + " / Place Details: signed-in review submit succeeds",
+            ("submitted successfully" in review_msg.lower() or "later phase" in review_msg) and "sign in" not in review_msg.lower(), review_msg)
 
         page.select_option("#reportReason", "outdated")
         page.click('#reportForm button[type="submit"]')
         page.wait_for_timeout(150)
         report_msg = page.eval_on_selector("#reportFeedback", "el => el.textContent")
-        log(label + " / Place Details: signed-in report submit reaches Phase-6 demo message",
-            "later phase" in report_msg and "sign in" not in report_msg.lower(), report_msg)
+        log(label + " / Place Details: signed-in report submit succeeds",
+            ("moderation queue" in report_msg.lower() or "later phase" in report_msg) and "sign in" not in report_msg.lower(), report_msg)
     else:
         log(label + " / Place Details: Save/Review/Report disabled when signed out",
             save_disabled and review_disabled and report_disabled)

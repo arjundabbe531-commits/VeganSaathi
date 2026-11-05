@@ -5,10 +5,11 @@ reasoning behind it. Read this before changing the rules file — the goal is th
 is a deliberate decision, not an accident.
 
 **This project does not use Firebase Storage.** There is no `firebase/storage.rules` file
-and no `storage` section in `firebase.json`. Media uploads (place photos, etc.) are planned
-for a later phase using Cloudinary instead — see `docs/TECHNICAL_ARCHITECTURE.md` §1 for
-why. If that changes in the future, this document and a new `storage.rules` file would need
-to be written together, following the same reasoning as the Firestore rules below.
+and no `storage` section in `firebase.json`. Media uploads (place photos, etc.) are handled
+via Cloudinary using an unsigned upload preset with strict client-side pre-flight checks
+and domain validation (see `docs/CLOUDINARY_INTEGRATION.md` and `frontend/js/cloudinary-service.js`).
+If Firebase Storage is ever introduced in the future, this document and a new `storage.rules`
+file would need to be written together, following the same reasoning as the Firestore rules below.
 
 ## The three roles
 
@@ -47,21 +48,48 @@ Console** by the project owner (Firestore Database → find the user's document 
 `role` field by hand) or a future trusted server-side process (e.g. a Cloud Function run by
 a project owner) — never through the app's own client code, and never through these rules.
 
-## Places: the pending → published lifecycle
+### Procedure: Setting Up the First Administrator (Project Owner)
+
+Because client-side self-promotion is blocked by Firestore security rules, initial administrator access must be granted out-of-band by the Firebase project owner:
+
+1. **Register the account**: Have the designated faculty or student project lead sign up using the standard interface at `register.html` (or Google Sign-In at `login.html`). This creates a standard Firebase Authentication user and writes a matching Firestore profile at `users/{uid}` with `role: "user"`.
+2. **Find the user UID**: The project owner opens the [Firebase Console](https://console.firebase.google.com/) for project `vegansaathi-88d2f`. In the **Authentication** section under the **Users** tab, locate the administrator's email and copy their `User UID`.
+3. **Elevate role in Firestore**:
+   - Go to **Firestore Database** in the left menu.
+   - Select the `users` collection.
+   - Open the document whose ID matches the administrator's UID.
+   - Select the `role` field (string), edit the value from `"user"` to `"admin"`, and click Save.
+4. **Verify Access**:
+   - The user refreshes `index.html` or signs in.
+   - The dynamic navbar will automatically display the "Admin" link.
+   - Navigating to `/admin/dashboard.html` passes `checkIsAdmin` and reveals the live moderation dashboard.
+5. **Strict Guardrail**: No client-side self-promotion feature, hidden query parameters, or backdoor registration paths exist or should ever be created.
+
+## Places: the pending → published lifecycle & source integrity
 
 | Field | Who can set it, and how |
 |---|---|
+| `source: "community"` | Enforced by the `create` rule for all client writes. Cannot be set to `"fieldwork"` |
 | `status: "pending"` | Automatically true for every new submission — enforced by the `create` rule, not optional |
 | `status: "published"` | **Admin only** |
 | `status: "rejected"` | **Admin only** |
+| `verificationStatus: "unverified"` | Enforced by `create` rule. Users cannot pre-verify |
 | `verificationStatus: "verified"` | **Admin only** |
 | `lastVerifiedAt` | **Admin only** (set alongside `verificationStatus: "verified"`) |
+| `latitude`, `longitude` | Validated to be numeric and strictly within global coordinates `COORD_BOUNDS` (lat -90 to 90, lon -180 to 180) |
+| `imageUrl` | Optional string; client pre-flight enforces Cloudinary HTTPS URLs (or empty). Validated and updated via administrative moderation |
 
 A submitter can still edit their own place *while it's still pending* (fixing a typo before
-review, say) but the `update` rule requires the edited document to still have
-`status: "pending"` and `verificationStatus: "unverified"` afterward — so an edit can never
-be used to sneak a place into "published" or "verified" state. Only an admin write can
-change those two fields.
+review, say) but the `update` rule strictly enforces:
+- `resource.data.submittedBy == request.auth.uid`
+- `resource.data.status == "pending"` and `request.resource.data.status == "pending"`
+- `request.resource.data.verificationStatus == "unverified"`
+- `request.resource.data.source == "community"`
+- `request.resource.data.submittedBy == resource.data.submittedBy` (cannot reassign ownership)
+- `request.resource.data.createdAt == resource.data.createdAt` (cannot tamper creation timestamp)
+- `name` (2–100 chars), `address` (1–300 chars), valid `placeType`, `dietTags`, `priceRange`, and `latitude`/`longitude` in global coordinate bounds.
+
+So an edit can never be used to sneak a place into "published" or "verified" state, nor spoof fieldwork source. Only an admin write can change status to published or verified.
 
 ## Reviews and reports: read visibility
 
@@ -89,12 +117,32 @@ the tightest rule that still supports the actual UI.
 
 ## Media uploads (Cloudinary, not Firebase Storage)
 
-Place photos (and any future review/profile photos) will be handled by Cloudinary in a
-later phase, not by Firebase Storage — this project is intentionally kept on Firebase's
-free Spark plan, which does not include meaningful Storage usage. When that phase happens,
-whatever upload mechanism is chosen still needs the same practical guards a Storage rule
-would have provided (real image type, a reasonable size cap, tied to a signed-in user) —
-implemented in that phase's own security review, not assumed here.
+Place photos are handled by Cloudinary, not by Firebase Storage — this project is
+intentionally kept on Firebase's free Spark plan, which does not include meaningful Storage usage.
+The upload mechanism enforces client pre-flight checks (real image MIME, 5 MB size cap, whitelist
+of JPG/PNG/WebP, sanitizing dangerous extensions and MIME spoofing), unsigned upload presets without exposing
+secrets, and HTTPS transformation URL generation with strict scheme rejection (`javascript:`, `data:`).
+See `docs/CLOUDINARY_INTEGRATION.md` and `frontend/js/cloudinary-service.js` for architectural details.
+
+## Known gaps — proposed, not yet applied
+
+Three specific hardening changes have been written out in full but are **not** part of the
+active `firebase/firestore.rules`, because they have not been run against the Firestore
+Emulator in the environment that wrote them (no Firebase CLI / no network there). Applying
+an unverified rules change is a worse risk than leaving the gap open and documented.
+
+| # | Gap in the CURRENT rules | Proposed fix |
+|---|---|---|
+| R1 | A review `comment` or report `description` has no length limit in the rules (the client caps both at 500 characters, which is not a security boundary) | Cap both at 500 characters server-side |
+| R2 | A review can be created for a `placeId` that is pending, rejected, or does not exist | Require the target place to exist and have `status == "published"` |
+| R3 | A signed-in user's profile update can write any field, not just the ones the UI exposes | Restrict updates to known fields via `diff().affectedKeys().hasOnly([...])`, and re-validate `dietPreference` on every update |
+
+The full proposed rules file is `firebase/firestore.rules.proposed` (a complete drop-in
+variant, not just the snippets above). The test suites that must pass before it replaces
+the active file are `tests/rules/firestore.rules.test.mjs` (current behaviour — must still
+pass unchanged) and `tests/rules/firestore.rules.proposed.test.mjs` (the three fixes above —
+expected to fail until the proposed file is in place). See `tests/rules/README.md` for the
+exact commands. Until both have actually been run and recorded, do not treat R1–R3 as done.
 
 ## What these rules do NOT protect against
 

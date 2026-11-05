@@ -87,24 +87,62 @@ frontend/
 ├── awareness/
 │   ├── what-is-veganism.html
 │   ├── vegetarian-vs-vegan.html
+│   ├── misconceptions.html
+│   ├── getting-started.html
+│   ├── plant-based-indian-foods.html
 │   └── faq.html
 ├── admin/
 │   └── dashboard.html
 ├── css/
 │   └── styles.css
 └── js/
-    ├── firebase-config.js    (Phase 3/4 — public config; holds real values for project vegansaathi-88d2f)
-    ├── firebase-init.js      (Phase 3 — the ONLY place initializeApp() is called; imported by every page as of Phase 4)
-    ├── auth-state.js         (Phase 4 — the ONE shared onAuthStateChanged subscription: onAuthChange(), getCurrentUser(), fetchUserProfile())
-    ├── auth-ui.js            (Phase 4 — registration, login, Google sign-in, password reset, logout: the actual Firebase Auth/Firestore calls)
-    ├── profile-page.js       (Phase 4 — loads/renders the real users/{uid} Firestore document on profile.html)
-    ├── saved-page.js         (Phase 4 — auth guard for saved.html; saved-place data itself is still mock, real persistence is Phase 6)
-    ├── submit-place-guard.js (Phase 4 — auth guard + form handling for submit-place.html's still-demo submission)
-    ├── mock-data.js          (Phase 2 — dev-only mock place/review data; still in use for Explore/Place Details/Saved demo content until Phase 5/6 replace it with Firestore)
-    ├── components.js         (Phase 2/4 — navbar/footer/card/badge render helpers; renderNavbar() is now auth-aware)
-    ├── app.js                (Phase 2/4 — injects navbar/footer, subscribes to auth state, wires Logout — loaded as an ES module on every page)
-    ├── explore.js            (Phase 2 — search/filter/map against mock data; not yet Firestore-backed)
-    └── place-details.js      (Phase 2/4 — place detail rendering against mock data; Save/Review/Report are now auth-gated)
+    ├── firebase-config.js      Public Firebase client config for project vegansaathi-88d2f.
+    │                           Safe to commit — not a secret (see §4 Security Model).
+    ├── firebase-init.js        The ONLY place initializeApp() is called. Exports
+    │                           getFirebaseAuth() and getFirebaseDb().
+    ├── auth-state.js           Single onAuthStateChanged subscription. Exports
+    │                           onAuthChange(), getCurrentUser(), fetchUserProfile().
+    ├── auth-ui.js              Firebase Auth/Firestore calls for register, login,
+    │                           Google sign-in, password reset, logout.
+    ├── app.js                  Loaded as ES module on every page. Injects navbar/footer,
+    │                           subscribes to auth state, wires Logout.
+    ├── components.js           Navbar, footer, place card, diet badge, verification
+    │                           badge, and awareness sub-nav render helpers.
+    │                           renderNavbar() is auth-aware and isAdmin-aware.
+    │                           renderVerificationBadge() implements the 90-day
+    │                           re-check-due cue (display-only — never writes Firestore).
+    ├── places-service.js       Centralized Firestore data-access layer for places.
+    │                           Exports: PILOT_BOUNDS, normalizePlace(),
+    │                           fetchPublishedPlaces(), fetchPlaceById(),
+    │                           submitNewPlace(), submitReview(), deleteReview(),
+    │                           submitReport(), savePlace(), unsavePlace(),
+    │                           getSavedPlaces(), getUserSubmissions(), getUserReviews().
+    ├── admin-service.js        Admin-only Firestore operations. All functions call
+    │                           checkIsAdmin() first. Exports: fetchAdminOverviewStats(),
+    │                           fetchPendingSubmissions(), approvePlace(), rejectPlace(),
+    │                           fetchPublishedPlacesForAdmin(), updatePlaceByAdmin(),
+    │                           reverifyPlace(), fetchAdminReports(), resolveReport(),
+    │                           dismissReport(), fetchAdminReviews(), deleteReviewByAdmin(),
+    │                           fetchAdminUsersList().
+    ├── explore.js              Explore page controller. Calls fetchPublishedPlaces(),
+    │                           applies client-side search/filter/sort, manages
+    │                           Leaflet vsMarkersLayer via layerGroup.
+    ├── place-details.js        Place Details page controller. Calls fetchPlaceById(),
+    │                           handles reviews, reports, save/unsave. All contribution
+    │                           actions gated behind auth.
+    ├── submit-place-guard.js   Auth guard + form controller for submit-place.html.
+    │                           Calls submitNewPlace(); validates coords against
+    │                           PILOT_BOUNDS; includes Leaflet coordinate picker.
+    ├── profile-page.js         Profile page controller. Loads users/{uid} document;
+    │                           renders submissions and reviews tabs.
+    ├── saved-page.js           Saved Places page controller. Calls getSavedPlaces();
+    │                           renders saved place cards.
+    ├── admin-dashboard.js      Admin Dashboard controller. Renders all admin tabs;
+    │                           calls admin-service.js for all moderation actions.
+    └── mock-data.js            DEV-ONLY mock data (clearly labeled [MOCK] in every
+                                place name). Used only by test suites; no production
+                                page loads it for real content. Must be removed before
+                                the live CEP demo.
 ```
 
 Every page loads `app.js` as `<script type="module">`, since it imports from `auth-state.js`

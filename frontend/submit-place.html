@@ -4,7 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Submit a Place — VeganSaathi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link href="css/styles.css" rel="stylesheet">
 <script>window.VS_BASE = ""; window.VS_ACTIVE_PAGE = "community";</script>
 </head>
@@ -13,92 +17,208 @@
 <div id="navbar-placeholder"></div>
 
 <section class="vs-section">
-  <div class="container" style="max-width:700px;">
-    <h1 class="h4">Submit a Place</h1>
-    <p class="text-muted-vs">Know a vegan, vegetarian, Jain or eggetarian-friendly place near SSGMCE or Shegaon? Add it below. Every submission is reviewed by our team before it appears publicly.</p>
-
-    <div class="vs-flow mb-4">
-      <div class="vs-flow__step">Your submission</div>
-      <div class="vs-flow__arrow">→</div>
-      <div class="vs-flow__step">Pending review</div>
-      <div class="vs-flow__arrow">→</div>
-      <div class="vs-flow__step">Admin approval</div>
-      <div class="vs-flow__arrow">→</div>
-      <div class="vs-flow__step">Published & verifiable</div>
+  <div class="container" style="max-width:760px;">
+    <!-- Title & Subtitle -->
+    <div class="text-center mb-4">
+      <div class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill bg-white border shadow-sm mb-2" style="font-size:0.75rem; font-weight:700; color:var(--vs-green-700);">
+        🌱 COMMUNITY ENGAGEMENT DIRECTORY • SHEGAON
+      </div>
+      <h1 class="h3 mb-2" style="color:var(--vs-text);">Submit a Place for Verification</h1>
+      <p class="text-muted-vs" style="max-width:580px; margin:0 auto; font-size:0.95rem;">
+        Know a vegan, vegetarian, Jain, or eggetarian-friendly place? Add it below. Every submission undergoes student field-verification before publishing.
+      </p>
     </div>
 
-    <div class="vs-card p-4">
+    <!-- 4-Stage Verification Flow Tracker -->
+    <div class="vs-flow mb-4">
+      <div class="vs-flow__step py-2 px-3">
+        <span style="font-size:0.9rem;">📝</span>
+        <span class="ms-1">Your submission</span>
+      </div>
+      <div class="vs-flow__arrow">→</div>
+      <div class="vs-flow__step py-2 px-3">
+        <span style="font-size:0.9rem;">⏳</span>
+        <span class="ms-1">Pending review</span>
+      </div>
+      <div class="vs-flow__arrow">→</div>
+      <div class="vs-flow__step py-2 px-3">
+        <span style="font-size:0.9rem;">🛡️</span>
+        <span class="ms-1">Admin check</span>
+      </div>
+      <div class="vs-flow__arrow">→</div>
+      <div class="vs-flow__step py-2 px-3">
+        <span style="font-size:0.9rem;">✨</span>
+        <span class="ms-1">Published</span>
+      </div>
+    </div>
+
+    <!-- Main Form -->
+    <div class="vs-card p-4 p-md-5">
       <form id="submitPlaceForm" novalidate>
-        <div class="mb-3">
-          <label for="spName" class="form-label">Place name</label>
-          <input type="text" class="form-control" id="spName" required>
-        </div>
-        <div class="row">
-          <div class="col-sm-6 mb-3">
-            <label for="spType" class="form-label">Place type</label>
-            <select id="spType" class="form-select" required>
-              <option value="">Select type</option>
-              <option value="restaurant">Restaurant</option>
-              <option value="mess">Mess</option>
-              <option value="canteen">Canteen</option>
-              <option value="cafe">Cafe</option>
-              <option value="dhaba">Dhaba</option>
-              <option value="other">Other</option>
-            </select>
+        
+        <!-- Group 1: Basic Information -->
+        <div class="mb-4 pb-3 border-bottom">
+          <h2 class="h6 text-uppercase text-muted-vs mb-3" style="letter-spacing:0.04em; font-weight:700;">1. Basic Details</h2>
+          
+          <div class="mb-3">
+            <label for="spName" class="form-label" style="font-weight:600;">Place name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="spName" placeholder="e.g. Anand Pure Veg Mess or Campus Juice Center" required>
           </div>
-          <div class="col-sm-6 mb-3">
-            <label for="spPrice" class="form-label">Price range</label>
-            <select id="spPrice" class="form-select">
-              <option value="">Select price range</option>
-              <option value="budget">Budget</option>
-              <option value="moderate">Moderate</option>
-              <option value="premium">Premium</option>
-            </select>
-          </div>
-        </div>
-        <div class="mb-3">
-          <label for="spAddress" class="form-label">Address</label>
-          <input type="text" class="form-control" id="spAddress" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label d-block">Dietary categories (select all that apply)</label>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="spDiet" value="vegan" id="spDietVegan">
-            <label class="form-check-label" for="spDietVegan">Vegan</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="spDiet" value="vegetarian" id="spDietVeg">
-            <label class="form-check-label" for="spDietVeg">Vegetarian</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="spDiet" value="eggetarian" id="spDietEgg">
-            <label class="form-check-label" for="spDietEgg">Eggetarian</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" name="spDiet" value="jain" id="spDietJain">
-            <label class="form-check-label" for="spDietJain">Jain</label>
+
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label for="spType" class="form-label" style="font-weight:600;">Place type <span class="text-danger">*</span></label>
+              <select id="spType" class="form-select" required>
+                <option value="">Select type</option>
+                <option value="restaurant">Restaurant (Dining &amp; Family)</option>
+                <option value="mess">Mess (Hostel &amp; Student Tiffin)</option>
+                <option value="canteen">Canteen (SSGMCE Campus)</option>
+                <option value="cafe">Cafe &amp; Refreshment</option>
+                <option value="dhaba">Dhaba &amp; Thali</option>
+                <option value="other">Other Food Stall</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label for="spPrice" class="form-label" style="font-weight:600;">Price range</label>
+              <select id="spPrice" class="form-select">
+                <option value="">Select price range</option>
+                <option value="budget">Budget (under ₹80)</option>
+                <option value="moderate">Moderate (₹80–₹200)</option>
+                <option value="premium">Premium (₹200+)</option>
+              </select>
+            </div>
           </div>
         </div>
-        <div class="mb-3">
-          <label for="spDescription" class="form-label">Description</label>
-          <textarea class="form-control" id="spDescription" rows="3" placeholder="What makes this place suitable? Any notes on how the food is prepared?"></textarea>
+
+        <!-- Group 2: Location & Map Picker -->
+        <div class="mb-4 pb-3 border-bottom">
+          <h2 class="h6 text-uppercase text-muted-vs mb-3" style="letter-spacing:0.04em; font-weight:700;">2. Location &amp; Coordinates</h2>
+
+          <div class="mb-3">
+            <label for="spAddress" class="form-label" style="font-weight:600;">Address <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="spAddress" placeholder="e.g. Near Old Boys Hostel Gate, Khamgaon Road, Shegaon" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="spLocation" class="form-label" style="font-weight:600;">Area / Landmark (optional)</label>
+            <input type="text" class="form-control" id="spLocation" placeholder="e.g. near Anand Sagar Gate or SSGMCE Main Gate">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Interactive Map Pin &amp; Coordinates (required)</label>
+            <p class="text-muted-vs mb-2" style="font-size:0.875rem;">
+              Click anywhere on the map to set the exact coordinates, or input latitude and longitude manually.
+            </p>
+            <div id="spMap" style="height:280px; border-radius:12px; border:1px solid var(--vs-border); margin-bottom:0.75rem;"></div>
+            <div class="row g-2">
+              <div class="col-sm-6">
+                <label for="spLatitude" class="form-label" style="font-size:0.85rem; font-weight:600;">Latitude</label>
+                <input type="number" step="any" class="form-control" id="spLatitude" placeholder="e.g. 20.7936" required>
+              </div>
+              <div class="col-sm-6">
+                <label for="spLongitude" class="form-label" style="font-size:0.85rem; font-weight:600;">Longitude</label>
+                <input type="number" step="any" class="form-control" id="spLongitude" placeholder="e.g. 76.6946" required>
+              </div>
+            </div>
+            <div id="spCoordFeedback" class="form-text text-danger d-none mt-1"></div>
+          </div>
         </div>
-        <div class="mb-3">
-          <label for="spLocation" class="form-label">Location (approximate coordinates or landmark)</label>
-          <input type="text" class="form-control" id="spLocation" placeholder="e.g. near Gajanan Maharaj Temple">
+
+        <!-- Group 3: Dietary Suitability -->
+        <div class="mb-4 pb-3 border-bottom">
+          <h2 class="h6 text-uppercase text-muted-vs mb-3" style="letter-spacing:0.04em; font-weight:700;">3. Dietary Suitability</h2>
+
+          <div class="mb-3">
+            <label class="form-label d-block fw-semibold">Dietary categories (select all that apply) <span class="text-danger">*</span></label>
+            <div class="row g-2">
+              <div class="col-6 col-sm-3">
+                <div class="p-2 border rounded-3 bg-white h-100">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="spDiet" value="vegan" id="spDietVegan">
+                    <label class="form-check-label fw-bold" for="spDietVegan" style="color:var(--vs-vegan);">🌱 Vegan</label>
+                  </div>
+                  <div class="text-muted-vs" style="font-size:0.75rem; margin-left:1.5rem;">Plant-based only</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="p-2 border rounded-3 bg-white h-100">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="spDiet" value="vegetarian" id="spDietVeg">
+                    <label class="form-check-label fw-bold" for="spDietVeg" style="color:var(--vs-vegetarian);">🥗 Vegetarian</label>
+                  </div>
+                  <div class="text-muted-vs" style="font-size:0.75rem; margin-left:1.5rem;">Pure veg kitchen</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="p-2 border rounded-3 bg-white h-100">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="spDiet" value="jain" id="spDietJain">
+                    <label class="form-check-label fw-bold" for="spDietJain" style="color:var(--vs-jain);">🌿 Jain</label>
+                  </div>
+                  <div class="text-muted-vs" style="font-size:0.75rem; margin-left:1.5rem;">No root vegetables</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="p-2 border rounded-3 bg-white h-100">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="spDiet" value="eggetarian" id="spDietEgg">
+                    <label class="form-check-label fw-bold" for="spDietEgg" style="color:var(--vs-eggetarian);">🥚 Eggetarian</label>
+                  </div>
+                  <div class="text-muted-vs" style="font-size:0.75rem; margin-left:1.5rem;">Egg dishes served</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="spDescription" class="form-label" style="font-weight:600;">Description &amp; Menu Highlights</label>
+            <textarea class="form-control" id="spDescription" rows="3" placeholder="What makes this place suitable? Any notes on how the food is prepared, oil vs. ghee, or custom orders?"></textarea>
+          </div>
         </div>
-        <div class="mb-3">
-          <label for="spPhoto" class="form-label">Photo (optional)</label>
-          <input type="file" class="form-control" id="spPhoto" accept="image/*" disabled title="Photo upload will be enabled once media upload (Cloudinary) is connected">
-          <div class="form-text">Photo upload will be enabled once Cloudinary integration is added in a later phase.</div>
+
+        <!-- Group 4: Photo Dropzone -->
+        <div class="mb-4 pb-3 border-bottom">
+          <h2 class="h6 text-uppercase text-muted-vs mb-3" style="letter-spacing:0.04em; font-weight:700;">4. Storefront / Menu Photo (Optional)</h2>
+
+          <div class="mb-3">
+            <label for="spPhoto" class="form-label" style="font-weight:600;">Select Image</label>
+            <input type="file" class="form-control" id="spPhoto" accept="image/jpeg,image/png,image/webp">
+            <div class="form-text">Storefront or menu photo (JPG, PNG, WebP up to 5 MB). Uploaded securely via Cloudinary.</div>
+            <div id="spPhotoFeedback" class="form-text text-danger d-none mt-1"></div>
+
+            <!-- Image preview container -->
+            <div id="spPhotoPreviewContainer" class="vs-photo-preview-container d-none">
+              <img id="spPhotoPreviewImg" class="vs-photo-preview-img" alt="Photo preview" />
+              <div class="vs-photo-preview-info">
+                <span id="spPhotoFileName" class="text-truncate me-2 text-muted-vs" style="max-width:200px;"></span>
+                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" id="spRemovePhotoBtn" title="Remove selected photo">✕ Remove</button>
+              </div>
+            </div>
+
+            <!-- Upload Progress indicator -->
+            <div id="spUploadProgressContainer" class="vs-upload-progress-container d-none">
+              <div class="d-flex justify-content-between text-muted-vs" style="font-size:0.75rem;">
+                <span>Uploading photo…</span>
+                <span id="spUploadPercent">0%</span>
+              </div>
+              <div class="progress vs-upload-progress mt-1">
+                <div id="spProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="spNotes" class="form-label" style="font-weight:600;">Optional reviewer notes</label>
+            <textarea class="form-control" id="spNotes" rows="2" placeholder="Private tips for our field inspection team (e.g. best time to visit, owner contact)"></textarea>
+          </div>
         </div>
-        <div class="mb-3">
-          <label for="spNotes" class="form-label">Optional notes for our review team</label>
-          <textarea class="form-control" id="spNotes" rows="2"></textarea>
-        </div>
-        <button type="submit" class="btn btn-vs-primary" id="submitPlaceBtn">Submit for Review</button>
-        <p id="submitPlaceAuthNote" class="text-muted-vs mt-2 d-none" style="font-size:0.9rem;">
-          <a href="login.html">Sign in</a> to submit a place.
+
+        <!-- Submit Action -->
+        <button type="submit" class="btn btn-vs-primary btn-lg w-100 py-2" id="submitPlaceBtn">
+          Submit Place for Verification →
+        </button>
+        <p id="submitPlaceAuthNote" class="text-muted-vs mt-2 text-center d-none" style="font-size:0.9rem;">
+          <a href="login.html" style="font-weight:700;">Sign in</a> to submit a place.
         </p>
         <div id="submitPlaceFeedback" class="vs-form-note mt-3 d-none"></div>
       </form>
@@ -109,7 +229,7 @@
 <div id="footer-placeholder"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/mock-data.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="js/components.js"></script>
 <script type="module" src="js/app.js"></script>
 <script type="module" src="js/submit-place-guard.js"></script>

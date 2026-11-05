@@ -30,9 +30,8 @@ route_handler = make_route_handler()
 # Inside the pilot bounding box (places-service.js's PILOT_BOUNDS: lat
 # 20.70-20.90, lon 76.55-76.80).
 GOOD_LAT, GOOD_LON = 20.79, 76.69
-# Outside it — Mumbai, used the same way places-service.js's own tests use
-# it to represent an obviously-wrong/swapped coordinate.
-BAD_LAT, BAD_LON = 19.0760, 72.8777
+# Truly invalid coordinate out of global bounds (lat > 90)
+BAD_LAT, BAD_LON = 200.0, 72.8777
 
 
 def place(id, **overrides):

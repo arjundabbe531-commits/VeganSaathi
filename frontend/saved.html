@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Saved Places — VeganSaathi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="css/styles.css" rel="stylesheet">
 <script>window.VS_BASE = ""; window.VS_ACTIVE_PAGE = "";</script>
@@ -14,21 +17,35 @@
 
 <section class="vs-section">
   <div class="container">
-    <h1 class="h4 mb-3">Saved Places</h1>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-4">
+      <div>
+        <div class="d-inline-flex align-items-center gap-1 px-2.5 py-0.5 rounded-pill bg-white border mb-2" style="font-size:0.75rem; font-weight:700; color:var(--vs-green-700);">
+          🔖 PERSONAL DIRECTORY
+        </div>
+        <h1 class="h3 mb-1" style="color:var(--vs-text);">Saved Places</h1>
+        <p class="text-muted-vs mb-0">Bookmarked student messes, local canteens, and verified vegan dining spots in Shegaon.</p>
+      </div>
+      <a href="explore.html" class="btn btn-vs-outline btn-sm">Explore More Places →</a>
+    </div>
 
-    <div id="savedSignedOut" class="vs-empty-state d-none">
-      <p>Sign in to see your saved places.</p>
-      <a href="login.html" class="btn btn-vs-primary btn-sm">Login</a>
-      <a href="register.html" class="btn btn-vs-outline btn-sm">Register</a>
+    <div id="savedSignedOut" class="vs-card p-5 text-center d-none" style="max-width:500px; margin:2rem auto;">
+      <div style="font-size:2.5rem; margin-bottom:0.75rem;">🔒</div>
+      <h2 class="h5 mb-2">Sign in to view saved places</h2>
+      <p class="text-muted-vs mb-4">Your saved directory is synchronized across devices when you're signed into your account.</p>
+      <div class="d-flex justify-content-center gap-2">
+        <a href="login.html" class="btn btn-vs-primary px-4">Login</a>
+        <a href="register.html" class="btn btn-vs-outline px-4">Register</a>
+      </div>
     </div>
 
     <div id="savedSignedIn" class="d-none">
       <div class="row g-4" id="savedGrid"></div>
-      <div id="savedEmptyState" class="vs-empty-state d-none">
-        <p>You haven't saved any places yet.</p>
-        <a href="explore.html" class="btn btn-vs-primary btn-sm">Explore Places</a>
+      <div id="savedEmptyState" class="vs-card p-5 text-center d-none" style="max-width:550px; margin:2rem auto;">
+        <div style="font-size:2.5rem; margin-bottom:0.75rem;">🔖</div>
+        <h2 class="h5 mb-2">No Saved Places Yet</h2>
+        <p class="text-muted-vs mb-4">When exploring dining places near campus or around Shegaon, click "Save" to bookmark them here for quick access.</p>
+        <a href="explore.html" class="btn btn-vs-primary px-4">Explore Places</a>
       </div>
-      <p class="vs-mock-notice">Development note: saved places are still local mock data for this signed-in session — the real Saved Places backend is Phase 6. The save/remove toggle only changes local UI state; nothing is persisted to Firestore yet.</p>
     </div>
   </div>
 </section>
@@ -36,7 +53,6 @@
 <div id="footer-placeholder"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/mock-data.js"></script>
 <script src="js/components.js"></script>
 <script type="module" src="js/app.js"></script>
 <script type="module" src="js/saved-page.js"></script>
