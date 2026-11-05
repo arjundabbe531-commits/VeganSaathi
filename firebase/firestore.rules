@@ -97,23 +97,27 @@ service cloud.firestore {
         || isAdmin()
         || (isSignedIn() && resource.data.submittedBy == request.auth.uid);
 
+      // Admins can create places directly (e.g. from approved import batches).
       // A new community submission always starts pending/unverified and source="community".
       // A user cannot publish, pre-verify, or spoof fieldwork attribution.
-      allow create: if isSignedIn()
-        && request.resource.data.submittedBy == request.auth.uid
-        && request.resource.data.source == "community"
-        && request.resource.data.status == "pending"
-        && request.resource.data.verificationStatus == "unverified"
-        && isValidPlaceType(request.resource.data.placeType)
-        && isValidDietTags(request.resource.data.dietTags)
-        && isValidPriceRange(request.resource.data.priceRange)
-        && isValidCoordinates(request.resource.data.latitude, request.resource.data.longitude)
-        && request.resource.data.name is string
-        && request.resource.data.name.size() >= 2
-        && request.resource.data.name.size() <= 100
-        && request.resource.data.address is string
-        && request.resource.data.address.size() > 0
-        && request.resource.data.address.size() <= 300;
+      allow create: if isAdmin()
+        || (
+          isSignedIn()
+          && request.resource.data.submittedBy == request.auth.uid
+          && request.resource.data.source == "community"
+          && request.resource.data.status == "pending"
+          && request.resource.data.verificationStatus == "unverified"
+          && isValidPlaceType(request.resource.data.placeType)
+          && isValidDietTags(request.resource.data.dietTags)
+          && isValidPriceRange(request.resource.data.priceRange)
+          && isValidCoordinates(request.resource.data.latitude, request.resource.data.longitude)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() >= 2
+          && request.resource.data.name.size() <= 100
+          && request.resource.data.address is string
+          && request.resource.data.address.size() > 0
+          && request.resource.data.address.size() <= 300
+        );
 
       // Admins can change anything (approve, reject, edit, re-verify).
       // The original submitter may still edit their OWN submission while it
@@ -205,6 +209,50 @@ service cloud.firestore {
       allow read: if isAdmin() || (isSignedIn() && resource.data.suggestedBy == request.auth.uid);
       allow create: if isSignedIn()
         && request.resource.data.suggestedBy == request.auth.uid
+        && request.resource.data.status == "pending";
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ---------------- placeCandidates (Place Intelligence staging) ----------------
+    match /placeCandidates/{candidateId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---------------- importBatches (Audit manifest records) ----------------
+    match /importBatches/{batchId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---------------- placePhotos (Rights-cleared photo pipeline) ----------------
+    match /placePhotos/{photoId} {
+      allow read: if (resource.data.approval_status == "approved")
+        || isAdmin()
+        || (isSignedIn() && resource.data.submitter_uid == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.submitter_uid == request.auth.uid
+        && request.resource.data.approval_status == "pending"
+        && request.resource.data.place_id is string
+        && request.resource.data.photo_category in ["storefront", "interior", "food", "menu", "logo"];
+
+      allow update: if isAdmin();
+
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.submitter_uid == request.auth.uid && resource.data.approval_status == "pending");
+    }
+
+    // ---------------- verificationHistory (Audit trail for verification decisions) ----------------
+    match /verificationHistory/{historyId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ---------------- businessClaims (Business owner claim workflow) ----------------
+    match /businessClaims/{claimId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == "pending";
       allow update: if isAdmin();
       allow delete: if false;

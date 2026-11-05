@@ -19,7 +19,8 @@ import {
   validateImageFile,
   uploadImageToCloudinary,
   validateDirectImageUrl,
-  uploadRemoteImageToCloudinary
+  uploadRemoteImageToCloudinary,
+  isValidCloudinaryUrl
 } from "./cloudinary-service.js";
 
 // Default map view when no user location is known — centred on India at a
@@ -500,15 +501,47 @@ function wireSubmitPlaceForm() {
         submitBtn.textContent = "Processing image…";
         try {
           const remoteResult = await uploadRemoteImageToCloudinary(verifiedWebImageUrl);
-          if (remoteResult && remoteResult.success && !remoteResult.isMock && remoteResult.secureUrl) {
-            uploadedImageUrl = remoteResult.secureUrl;
+          if (remoteResult && remoteResult.success) {
+            if (remoteResult.isMock) {
+              // Cloudinary credentials not provisioned on this environment (demo mode).
+              // Strictly prevent unhosted or raw external URLs from failing Firestore submission.
+              uploadedImageUrl = "";
+              showFormNote(
+                "submitPlaceFeedback",
+                "Notice: Web image address was verified in demonstration mode (Cloudinary credentials pending setup). Listing will be submitted without an attached image.",
+                false
+              );
+            } else if (remoteResult.secureUrl && isValidCloudinaryUrl(remoteResult.secureUrl)) {
+              uploadedImageUrl = remoteResult.secureUrl;
+            } else {
+              showFormNote(
+                "submitPlaceFeedback",
+                "Could not process image from the provided web address. Please try another address or upload from your device.",
+                true
+              );
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalText;
+              return;
+            }
           } else {
-            // Direct URL verified and accepted
-            uploadedImageUrl = verifiedWebImageUrl;
+            showFormNote(
+              "submitPlaceFeedback",
+              (remoteResult && remoteResult.error) || "Could not process image from the provided web address. Please try uploading from your device instead.",
+              true
+            );
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
           }
         } catch (e) {
-          // Fallback to direct verified URL
-          uploadedImageUrl = verifiedWebImageUrl;
+          showFormNote(
+            "submitPlaceFeedback",
+            "An error occurred while processing the image address. Please try uploading directly from your device.",
+            true
+          );
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          return;
         }
       }
 

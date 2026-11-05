@@ -41,3 +41,9 @@ venv/
 
 # Oversized test fixtures (generated locally, not needed in repo)
 tests/fixtures/oversized_dummy.jpg
+
+# Large data acquisition / raw external datasets (never commit bulk licensed dumps)
+data/raw/
+*.pbf
+*.parquet
+*.ndjson

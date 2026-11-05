@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Place Intelligence — Admin | VeganSaathi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="../css/styles.css" rel="stylesheet">
+<script>window.VS_BASE = "../"; window.VS_ACTIVE_PAGE = "";</script>
+<style>
+  /* ---- Place Intelligence admin palette ---- */
+  :root {
+    --pi-blue: #2563EB;
+    --pi-blue-light: #EFF6FF;
+    --pi-orange: #EA580C;
+    --pi-orange-light: #FFF7ED;
+    --pi-green: #16A34A;
+    --pi-green-light: #F0FDF4;
+    --pi-red: #DC2626;
+    --pi-red-light: #FEF2F2;
+    --pi-amber: #D97706;
+    --pi-amber-light: #FFFBEB;
+    --pi-grey: #6B7280;
+  }
+
+  .pi-tab-btn {
+    border: none; background: transparent; padding: 0.5rem 1rem;
+    border-bottom: 2px solid transparent; font-weight: 600;
+    color: var(--pi-grey); cursor: pointer; white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .pi-tab-btn.active {
+    color: var(--vs-green-700); border-bottom-color: var(--vs-green-600);
+  }
+  .pi-tab-btn:hover:not(.active) { color: var(--vs-text); }
+
+  .pi-pane { display: none; }
+  .pi-pane.active { display: block; }
+
+  .pi-stat-card {
+    background: white; border: 1px solid #E5E7EB; border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+  .pi-stat-card .pi-stat-value {
+    font-size: 2rem; font-weight: 800; color: var(--vs-text); line-height: 1.1;
+  }
+  .pi-stat-card .pi-stat-label {
+    font-size: 0.78rem; font-weight: 600; color: var(--pi-grey); text-transform: uppercase;
+    letter-spacing: 0.04em; margin-bottom: 0.25rem;
+  }
+
+  .source-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem;
+    border-radius: 20px; white-space: nowrap;
+  }
+  .source-badge.overture  { background: #EFF6FF; color: #1E40AF; }
+  .source-badge.osm       { background: #ECFDF5; color: #065F46; }
+  .source-badge.foursquare{ background: #FFF7ED; color: #9A3412; }
+  .source-badge.community { background: #F3F4F6; color: #374151; }
+
+  .vegan-badge {
+    display: inline-block; font-size: 0.72rem; font-weight: 700;
+    padding: 0.15rem 0.5rem; border-radius: 12px;
+  }
+  .vegan-badge.fully_vegan         { background: #D1FAE5; color: #065F46; }
+  .vegan-badge.vegan_friendly       { background: #A7F3D0; color: #064E3B; }
+  .vegan-badge.verified_vegan_options { background: #BAE6FD; color: #0C4A6E; }
+  .vegan-badge.unverified           { background: #FEF9C3; color: #713F12; }
+  .vegan-badge.conflicting          { background: #FECACA; color: #7F1D1D; }
+
+  .evidence-strength {
+    display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.4rem;
+    border-radius: 8px; font-weight: 600;
+  }
+  .evidence-strength.strong   { background: #D1FAE5; color: #065F46; }
+  .evidence-strength.moderate { background: #FEF3C7; color: #92400E; }
+  .evidence-strength.weak     { background: #FEE2E2; color: #991B1B; }
+  .evidence-strength.none     { background: #F3F4F6; color: #6B7280; }
+
+  .candidate-row:hover { background: #F9FAFB; }
+
+  .pi-section-title {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--pi-grey); margin-bottom: 0.75rem;
+  }
+
+  .signal-pill {
+    display: inline-block; font-size: 0.65rem; padding: 0.1rem 0.4rem;
+    background: #E0F2FE; color: #0369A1; border-radius: 8px;
+    font-family: monospace; margin: 0.1rem;
+  }
+
+  .import-step {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.6rem 0; border-bottom: 1px solid #F3F4F6;
+  }
+  .import-step:last-child { border-bottom: none; }
+  .import-step-icon {
+    width: 2rem; height: 2rem; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; flex-shrink: 0;
+  }
+  .import-step-icon.ok     { background: #D1FAE5; }
+  .import-step-icon.warn   { background: #FEF3C7; }
+  .import-step-icon.error  { background: #FEE2E2; }
+  .import-step-icon.idle   { background: #F3F4F6; }
+
+  .dup-compare-col {
+    border: 1px solid #E5E7EB; border-radius: 8px; padding: 1rem;
+    flex: 1; min-width: 0;
+  }
+  .dup-compare-col.left  { border-left-color: var(--pi-blue); border-left-width: 3px; }
+  .dup-compare-col.right { border-left-color: var(--pi-orange); border-left-width: 3px; }
+
+  .photo-thumb {
+    width: 80px; height: 80px; object-fit: cover;
+    border-radius: 6px; border: 1px solid #E5E7EB;
+  }
+  .photo-thumb-placeholder {
+    width: 80px; height: 80px; border-radius: 6px; background: #F3F4F6;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; border: 1px dashed #D1D5DB;
+  }
+
+  .reverify-urgent  { border-left: 3px solid var(--pi-red); }
+  .reverify-warning { border-left: 3px solid var(--pi-amber); }
+
+  @media (max-width: 768px) {
+    .pi-stat-card .pi-stat-value { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<!-- Admin auth gate -->
+<div id="adminLoadingScreen" class="py-5 text-center">
+  <div class="container" style="max-width:500px;">
+    <div class="vs-card p-5">
+      <div class="spinner-border text-success mb-3" role="status" style="width:2.5rem;height:2.5rem;"></div>
+      <h2 class="h5 mb-1" style="color:var(--vs-text);">Verifying Administrator Access</h2>
+      <p class="text-muted-vs mb-0" style="font-size:0.9rem;">Checking credentials and administrative role…</p>
+    </div>
+  </div>
+</div>
+
+<div id="adminUnauthorizedScreen" class="py-5 d-none text-center">
+  <div class="container" style="max-width:500px;">
+    <div class="vs-card p-5 border-danger">
+      <div class="text-danger mb-3" style="font-size:2.8rem;">🔒</div>
+      <h2 class="h5 text-danger mb-2">Access Restricted</h2>
+      <p class="text-muted-vs mb-4">Administrator account required to access Place Intelligence.</p>
+      <a href="../login.html" class="btn btn-vs-primary px-4">Sign In</a>
+    </div>
+  </div>
+</div>
+
+<!-- ========= MAIN ADMIN CONTENT ========= -->
+<main id="adminMainContent" class="d-none">
+
+<div class="vs-section" style="padding-top:1.5rem;">
+  <div class="container" style="max-width:1480px;">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start align-items-md-center flex-wrap gap-3 mb-4">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge" style="background:var(--vs-green-600);font-size:0.72rem;">🌿 VEGANSAATHI</span>
+          <span class="badge bg-secondary" style="font-size:0.72rem;">ADMIN</span>
+        </div>
+        <h1 class="h3 mb-1" style="color:var(--vs-text);">Place Intelligence</h1>
+        <p class="text-muted-vs mb-0" style="font-size:0.9rem;">
+          Discover, verify and manage the VeganSaathi vegan place database.
+        </p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="dashboard.html" class="btn btn-sm btn-outline-secondary">← Admin Dashboard</a>
+        <button id="refreshStatsBtn" class="btn btn-sm btn-outline-secondary">↻ Refresh</button>
+        <div id="piUserBadge" class="badge bg-white text-dark border p-2 shadow-sm d-inline-flex align-items-center gap-1" style="font-size:0.85rem;"></div>
+      </div>
+    </div>
+
+    <!-- Alert -->
+    <div id="piAlert" class="alert d-none mb-4" role="alert"></div>
+
+    <!-- ===== KPI Overview ===== -->
+    <div class="row g-3 mb-4" id="kpiRow">
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="pi-stat-card">
+          <div class="pi-stat-label">Total Candidates</div>
+          <div class="pi-stat-value" id="kpiTotalCandidates">—</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">From all sources</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="pi-stat-card">
+          <div class="pi-stat-label">Pending Review</div>
+          <div class="pi-stat-value text-warning" id="kpiPendingReview">—</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Awaiting admin action</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="pi-stat-card">
+          <div class="pi-stat-label">Fully Vegan</div>
+          <div class="pi-stat-value" style="color:var(--pi-green);" id="kpiFullyVegan">—</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Verified published</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="pi-stat-card">
+          <div class="pi-stat-label">Vegan Friendly</div>
+          <div class="pi-stat-value" style="color:var(--pi-blue);" id="kpiVeganFriendly">—</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Verified published</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="pi-stat-card">
+          <div class="pi-stat-label">Duplicates</div>
+          <div class="pi-stat-value text-danger" id="kpiDuplicates">—</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Need review</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="pi-stat-card">
+          <div class="pi-stat-label">Need Reverify</div>
+          <div class="pi-stat-value" style="color:var(--pi-orange);" id="kpiReverify">—</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Evidence ageing</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Navigation Tabs ===== -->
+    <div class="border-bottom mb-4" style="overflow-x:auto;">
+      <div class="d-flex gap-0" style="min-width:max-content;">
+        <button class="pi-tab-btn active" data-pane="sources">📂 Sources</button>
+        <button class="pi-tab-btn" data-pane="import">📥 Import</button>
+        <button class="pi-tab-btn" data-pane="candidates">🔍 Candidates</button>
+        <button class="pi-tab-btn" data-pane="verification">✅ Verification</button>
+        <button class="pi-tab-btn" data-pane="duplicates">⚡ Duplicates</button>
+        <button class="pi-tab-btn" data-pane="photos">📷 Photos</button>
+        <button class="pi-tab-btn" data-pane="published">🌿 Published</button>
+        <button class="pi-tab-btn" data-pane="reverify">🔄 Reverify</button>
+        <button class="pi-tab-btn" data-pane="quality">📊 Quality</button>
+      </div>
+    </div>
+
+    <!-- ===== PANE: Sources ===== -->
+    <div class="pi-pane active" id="pane-sources">
+      <div class="pi-section-title">Acquisition Source Registry</div>
+      <div class="alert alert-info d-flex gap-2 mb-3" style="font-size:0.88rem;">
+        <span>ℹ️</span>
+        <div>No source may enter production acquisition until its <strong>review_status</strong> is <code>approved</code>. Sources marked <strong>BLOCKED</strong> require owner action before data can be collected.</div>
+      </div>
+
+      <div class="row g-3" id="sourceRegistry">
+        <!-- Populated by JS from source_registry.json -->
+        <div class="col-12">
+          <div class="text-center py-4 text-muted-vs">
+            <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
+            <div style="font-size:0.85rem;">Loading source registry…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PANE: Import ===== -->
+    <div class="pi-pane" id="pane-import">
+      <div class="pi-section-title">Import Manager</div>
+
+      <div class="alert alert-warning d-flex gap-2 mb-4" style="font-size:0.88rem;">
+        <span>⚠️</span>
+        <div>
+          <strong>Large data operations run locally.</strong> The import pipeline is a Python script
+          (<code>scripts/data-pipeline/pipeline.py</code>) that must be executed on a local machine
+          with appropriate data files. This screen shows import manifests and batch history.
+          It does not trigger remote compute jobs.
+        </div>
+      </div>
+
+      <!-- Import Configuration -->
+      <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+          <div class="vs-card p-4">
+            <h6 class="fw-bold mb-3">Run Pipeline Locally</h6>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Source</label>
+              <select class="form-select form-select-sm" id="importSource">
+                <option value="overture">Overture Maps (CDLA Permissive 2.0)</option>
+                <option value="osm">OpenStreetMap — Geofabrik (ODbL 1.0)</option>
+                <option value="foursquare" disabled>Foursquare OS Places (Apache 2.0) — Token Required</option>
+                <option value="all">All Available Sources</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Geographic Scope</label>
+              <select class="form-select form-select-sm" id="importScope">
+                <option value="maharashtra">Maharashtra, India (Full)</option>
+                <option value="nagpur">Nagpur pilot</option>
+                <option value="pune">Pune pilot</option>
+                <option value="mumbai">Mumbai pilot</option>
+                <option value="shegaon">Shegaon / Akola pilot</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Mode</label>
+              <select class="form-select form-select-sm" id="importMode">
+                <option value="dry_run">Dry Run (50 records — validate only)</option>
+                <option value="full">Full Extraction</option>
+              </select>
+            </div>
+            <div class="bg-light rounded p-3 mb-3" style="font-family:monospace;font-size:0.82rem;">
+              <div class="pi-section-title" style="margin-bottom:0.5rem;">Command to run locally</div>
+              <div id="importCommand" class="text-break">python scripts/data-pipeline/pipeline.py overture --dry-run</div>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" id="copyImportCmd">📋 Copy Command</button>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="vs-card p-4">
+            <h6 class="fw-bold mb-3">Load Import Manifest</h6>
+            <p class="text-muted-vs mb-3" style="font-size:0.85rem;">
+              After running the pipeline locally, load the manifest JSON file to review results and
+              upload approved candidates to Firestore.
+            </p>
+            <div class="mb-3">
+              <label for="manifestFileInput" class="form-label small fw-bold">Import Manifest (.json)</label>
+              <input type="file" class="form-control form-select-sm" id="manifestFileInput" accept=".json">
+            </div>
+            <div class="mb-3">
+              <label for="candidatesFileInput" class="form-label small fw-bold">Candidates File (.ndjson)</label>
+              <input type="file" class="form-control form-select-sm" id="candidatesFileInput" accept=".ndjson,.jsonl">
+            </div>
+            <button class="btn btn-vs-primary btn-sm" id="loadManifestBtn">Load & Preview</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch History -->
+      <div class="pi-section-title mt-2">Recent Import Batches</div>
+      <div id="importBatchList" class="vs-card p-3">
+        <div class="text-muted-vs text-center py-3" style="font-size:0.85rem;">
+          No import batches recorded yet. Run the pipeline locally to generate a manifest,
+          then load it above.
+        </div>
+      </div>
+
+      <!-- Manifest Preview -->
+      <div id="manifestPreview" class="d-none mt-4">
+        <div class="pi-section-title">Batch Preview</div>
+        <div class="vs-card p-4">
+          <div class="row g-3 mb-4" id="manifestKpis"></div>
+          <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-sm btn-outline-danger" id="rejectBatchBtn">Reject Batch</button>
+            <button class="btn btn-sm btn-vs-primary" id="stageBatchBtn">Stage to Candidate Queue →</button>
+          </div>
+          <div id="candidatePreviewTable"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PANE: Candidates ===== -->
+    <div class="pi-pane" id="pane-candidates">
+      <div class="pi-section-title">Candidate Review Queue</div>
+
+      <!-- Filters -->
+      <div class="vs-card p-3 mb-4">
+        <div class="row g-2">
+          <div class="col-md-3">
+            <input type="text" class="form-control form-control-sm" id="candidateSearch" placeholder="Search name or address…">
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" id="candidateCityFilter">
+              <option value="">All Cities</option>
+              <option>Nagpur</option><option>Pune</option><option>Mumbai</option>
+              <option>Thane</option><option>Nashik</option><option>Shegaon</option>
+              <option>Akola</option><option>Amravati</option><option>Aurangabad</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" id="candidateCategoryFilter">
+              <option value="">All Types</option>
+              <option value="restaurant">Restaurant</option>
+              <option value="cafe">Café</option>
+              <option value="bakery">Bakery</option>
+              <option value="shop">Shop</option>
+              <option value="dessert">Dessert</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" id="candidateSourceFilter">
+              <option value="">All Sources</option>
+              <option value="overture-maps-places">Overture Maps</option>
+              <option value="openstreetmap-geofabrik">OpenStreetMap</option>
+              <option value="foursquare-os-places">Foursquare OS</option>
+              <option value="community">Community</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" id="candidateVeganFilter">
+              <option value="">All Signal Strength</option>
+              <option value="strong">Strong vegan signals</option>
+              <option value="moderate">Moderate signals</option>
+              <option value="weak">Weak signals</option>
+              <option value="none">No vegan signals</option>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <button class="btn btn-sm btn-outline-secondary w-100" id="candidateFilterBtn">Filter</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Candidate list -->
+      <div id="candidateList">
+        <div class="text-muted-vs text-center py-5" style="font-size:0.9rem;">
+          <div style="font-size:2.5rem;" class="mb-3">🔍</div>
+          <div>Load a pilot data file from the Import tab to see candidates here.</div>
+          <div class="mt-2" style="font-size:0.82rem;">Candidates are staged records — they are NOT publicly visible.</div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div id="candidatePagination" class="d-flex justify-content-center mt-4 d-none">
+        <nav>
+          <ul class="pagination pagination-sm" id="candidatePageNav"></ul>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ===== PANE: Verification ===== -->
+    <div class="pi-pane" id="pane-verification">
+      <div class="pi-section-title">Verification Queue</div>
+
+      <div class="alert alert-success d-flex gap-2 mb-4" style="font-size:0.88rem;">
+        <span>✅</span>
+        <div>
+          <strong>Human review is required before any place is published.</strong>
+          No automated score or AI confidence value can substitute for a reviewer inspecting
+          actual business evidence. Verify each dimension separately.
+        </div>
+      </div>
+
+      <!-- Pending verification list -->
+      <div id="verificationQueue">
+        <div class="text-muted-vs text-center py-5" style="font-size:0.9rem;">
+          <div style="font-size:2.5rem;" class="mb-3">✅</div>
+          <div>No places awaiting verification.</div>
+        </div>
+      </div>
+
+      <!-- Place Detail Panel (shown when a place is selected) -->
+      <div id="verificationPanel" class="d-none">
+        <div class="row g-4">
+
+          <!-- Left: Business Info -->
+          <div class="col-lg-6">
+            <div class="vs-card p-4 mb-3">
+              <div class="pi-section-title">Business Identity</div>
+              <div id="vp-identity"></div>
+            </div>
+
+            <div class="vs-card p-4 mb-3">
+              <div class="pi-section-title">Vegan Evidence</div>
+              <div id="vp-evidence"></div>
+            </div>
+
+            <div class="vs-card p-4">
+              <div class="pi-section-title">Source Provenance</div>
+              <div id="vp-provenance"></div>
+            </div>
+          </div>
+
+          <!-- Right: Verification decisions -->
+          <div class="col-lg-6">
+            <div class="vs-card p-4 mb-3">
+              <div class="pi-section-title">Verification Decisions</div>
+
+              <!-- Existence -->
+              <div class="mb-3">
+                <label class="form-label fw-bold small">Business Existence</label>
+                <select class="form-select form-select-sm" id="vd-existence">
+                  <option value="">— Select —</option>
+                  <option value="candidate">Candidate (unverified)</option>
+                  <option value="address_supported">Address supported</option>
+                  <option value="business_identity_supported">Business identity supported</option>
+                  <option value="owner_confirmed">Owner confirmed</option>
+                  <option value="existence_disputed">Existence disputed</option>
+                  <option value="not_found">Not found</option>
+                </select>
+              </div>
+
+              <!-- Operating status -->
+              <div class="mb-3">
+                <label class="form-label fw-bold small">Operating Status</label>
+                <select class="form-select form-select-sm" id="vd-operating">
+                  <option value="unknown">Unknown</option>
+                  <option value="open">Open — recently supported</option>
+                  <option value="temporarily_closed">Temporarily closed</option>
+                  <option value="permanently_closed">Permanently closed</option>
+                  <option value="recheck_required">Recheck required</option>
+                </select>
+              </div>
+
+              <!-- Vegan classification -->
+              <div class="mb-3">
+                <label class="form-label fw-bold small">Vegan Classification</label>
+                <select class="form-select form-select-sm" id="vd-vegan-class">
+                  <option value="vegan_status_unverified">Unverified (default)</option>
+                  <option value="fully_vegan">Fully Vegan — entire relevant offering verified</option>
+                  <option value="vegan_friendly">Vegan Friendly — confirmed vegan options</option>
+                  <option value="verified_vegan_options">Verified Vegan Options — specific items only</option>
+                  <option value="vegan_claim_conflicting">Conflicting Evidence</option>
+                </select>
+              </div>
+
+              <!-- Evidence status -->
+              <div class="mb-3">
+                <label class="form-label fw-bold small">Evidence Status</label>
+                <select class="form-select form-select-sm" id="vd-evidence">
+                  <option value="no_vegan_evidence">No vegan evidence</option>
+                  <option value="vegan_lead">Vegan lead</option>
+                  <option value="menu_evidence_found">Menu evidence found</option>
+                  <option value="ingredients_reviewed">Ingredients reviewed</option>
+                  <option value="owner_confirmed">Owner confirmed</option>
+                  <option value="vegansaathi_reviewed">VeganSaathi reviewed</option>
+                  <option value="conflicting_evidence">Conflicting evidence</option>
+                </select>
+              </div>
+
+              <!-- Evidence URL -->
+              <div class="mb-3">
+                <label class="form-label fw-bold small">Evidence URL</label>
+                <input type="url" class="form-control form-control-sm" id="vd-evidence-url" placeholder="https://business.com/menu">
+              </div>
+
+              <!-- Reviewer notes -->
+              <div class="mb-3">
+                <label class="form-label fw-bold small">Reviewer Notes (required)</label>
+                <textarea class="form-control form-control-sm" id="vd-notes" rows="3" placeholder="Describe what was reviewed and what evidence supports this decision…"></textarea>
+              </div>
+
+              <!-- Action buttons -->
+              <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-vs-primary" id="vd-approve-btn">✅ Approve & Publish</button>
+                <button class="btn btn-sm btn-outline-warning" id="vd-more-evidence-btn">🔍 Request More Evidence</button>
+                <button class="btn btn-sm btn-outline-danger" id="vd-reject-btn">❌ Reject</button>
+                <button class="btn btn-sm btn-outline-secondary" id="vd-stale-btn">⏳ Mark Stale</button>
+              </div>
+
+              <div id="vd-action-result" class="mt-3"></div>
+            </div>
+
+            <!-- Photos -->
+            <div class="vs-card p-4">
+              <div class="pi-section-title">Photos</div>
+              <div id="vp-photos" class="d-flex flex-wrap gap-2">
+                <div class="photo-thumb-placeholder">📷</div>
+              </div>
+              <div class="text-muted-vs mt-2" style="font-size:0.8rem;">
+                Only admin-approved photos may be published. All photos must have verified rights.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PANE: Duplicates ===== -->
+    <div class="pi-pane" id="pane-duplicates">
+      <div class="pi-section-title">Duplicate Review Manager</div>
+
+      <div class="alert alert-info d-flex gap-2 mb-4" style="font-size:0.88rem;">
+        <span>⚡</span>
+        <div>
+          <strong>Ambiguous duplicates must NOT be automatically merged.</strong>
+          Review each pair side-by-side before making a decision.
+          Franchise branches in different cities should remain as separate records.
+        </div>
+      </div>
+
+      <div id="duplicateQueue">
+        <div class="text-muted-vs text-center py-5">
+          <div style="font-size:2.5rem;" class="mb-3">⚡</div>
+          <div>No duplicate pairs found. Run the deduplication pipeline to identify candidates.</div>
+        </div>
+      </div>
+
+      <!-- Duplicate comparison panel -->
+      <div id="dupComparePanel" class="d-none mt-4">
+        <div class="d-flex gap-3 mb-3 flex-wrap">
+          <div class="dup-compare-col left" id="dup-col-a"></div>
+          <div class="dup-compare-col right" id="dup-col-b"></div>
+        </div>
+        <div class="vs-card p-3 d-flex gap-2 flex-wrap">
+          <span class="fw-bold small me-2">Admin Decision:</span>
+          <button class="btn btn-sm btn-vs-primary" id="dup-merge-btn">Merge (keep A, discard B)</button>
+          <button class="btn btn-sm btn-outline-secondary" id="dup-keep-both-btn">Keep Both (different branches)</button>
+          <button class="btn btn-sm btn-outline-warning" id="dup-franchise-btn">Mark Franchise Branches</button>
+          <button class="btn btn-sm btn-outline-danger" id="dup-not-dup-btn">Not a Duplicate</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PANE: Photos ===== -->
+    <div class="pi-pane" id="pane-photos">
+      <div class="pi-section-title">Photo Rights & Moderation</div>
+
+      <div class="alert alert-warning d-flex gap-2 mb-4" style="font-size:0.88rem;">
+        <span>🛡️</span>
+        <div>
+          <strong>Every photo must have verified rights before Cloudinary upload.</strong>
+          A photo URL is not proof of usage rights. Reject any photo without a clear rights basis.
+          AI-generated images must NEVER be presented as photographs of real businesses.
+        </div>
+      </div>
+
+      <!-- Photo filter tabs -->
+      <div class="d-flex gap-2 flex-wrap mb-3">
+        <button class="btn btn-sm btn-outline-secondary active" data-photo-filter="pending">⏳ Pending Review</button>
+        <button class="btn btn-sm btn-outline-secondary" data-photo-filter="approved">✅ Approved</button>
+        <button class="btn btn-sm btn-outline-secondary" data-photo-filter="rejected">❌ Rejected</button>
+        <button class="btn btn-sm btn-outline-secondary" data-photo-filter="missing">📷 Missing Photos</button>
+        <button class="btn btn-sm btn-outline-secondary" data-photo-filter="removal">🚨 Removal Requests</button>
+      </div>
+
+      <div id="photoList">
+        <div class="text-muted-vs text-center py-5">
+          <div style="font-size:2.5rem;" class="mb-3">📷</div>
+          <div>No photos submitted yet.</div>
+          <div class="mt-2" style="font-size:0.82rem;">
+            Photos can be submitted by business owners or community members.
+            All submissions require rights review before Cloudinary upload.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PANE: Published ===== -->
+    <div class="pi-pane" id="pane-published">
+      <div class="pi-section-title">Published Records Manager</div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-md-4">
+          <input type="text" class="form-control form-control-sm" id="publishedSearch" placeholder="Search published places…">
+        </div>
+        <div class="col-md-2">
+          <select class="form-select form-select-sm" id="publishedCity">
+            <option value="">All Cities</option>
+            <option>Nagpur</option><option>Pune</option><option>Mumbai</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select class="form-select form-select-sm" id="publishedVeganClass">
+            <option value="">All Classifications</option>
+            <option value="fully_vegan">Fully Vegan</option>
+            <option value="vegan_friendly">Vegan Friendly</option>
+            <option value="verified_vegan_options">Verified Options</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-sm btn-outline-secondary" id="publishedFilterBtn">Filter</button>
+        </div>
+      </div>
+
+      <div id="publishedList">
+        <div class="text-muted-vs text-center py-5">
+          <div style="font-size:2.5rem;" class="mb-3">🌿</div>
+          <div>Loading published places…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PANE: Reverify ===== -->
+    <div class="pi-pane" id="pane-reverify">
+      <div class="pi-section-title">Reverification Manager</div>
+
+      <div class="alert alert-warning d-flex gap-2 mb-4" style="font-size:0.88rem;">
+        <span>🔄</span>
+        <div>
+          Evidence ages. Menus change. Businesses close. These records need attention.
+          <strong>An ageing evidence date does not make a record false</strong> — it means
+          it needs re-checking. Do not automatically unpublish without review.
+        </div>
+      </div>
+
+      <!-- Reverify config -->
+      <div class="vs-card p-3 mb-4">
+        <div class="pi-section-title">Review Interval Policy</div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Warning Threshold (days)</label>
+            <input type="number" class="form-control form-control-sm" id="reverifyWarnDays" value="90" min="30" max="365">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Review Required Threshold (days)</label>
+            <input type="number" class="form-control form-control-sm" id="reverifyReviewDays" value="180" min="60" max="730">
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button class="btn btn-sm btn-outline-secondary" id="saveReverifyPolicy">Save Policy</button>
+          </div>
+        </div>
+        <div class="text-muted-vs mt-2" style="font-size:0.8rem;">
+          Warning at <span id="warnDaysDisplay">90</span> days.
+          Requires review at <span id="reviewDaysDisplay">180</span> days.
+          These are configurable — the system does not automatically mark evidence false.
+        </div>
+      </div>
+
+      <div id="reverifyList">
+        <div class="text-muted-vs text-center py-5">
+          <div style="font-size:2.5rem;" class="mb-3">🔄</div>
+          <div>No records currently require reverification.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PANE: Quality ===== -->
+    <div class="pi-pane" id="pane-quality">
+      <div class="pi-section-title">Data Quality & Coverage Report</div>
+
+      <div class="alert alert-info d-flex gap-2 mb-4" style="font-size:0.88rem;">
+        <span>📊</span>
+        <div>
+          These counts reflect actual data in Firestore.
+          <strong>Do not use total candidates as a measure of verified vegan coverage.</strong>
+          The key metric is "Fully Verified Vegan", not "Total Candidates".
+        </div>
+      </div>
+
+      <div id="qualityReport">
+        <div class="row g-3 mb-4" id="qualityKpis"></div>
+
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="vs-card p-4">
+              <div class="pi-section-title">By Vegan Classification</div>
+              <div id="qualityByClassification"></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="vs-card p-4">
+              <div class="pi-section-title">By City</div>
+              <div id="qualityByCity"></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="vs-card p-4">
+              <div class="pi-section-title">Field Completeness</div>
+              <div id="qualityFieldCompleteness"></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="vs-card p-4">
+              <div class="pi-section-title">Evidence Coverage Gap</div>
+              <div id="qualityEvidenceGap"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+</div><!-- /vs-section -->
+</main>
+
+<div id="footer-placeholder"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module" src="../js/components.js"></script>
+<script type="module" src="../js/admin-service.js"></script>
+<script type="module" src="../js/place-intelligence.js"></script>
+</body>
+</html>
+

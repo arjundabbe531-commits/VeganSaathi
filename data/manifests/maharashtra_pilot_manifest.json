@@ -1,0 +1,29 @@
+{
+  "batch_id": "mh-pilot-20261105-172942",
+  "source_id": "multi-source-pilot (Overture, OSM, Fieldwork)",
+  "dataset_version": "pilot-2026.1",
+  "geographic_scope": "Maharashtra: Nagpur, Pune, Mumbai, Shegaon, Akola",
+  "bounding_box": {
+    "min_lat": 18.0,
+    "max_lat": 22.0,
+    "min_lon": 72.5,
+    "max_lon": 80.0
+  },
+  "extraction_date": "2026-11-05",
+  "processing_start": "2026-11-05T17:29:42.463947+00:00",
+  "processing_end": "2026-11-05T17:29:42.466576+00:00",
+  "input_count": 15,
+  "geographic_filtered_count": 0,
+  "category_filtered_count": 0,
+  "rejected_count": 0,
+  "duplicate_count": 1,
+  "candidate_count": 15,
+  "error_count": 0,
+  "output_path": "D:\\VeganSaathi-Git-Workspace\\scripts\\data-pipeline\\../../data/processed/maharashtra_pilot_candidates.ndjson",
+  "licence": "CDLA Permissive 2.0 / ODbL 1.0",
+  "licence_url": "https://cdla.dev/permissive-2-0/",
+  "config_hash": "",
+  "import_status": "complete",
+  "errors": [],
+  "notes": "Maharashtra 5-region pilot dataset including deduplication and quality scoring"
+}
