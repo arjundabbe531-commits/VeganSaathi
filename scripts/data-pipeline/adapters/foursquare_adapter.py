@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from typing import Iterator, Optional, Dict, Any, List
 
 from .base_adapter import BaseSourceAdapter, CandidateRecord
+from .place_taxonomy import map_foursquare_categories
 
 logger = logging.getLogger("vegansaathi.adapter.foursquare")
 
@@ -199,17 +200,7 @@ class FoursquareAdapter(BaseSourceAdapter):
         website = str(raw.get("website", "")).strip()
         email = str(raw.get("email", "")).strip()
 
-        # Category mapping
-        mapped_type = "other"
-        for key in ["restaurant", "cafe", "coffee", "bakery", "dessert",
-                    "ice cream", "grocery", "health food", "food"]:
-            if key in category_label:
-                mapped_type = {
-                    "restaurant": "restaurant", "cafe": "cafe", "coffee": "cafe",
-                    "bakery": "bakery", "dessert": "dessert", "ice cream": "dessert",
-                    "grocery": "shop", "health food": "shop", "food": "restaurant",
-                }.get(key, "other")
-                break
+        mapped_type = map_foursquare_categories(labels)
 
         signals, strength = self.detect_vegan_signals([name, category_label])
 

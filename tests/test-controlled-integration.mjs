@@ -255,6 +255,12 @@ test("Public place cards distinguish a vegan menu option from a fully vegan venu
   assert.ok(!components.renderPlaceCard(stale).includes("Verified vegan options"));
 });
 
+test("Public cards name dessert and grocery categories explicitly", () => {
+  const base = { id: "p-type", name: "Example", dietTags: ["vegetarian"], status: "published" };
+  assert.ok(components.renderPlaceCard({ ...base, placeType: "dessert" }).includes("Dessert shop"));
+  assert.ok(components.renderPlaceCard({ ...base, placeType: "shop" }).includes("Grocery / food shop"));
+});
+
 test("Integration: Place card rendering handles apostrophes and special characters without quote breakout", () => {
   const trickyPlace = {
     id: "p-tricky",

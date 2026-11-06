@@ -48,7 +48,7 @@ service cloud.firestore {
     }
 
     function isValidPlaceType(value) {
-      return value in ["restaurant", "mess", "canteen", "cafe", "dhaba", "other"];
+      return value in ["restaurant", "mess", "canteen", "cafe", "dhaba", "bakery", "dessert", "shop", "other"];
     }
 
     function isValidPriceRange(value) {

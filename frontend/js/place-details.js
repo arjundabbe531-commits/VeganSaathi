@@ -136,7 +136,7 @@ function renderPlaceDetail(place) {
     }
   }
   document.getElementById("placeName").textContent = place.name;
-  document.getElementById("placeType").textContent = capitalize(place.placeType);
+  document.getElementById("placeType").textContent = formatPlaceType(place.placeType);
   document.getElementById("placeArea").textContent = place.area;
   document.getElementById("placeAddress").textContent = place.address;
   document.getElementById("placePrice").textContent = capitalize(place.priceRange);

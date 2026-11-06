@@ -35,6 +35,7 @@ from datetime import datetime, timezone
 from typing import Iterator, Optional, Dict, Any, List
 
 from .base_adapter import BaseSourceAdapter, CandidateRecord, ImportManifest
+from .place_taxonomy import OVERTURE_CATEGORY_MAP, OVERTURE_FOOD_CATEGORIES, map_overture_category
 
 logger = logging.getLogger("vegansaathi.adapter.overture")
 
@@ -45,40 +46,8 @@ MAHARASHTRA_BBOX = {
 }
 
 # Overture category → VeganSaathi placeType mapping
-OVERTURE_CATEGORY_MAP = {
-    "restaurant": "restaurant",
-    "cafe": "cafe",
-    "coffee_shop": "cafe",
-    "bakery": "bakery",
-    "fast_food": "restaurant",
-    "food": "restaurant",
-    "grocery": "shop",
-    "grocery_store": "shop",
-    "supermarket": "shop",
-    "convenience_store": "shop",
-    "health_food_store": "shop",
-    "specialty_food_store": "shop",
-    "food_court": "restaurant",
-    "dessert_shop": "dessert",
-    "ice_cream_shop": "dessert",
-    "juice_bar": "cafe",
-    "sweets_and_confectionery": "dessert",
-    "pizza_restaurant": "restaurant",
-    "diner": "restaurant",
-    "buffet_restaurant": "restaurant",
-    "dhaba": "dhaba",
-    "canteen": "canteen",
-    "mess": "mess",
-}
-
 # Food-relevant Overture primary categories (keep broad for discovery)
-FOOD_RELEVANT_PRIMARY = {
-    "restaurant", "cafe", "coffee_shop", "bakery", "fast_food", "food",
-    "grocery", "grocery_store", "supermarket", "convenience_store",
-    "health_food_store", "specialty_food_store", "food_court",
-    "dessert_shop", "ice_cream_shop", "juice_bar", "sweets_and_confectionery",
-    "pizza_restaurant", "diner", "buffet_restaurant", "dhaba", "canteen", "mess",
-}
+FOOD_RELEVANT_PRIMARY = OVERTURE_FOOD_CATEGORIES
 
 # Pinned Overture release (v2.0.0 schema — introduced 2026-09-23.0; latest published 2026-10-21.0).
 # Update this constant (and re-run tests) whenever a new release is verified.
@@ -263,7 +232,7 @@ class OvertureAdapter(BaseSourceAdapter):
         category = str(raw.get("category_primary", "")).lower()
         # taxonomy_primary is a dotted path e.g. "eat_and_drink.restaurant" (v2.0 only)
         taxonomy_primary = str(raw.get("taxonomy_primary", "")).lower()
-        mapped_type = OVERTURE_CATEGORY_MAP.get(category, "other")
+        mapped_type = map_overture_category(category)
 
         # Vegan signal detection from name, basic_category, and taxonomy alternate
         # category_alt comes from taxonomy.alternates[1] alias in v2.0 query

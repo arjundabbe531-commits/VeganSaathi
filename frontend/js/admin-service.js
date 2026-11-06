@@ -26,7 +26,7 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-const VALID_PLACE_TYPES = ["restaurant", "mess", "canteen", "cafe", "dhaba", "other"];
+const VALID_PLACE_TYPES = ["restaurant", "mess", "canteen", "cafe", "dhaba", "bakery", "dessert", "shop", "other"];
 const VALID_DIET_TAGS = ["vegan", "vegetarian", "eggetarian", "jain"];
 const VALID_PRICE_RANGES = ["budget", "moderate", "premium", "Price not listed"];
 

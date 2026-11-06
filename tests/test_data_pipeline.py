@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "dat
 from adapters.base_adapter import CandidateRecord, ImportManifest
 from adapters.overture_adapter import OvertureAdapter, OVERTURE_CATEGORY_MAP, OVERTURE_PINNED_RELEASE, OVERTURE_SCHEMA_VERSION
 from adapters.foursquare_adapter import FoursquareFixtureAdapter
+from adapters.osm_adapter import OSMAdapter
 from processing.deduplication import detect_duplicates, generate_dedup_report, _haversine_m, _name_similarity
 
 
@@ -54,6 +55,37 @@ class TestDataPipeline(unittest.TestCase):
         self.assertEqual(OVERTURE_CATEGORY_MAP["cafe"], "cafe")
         self.assertEqual(OVERTURE_CATEGORY_MAP["bakery"], "bakery")
         self.assertEqual(OVERTURE_CATEGORY_MAP["grocery"], "shop")
+
+    def test_shared_taxonomy_round_trips_overture_osm_and_foursquare(self):
+        from adapters.foursquare_adapter import FoursquareAdapter
+        overture = OvertureAdapter(config={})
+        for category, expected in {
+            "restaurant": "restaurant", "cafe": "cafe", "mess": "mess", "canteen": "canteen",
+            "dhaba": "dhaba", "bakery": "bakery", "dessert_shop": "dessert", "grocery_store": "shop",
+            "food_court": "other", "unknown_category": "other",
+        }.items():
+            raw = {"gers_id": f"test-{category}", "name": "Test Place", "category_primary": category,
+                   "latitude": 18.52, "longitude": 73.85}
+            candidate = overture.map_record(raw)
+            self.assertEqual(candidate.mapped_place_type, expected, f"Overture {category}")
+
+        osm = OSMAdapter(config={})
+        for amenity, expected in [("restaurant", "restaurant"), ("cafe", "cafe"), ("canteen", "canteen"),
+                                  ("mess", "mess"), ("dhaba", "dhaba"), ("bakery", "bakery"), ("ice_cream", "dessert")]:
+            candidate = osm.map_record({"osm_id": "1", "name": "Test Place", "amenity": amenity,
+                                        "latitude": 18.52, "longitude": 73.85})
+            self.assertEqual(candidate.mapped_place_type, expected, f"OSM {amenity}")
+        unsupported = osm.map_record({"osm_id": "2", "name": "Test Place", "amenity": "pub",
+                                      "latitude": 18.52, "longitude": 73.85})
+        self.assertEqual(unsupported.mapped_place_type, "other")
+
+        fsq = FoursquareAdapter(config={})
+        for label, expected in [("Restaurant", "restaurant"), ("Cafe", "cafe"), ("Bakery", "bakery"),
+                                ("Ice Cream Shop", "dessert"), ("Grocery Store", "shop"),
+                                ("Food Court", "other"), ("Canteen", "canteen"), ("Dhaba", "dhaba")]:
+            candidate = fsq.map_record({"fsq_place_id": f"test-{label}", "name": "Test Place",
+                                        "category_labels": [label], "latitude": 18.52, "longitude": 73.85})
+            self.assertEqual(candidate.mapped_place_type, expected, f"Foursquare {label}")
 
     def test_foursquare_fixture_adapter(self):
         adapter = FoursquareFixtureAdapter(config={})

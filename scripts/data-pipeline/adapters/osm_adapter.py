@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 from typing import Iterator, Optional, Dict, Any, List
 
 from .base_adapter import BaseSourceAdapter, CandidateRecord, ImportManifest
+from .place_taxonomy import OSM_AMENITY_MAP, OSM_SHOP_MAP, map_osm_category
 
 logger = logging.getLogger("vegansaathi.adapter.osm")
 
@@ -42,35 +43,10 @@ MAHARASHTRA_BBOX = {
 ATTRIBUTION = "© OpenStreetMap contributors (ODbL 1.0)"
 
 # OSM amenity tags that are food-relevant
-FOOD_AMENITIES = {
-    "restaurant", "cafe", "fast_food", "food_court", "bakery",
-    "ice_cream", "pub", "bar",
-}
+FOOD_AMENITIES = set(OSM_AMENITY_MAP)
 
 # OSM shop tags that are food-relevant
-FOOD_SHOPS = {
-    "bakery", "deli", "health_food", "organic", "grocery",
-    "supermarket", "convenience", "confectionery",
-}
-
-# Mapping OSM amenity → VeganSaathi placeType
-AMENITY_TO_PLACE_TYPE = {
-    "restaurant": "restaurant",
-    "cafe": "cafe",
-    "fast_food": "restaurant",
-    "food_court": "restaurant",
-    "bakery": "bakery",
-    "ice_cream": "dessert",
-}
-
-SHOP_TO_PLACE_TYPE = {
-    "bakery": "bakery",
-    "deli": "shop",
-    "health_food": "shop",
-    "organic": "shop",
-    "grocery": "shop",
-    "supermarket": "shop",
-}
+FOOD_SHOPS = set(OSM_SHOP_MAP)
 
 
 class OSMAdapter(BaseSourceAdapter):
@@ -341,7 +317,7 @@ class OSMAdapter(BaseSourceAdapter):
         diet_vegetarian = str(raw.get("diet_vegetarian", ""))
 
         # Determine place type
-        mapped_type = AMENITY_TO_PLACE_TYPE.get(amenity) or SHOP_TO_PLACE_TYPE.get(shop, "other")
+        mapped_type = map_osm_category(amenity, shop, cuisine)
 
         # Build address from components
         housenumber = str(raw.get("addr_housenumber", "")).strip()

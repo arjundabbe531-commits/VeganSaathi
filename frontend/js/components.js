@@ -311,7 +311,7 @@ function renderVerificationBadge(place) {
 function renderPlaceCard(place, km) {
   // Type and area are both optional-ish: join only the parts that exist so a place
   // with no area doesn't render "Mess · undefined".
-  var metaText = [capitalize(place.placeType), place.area]
+  var metaText = [formatPlaceType(place.placeType), place.area]
     .filter(Boolean)
     .map(escapeHtml)
     .join(" &middot; ");
@@ -362,6 +362,10 @@ function capitalize(str) {
   if (!str) return "";
   const text = String(str);
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function formatPlaceType(type) {
+  return ({ dessert: "Dessert shop", shop: "Grocery / food shop" })[type] || capitalize(type);
 }
 
 /* ---------------- Review card ---------------- */

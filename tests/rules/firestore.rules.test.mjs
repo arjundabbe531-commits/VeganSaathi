@@ -199,6 +199,14 @@ describe("Ordinary signed-in user (u1)", () => {
 });
 
 describe("Administrator (role admin in users/{uid})", () => {
+  it("accepts all documented canonical food place types", async () => {
+    await seedUsers();
+    for (const [index, placeType] of ["restaurant", "cafe", "mess", "canteen", "dhaba", "bakery", "dessert", "shop", "other"].entries()) {
+      await assertSucceeds(setDoc(doc(as("admin1"), "places", `taxonomy-${index}`), communityPlace("admin1", {
+        status: "published", verificationStatus: "unverified", source: "import", placeType
+      })));
+    }
+  });
   it("can read a pending place", async () => {
     await seedUsers();
     await seedPlace("adm-read", {});

@@ -29,7 +29,7 @@ Community submissions (Phase 6) use auto-generated IDs.
 |---|---|---|---|
 | name | string | yes | Place name, 2–100 characters |
 | description | string | no | Short factual description, ≤ 500 characters |
-| placeType | string (enum) | yes | restaurant / mess / canteen / cafe / dhaba / other |
+| placeType | string (enum) | yes | restaurant / cafe / mess / canteen / dhaba / bakery / dessert / shop / other. See the shared mapping in `scripts/data-pipeline/adapters/place_taxonomy.py`; unknown source categories remain `other`. |
 | address | string | yes | Human-readable address. Free text; informal is fine for messes and hostels |
 | area | string | no | Short landmark/locality shown on cards (e.g. "near hostel gate" or neighborhood) |
 | city | string | no | City, town or municipality (e.g. "Shegaon", "Pune", "London") |

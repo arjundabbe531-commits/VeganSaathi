@@ -39,7 +39,7 @@ async function loadAndRenderSaved(user) {
       '<div class="vs-place-card__image">' + escapeHtml(placeImageLabel(place)) + "</div>" +
       '<div class="vs-place-card__body">' +
       '<h3 class="vs-place-card__title">' + escapeHtml(place.name) + "</h3>" +
-      '<div class="vs-place-card__meta">' + escapeHtml(capitalize(place.placeType)) + (place.area ? " &middot; " + escapeHtml(place.area) : "") + "</div>" +
+      '<div class="vs-place-card__meta">' + escapeHtml(formatPlaceType(place.placeType)) + (place.area ? " &middot; " + escapeHtml(place.area) : "") + "</div>" +
       "<div>" + renderPlaceDietBadges(place) + "</div>" +
       '<div class="d-flex gap-2 mt-2">' +
       '<a href="' + escapeHtml(placeDetailsUrl(place.id)) + '" class="btn btn-vs-primary btn-sm">View Details</a>' +
