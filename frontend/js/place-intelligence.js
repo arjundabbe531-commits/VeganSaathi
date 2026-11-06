@@ -667,8 +667,46 @@ async function approveCandidate(candidate) {
   }
 
   // 3. Mandatory Vegan Integrity: Do not publish candidates without positive vegan classification
-  if (!veganClass || veganClass === "vegan_status_unverified" || evidenceStatus === "no_vegan_evidence") {
+  if (!veganClass || veganClass === "vegan_status_unverified" || veganClass === "vegan_claim_conflicting" || evidenceStatus === "no_vegan_evidence") {
     showResult("vd-action-result", "Cannot publish candidate without positive vegan classification and supporting evidence. Please review evidence or mark candidate rejected/unverified.", "warning");
+    return;
+  }
+
+  // 3b. Geographic Integrity: Coordinates and address must be real and present.
+  // Missing, out-of-range, or (0,0) coordinates must block approval.
+  // A placeholder address is not an acceptable published value.
+  const rawLat = candidate.latitude;
+  const rawLon = candidate.longitude;
+  const lat = typeof rawLat === "number" ? rawLat : null;
+  const lon = typeof rawLon === "number" ? rawLon : null;
+  const candidateAddress = typeof candidate.address === "string" ? candidate.address.trim() : "";
+  const PLACEHOLDER_ADDRESSES = [
+    "address pending verification",
+    "address pending",
+    "pending verification",
+    "unknown",
+    "n/a",
+    "tbd",
+    "",
+  ];
+  if (lat === null || lon === null) {
+    showResult("vd-action-result", "Geographic coordinates are missing. A place cannot be published without valid latitude and longitude.", "danger");
+    return;
+  }
+  if (lat === 0 && lon === 0) {
+    showResult("vd-action-result", "Coordinates are (0, 0) — a known null/placeholder value. Update the actual coordinates before publishing.", "danger");
+    return;
+  }
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    showResult("vd-action-result", `Coordinates (${lat}, ${lon}) are out of valid geographic range. Cannot publish.`, "danger");
+    return;
+  }
+  if (!candidateAddress || PLACEHOLDER_ADDRESSES.includes(candidateAddress.toLowerCase())) {
+    showResult("vd-action-result", "Address is missing or is a placeholder value. A real address is required before publishing.", "danger");
+    return;
+  }
+  if (candidateAddress.length < 5 || candidateAddress.length > 300) {
+    showResult("vd-action-result", `Address must be between 5 and 300 characters (got ${candidateAddress.length}). Cannot publish.`, "danger");
     return;
   }
 
@@ -712,22 +750,41 @@ async function approveCandidate(candidate) {
   }
 
   // 6. Distinct Verification Dimensions (Independent Claims)
+  // IMPORTANT SEMANTICS — these are four separate facts:
+  //   (a) business_exists: does the business exist?
+  //   (b) is_operating: is it currently open?
+  //   (c) vegan_diet_verified: has the vegan menu/ingredients been confirmed?
+  //   (d) ingredients_reviewed: were actual ingredients audited?
+  //
+  // existence === "owner_confirmed" means the OWNER confirmed the BUSINESS EXISTS.
+  // It does NOT mean the owner confirmed vegan ingredients or vegan menu items.
+  // Only evidenceStatus carries dietary evidence:
+  //   "ingredients_reviewed"  — physical audit of ingredients
+  //   "vegansaathi_reviewed"  — VeganSaathi team reviewed the menu
+  //   "owner_confirmed"       — owner specifically confirmed vegan menu items (evidenceStatus field)
+  //
+  // Therefore: verificationStatus: "verified" requires DIETARY evidence (evidenceStatus),
+  // not just business existence (existenceStatus).
   const isPhysicallyVisited = existence === "physically_verified";
-  const isOwnerConfirmed = existence === "owner_confirmed" || evidenceStatus === "owner_confirmed";
+  const isOwnerExistenceConfirmed = existence === "owner_confirmed"; // existence only — does NOT grant dietary verification
+  const isDietaryOwnerConfirmed = evidenceStatus === "owner_confirmed"; // owner confirmed VEGAN items specifically
   const isIngredientsReviewed = evidenceStatus === "ingredients_reviewed" || evidenceStatus === "vegansaathi_reviewed";
-  const isAffirmativelyVerified = isPhysicallyVisited || isOwnerConfirmed || isIngredientsReviewed;
+  // verificationStatus "verified" requires affirmative DIETARY evidence:
+  const hasVeganDietaryEvidence = isIngredientsReviewed || isDietaryOwnerConfirmed;
+  // Physical visit confirms address AND provides opportunity for ingredient audit — only "verified" if dietary evidence also present
+  const isAffirmativelyVerified = hasVeganDietaryEvidence || (isPhysicallyVisited && evidenceStatus !== "no_vegan_evidence" && evidenceStatus !== "vegan_lead");
 
   const verificationStatus = isAffirmativelyVerified ? "verified" : "unverified";
   const lastVerifiedAt = isAffirmativelyVerified ? serverTimestamp() : null;
 
   const verificationDimensions = {
     business_exists: existence !== "candidate" && existence !== "unknown",
-    address_confirmed: isPhysicallyVisited || isOwnerConfirmed,
+    address_confirmed: isPhysicallyVisited || isOwnerExistenceConfirmed || isDietaryOwnerConfirmed,
     is_operating: operating === "open",
     physically_visited: isPhysicallyVisited,
     online_reviewed: evidenceStatus === "menu_reviewed" || evidenceStatus === "vegansaathi_reviewed",
-    ingredients_reviewed: isIngredientsReviewed || isOwnerConfirmed,
-    vegan_options_verified: true,
+    ingredients_reviewed: isIngredientsReviewed || isDietaryOwnerConfirmed,
+    vegan_options_verified: hasVeganDietaryEvidence,
     photo_rights_cleared: Boolean(candidate.photo_rights_cleared)
   };
 
@@ -740,15 +797,16 @@ async function approveCandidate(candidate) {
       placeType: ["restaurant", "mess", "canteen", "cafe", "dhaba", "other"].includes(candidate.mapped_place_type)
         ? candidate.mapped_place_type
         : "restaurant",
-      address: candidate.address || "Address pending verification",
-      area: candidate.area || "Area not listed",
+      // address and coordinates are pre-validated above — no placeholder fallbacks allowed here.
+      address: candidateAddress,
+      area: candidate.area || "",
       city: candidate.city || "",
       district: candidate.district || "",
       state: candidate.state || "Maharashtra",
       country: candidate.country || "India",
       postalCode: candidate.postal_code || "",
-      latitude: typeof candidate.latitude === "number" ? candidate.latitude : 0,
-      longitude: typeof candidate.longitude === "number" ? candidate.longitude : 0,
+      latitude: lat,
+      longitude: lon,
       dietTags: dietTags,
       priceRange: ["budget", "moderate", "premium"].includes(candidate.priceRange) ? candidate.priceRange : "Price not listed",
       description: candidate.description || "",

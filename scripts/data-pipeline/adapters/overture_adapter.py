@@ -5,7 +5,20 @@ Extracts Maharashtra food-related places from the Overture Maps Foundation
 Places dataset using DuckDB querying the public S3 GeoParquet files.
 
 Licence: CDLA Permissive 2.0 — free use, attribution required.
-Source: s3://overturemaps-us-west-2/release/latest/theme=places/type=place/*
+Source: s3://overturemaps-us-west-2/release/<PINNED_RELEASE>/theme=places/type=place/*
+
+Schema: Overture Places Schema v2.0 (released 2024-09-18.0 and later).
+  Breaking changes from v1:
+    - top-level `categories` struct removed.
+    - Replaced by: `basic_category` (string), `taxonomy.primary` (string),
+      `taxonomy.hierarchy` (list<string>), `taxonomy.alternates` (list<string>).
+  Reference: https://docs.overturemaps.org/schema/reference/places/place/
+
+PINNED_RELEASE: 2024-09-18.0
+  Reason: This is the first stable release containing the v2.0 schema changes.
+  Any release >= 2024-09-18.0 uses the same taxonomy structure.
+  Update OVERTURE_PINNED_RELEASE when re-acquiring to use a newer verified release.
+  Do NOT use "latest" in production — it may silently change schema.
 
 Zero-budget policy: No paid services. DuckDB reads S3 directly (free egress
   for the Maharashtra bounding-box extract, ~50-200 MB).
@@ -67,8 +80,19 @@ FOOD_RELEVANT_PRIMARY = {
     "pizza_restaurant", "diner", "buffet_restaurant", "dhaba", "canteen", "mess",
 }
 
+# Pinned Overture release (v2.0 schema — 2024-09-18.0 is first stable v2.0 release).
+# Update this constant (and re-run tests) whenever a new release is verified.
+# Do NOT use "latest" in the S3 path — it may silently change schema between runs.
+OVERTURE_PINNED_RELEASE = "2024-09-18.0"
+OVERTURE_SCHEMA_VERSION = "v2.0"  # Places schema version — breaking change from v1
+
+# Food-relevant Overture basic_category / taxonomy.primary values (v2.0 schema).
+# In v2.0: `basic_category` is a simple string (replaces categories.primary).
+#           `taxonomy.primary` is a dotted hierarchical string e.g. "eat_and_drink.restaurant".
+#           `taxonomy.alternates` is a list<string> of alternate taxonomy labels.
+# Reference: https://docs.overturemaps.org/schema/reference/places/place/
 OVERTURE_S3_PATH = (
-    "s3://overturemaps-us-west-2/release/latest/theme=places/type=place/*"
+    f"s3://overturemaps-us-west-2/release/{OVERTURE_PINNED_RELEASE}/theme=places/type=place/*"
 )
 
 
@@ -96,7 +120,8 @@ class OvertureAdapter(BaseSourceAdapter):
     def source_metadata(self) -> Dict[str, Any]:
         return {
             "name": "Overture Maps Foundation — Places",
-            "version": "latest",
+            "schema_version": OVERTURE_SCHEMA_VERSION,
+            "release": OVERTURE_PINNED_RELEASE,
             "licence": "CDLA Permissive 2.0",
             "licence_url": "https://cdla.dev/permissive-2-0/",
             "attribution": "Overture Maps Foundation",
@@ -104,7 +129,15 @@ class OvertureAdapter(BaseSourceAdapter):
         }
 
     def _build_query(self, dry_run: bool = False, limit: Optional[int] = None) -> str:
-        """Build the DuckDB SQL query for Maharashtra food places."""
+        """Build the DuckDB SQL query for Maharashtra food places.
+
+        Uses Overture Places Schema v2.0 field names:
+          - basic_category  : replaces categories.primary (v1 — REMOVED in v2.0)
+          - taxonomy.primary: dotted taxonomy path e.g. "eat_and_drink.restaurant"
+          - taxonomy.alternates: list<string> of alternate taxonomy labels
+        Do NOT use categories.primary or categories.alternate — those were removed
+        in the 2024-09-18.0 release and will cause query errors on v2.0 parquet files.
+        """
         bbox = self.config.get("bbox", MAHARASHTRA_BBOX)
         s3_path = self.config.get("s3_path", OVERTURE_S3_PATH)
 
@@ -114,38 +147,47 @@ class OvertureAdapter(BaseSourceAdapter):
         elif limit:
             limit_clause = f"LIMIT {limit}"
 
+        # Build an IN-list for basic_category filtering.
+        # In v2.0, basic_category is a simple string like "restaurant", "cafe", etc.
+        # taxonomy.primary uses dotted paths; we filter by basic_category for simplicity.
+        food_cats_sql = ", ".join(repr(c) for c in FOOD_RELEVANT_PRIMARY)
+
         return f"""
         INSTALL spatial; LOAD spatial;
         INSTALL httpfs; LOAD httpfs;
         SET s3_region = 'us-west-2';
 
+        -- Overture Places Schema v2.0 (release {OVERTURE_PINNED_RELEASE})
+        -- Field changes from v1: categories.primary → basic_category
+        --                        categories.alternate → taxonomy.alternates
         SELECT
-            id                                          AS gers_id,
-            names.primary                               AS name,
-            COALESCE(names.common[1].value, '')         AS name_alt,
-            categories.primary                          AS category_primary,
-            COALESCE(categories.alternate[1], '')       AS category_alt,
-            ROUND(confidence, 4)                        AS confidence,
-            addresses[1].freeform                       AS address,
-            addresses[1].locality                       AS city,
-            addresses[1].region                         AS state,
-            addresses[1].country                        AS country,
-            addresses[1].postcode                       AS postal_code,
-            ST_Y(geometry)                              AS latitude,
-            ST_X(geometry)                              AS longitude,
-            websites[1]                                 AS website,
-            phones[1]                                   AS phone,
-            brand.wikidata                              AS brand_wikidata,
-            sources[1].dataset                          AS source_dataset,
-            sources[1].record_id                        AS source_record_id,
-            sources[1].update_time                      AS source_update_time
+            id                                              AS gers_id,
+            names.primary                                   AS name,
+            COALESCE(names.common[1].value, '')             AS name_alt,
+            basic_category                                  AS category_primary,
+            COALESCE(taxonomy.primary, '')                  AS taxonomy_primary,
+            COALESCE(taxonomy.alternates[1], '')            AS category_alt,
+            ROUND(confidence, 4)                            AS confidence,
+            addresses[1].freeform                           AS address,
+            addresses[1].locality                           AS city,
+            addresses[1].region                             AS state,
+            addresses[1].country                            AS country,
+            addresses[1].postcode                           AS postal_code,
+            ST_Y(geometry)                                  AS latitude,
+            ST_X(geometry)                                  AS longitude,
+            websites[1]                                     AS website,
+            phones[1]                                       AS phone,
+            brand.wikidata                                  AS brand_wikidata,
+            sources[1].dataset                              AS source_dataset,
+            sources[1].record_id                            AS source_record_id,
+            sources[1].update_time                          AS source_update_time
         FROM read_parquet('{s3_path}', hive_partitioning=1)
         WHERE
             bbox.xmin >= {bbox['min_lon']}
             AND bbox.xmax <= {bbox['max_lon']}
             AND bbox.ymin >= {bbox['min_lat']}
             AND bbox.ymax <= {bbox['max_lat']}
-            AND categories.primary IN ({', '.join(repr(c) for c in FOOD_RELEVANT_PRIMARY)})
+            AND basic_category IN ({food_cats_sql})
         {limit_clause}
         """
 
@@ -189,7 +231,15 @@ class OvertureAdapter(BaseSourceAdapter):
             raise
 
     def map_record(self, raw: Dict[str, Any]) -> Optional[CandidateRecord]:
-        """Map a raw Overture record to a CandidateRecord."""
+        """Map a raw Overture v2.0 record to a CandidateRecord.
+
+        Column names come from _build_query aliases:
+          category_primary  ← basic_category    (Overture v2.0 field)
+          taxonomy_primary  ← taxonomy.primary  (Overture v2.0 field)
+          category_alt      ← taxonomy.alternates[1] (Overture v2.0 field)
+        The v1 fields categories.primary and categories.alternate do not exist
+        in v2.0 parquet files and must not be referenced here.
+        """
         gers_id = str(raw.get("gers_id", "")).strip()
         name = str(raw.get("name", "")).strip()
 
@@ -209,11 +259,15 @@ class OvertureAdapter(BaseSourceAdapter):
         if not self.is_in_maharashtra(lat, lon):
             return None
 
+        # category_primary comes from basic_category alias in v2.0 query
         category = str(raw.get("category_primary", "")).lower()
+        # taxonomy_primary is a dotted path e.g. "eat_and_drink.restaurant" (v2.0 only)
+        taxonomy_primary = str(raw.get("taxonomy_primary", "")).lower()
         mapped_type = OVERTURE_CATEGORY_MAP.get(category, "other")
 
-        # Vegan signal detection from name and category
-        signal_sources = [name, category, str(raw.get("category_alt", ""))]
+        # Vegan signal detection from name, basic_category, and taxonomy alternate
+        # category_alt comes from taxonomy.alternates[1] alias in v2.0 query
+        signal_sources = [name, category, taxonomy_primary, str(raw.get("category_alt", ""))]
         signals, strength = self.detect_vegan_signals(signal_sources)
 
         # Determine operating status from confidence
@@ -244,7 +298,7 @@ class OvertureAdapter(BaseSourceAdapter):
         candidate = CandidateRecord(
             source_id=self.get_source_id(),
             source_record_id=gers_id,
-            source_dataset_version="overture-latest",
+            source_dataset_version=f"overture-{OVERTURE_PINNED_RELEASE}-schema-{OVERTURE_SCHEMA_VERSION}",
             name=name,
             name_alt=[str(raw.get("name_alt", "")).strip()] if raw.get("name_alt") else [],
             address=address,

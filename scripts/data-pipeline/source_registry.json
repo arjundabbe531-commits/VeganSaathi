@@ -3,7 +3,13 @@
     "version": "1.0",
     "created": "2026-11-05",
     "description": "VeganSaathi Source Registry — every acquisition source must have a record here before any data may enter the pipeline. No source may enter production acquisition until review_status is 'approved'.",
-    "statuses": ["draft", "under_review", "approved", "blocked", "deprecated"]
+    "statuses": [
+      "draft",
+      "under_review",
+      "approved",
+      "blocked",
+      "deprecated"
+    ]
   },
   "sources": [
     {
@@ -21,9 +27,9 @@
       "photo_rights": "No photographs supplied. Place record metadata only.",
       "geographic_coverage": "Global. Maharashtra bounding box extraction: lat 15.6–22.0, lon 72.6–80.9",
       "collection_date": null,
-      "dataset_version": "latest (2025-05-21.0 or later — check at time of extraction)",
-      "retrieval_method": "DuckDB query against s3://overturemaps-us-west-2/release/latest/theme=places/type=place/*",
-      "cost_status": "FREE AND APPROVED",
+      "dataset_version": "2024-09-18.0 (pinned)",
+      "retrieval_method": "DuckDB query against s3://overturemaps-us-west-2/release/2024-09-18.0/theme=places/type=place/*. Pinned release. Do NOT use /release/latest/ in production — schema may change silently.",
+      "cost_status": "FREE — public S3 read (no egress cost for Maharashtra extract via DuckDB). NOT cost-approved for large-scale unfiltered pulls.",
       "free_quota": "No quota — public S3 read, pays egress on AWS us-west-2 (effectively free for Maharashtra extract ~50–200 MB)",
       "retention_policy": "Raw extract kept locally in data/raw/, NOT committed to Git. Processed candidates kept in data/processed/.",
       "review_status": "approved",
@@ -31,9 +37,19 @@
       "live_acquisition_verified": false,
       "reviewer": "system",
       "review_date": "2026-11-05",
-      "notes": "Overture confidence score measures existence probability, NOT vegan status. GERS ID must be preserved for cross-release matching. Contains records from multiple upstream sources; per-record source_dataset field identifies provenance. Known issues: duplicates, junk records, incomplete addresses. Do not use confidence as vegan verification. NOTE ON RUNTIME: DuckDB httpfs direct S3 streaming encounters a known DLL initialization failure on Windows x64; pre-downloaded GeoParquet or Linux/macOS environment required for live execution. No bulk downloads forced. Zero records in production.",
+      "notes": "Overture confidence score measures existence probability, NOT vegan status. GERS ID must be preserved for cross-release matching. Contains records from multiple upstream sources; per-record source_dataset field identifies provenance. Known issues: duplicates, junk records, incomplete addresses. Do not use confidence as vegan verification. SCHEMA v2.0 NOTE: categories.primary and categories.alternate were removed in release 2024-09-18.0. The adapter now uses basic_category (simple string) and taxonomy.primary/alternates. Update OVERTURE_PINNED_RELEASE in overture_adapter.py and re-run regression tests for each new release. RUNTIME NOTE: DuckDB httpfs direct S3 streaming encounters a known DLL initialization failure on Windows x64; pre-downloaded GeoParquet or Linux/macOS environment required for live execution. No bulk downloads forced. Zero records in production until live_acquisition_verified=true.",
       "adapter_implemented": true,
-      "adapter_file": "scripts/data-pipeline/adapters/overture_adapter.py"
+      "adapter_file": "scripts/data-pipeline/adapters/overture_adapter.py",
+      "schema_version": "v2.0 (breaking change from v1: categories struct removed, replaced by basic_category and taxonomy map)",
+      "schema_reference_url": "https://docs.overturemaps.org/schema/reference/places/place/",
+      "schema_breaking_changes": [
+        "categories.primary removed — use basic_category",
+        "categories.alternate removed — use taxonomy.alternates (list<string>)",
+        "taxonomy.primary added (dotted hierarchy path, e.g. eat_and_drink.restaurant)",
+        "taxonomy.hierarchy added (list<string> of ancestor labels)"
+      ],
+      "adapter_schema_pinned": true,
+      "adapter_schema_pin_date": "2026-11-06"
     },
     {
       "id": "foursquare-os-places",
@@ -94,10 +110,29 @@
       "review_date": "2026-11-05",
       "notes": "Vegan tags (diet:vegan=yes, diet:vegan=only, cuisine=vegan) are discovery signals, not verification. Many Indian vegan establishments may not have OSM vegan tags. ODbL legal review recommended before distributing any derivative database. Use as a research input, not as the sole source of truth.",
       "relevant_tags": {
-        "amenity": ["restaurant", "cafe", "fast_food", "food_court", "bakery", "ice_cream"],
-        "diet_vegan": ["yes", "only"],
-        "cuisine": ["vegan", "vegetarian", "indian"],
-        "shop": ["bakery", "deli", "health_food", "organic"]
+        "amenity": [
+          "restaurant",
+          "cafe",
+          "fast_food",
+          "food_court",
+          "bakery",
+          "ice_cream"
+        ],
+        "diet_vegan": [
+          "yes",
+          "only"
+        ],
+        "cuisine": [
+          "vegan",
+          "vegetarian",
+          "indian"
+        ],
+        "shop": [
+          "bakery",
+          "deli",
+          "health_food",
+          "organic"
+        ]
       },
       "adapter_implemented": true,
       "adapter_file": "scripts/data-pipeline/adapters/osm_adapter.py"
@@ -192,4 +227,3 @@
     }
   ]
 }
-

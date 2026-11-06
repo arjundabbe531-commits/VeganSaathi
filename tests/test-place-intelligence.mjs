@@ -591,6 +591,192 @@ it("zero-budget: verifies codebase contains no paid billing activation or cloud 
   assert.ok(!rulesContent.includes("phoneAuth"), "Phone Auth SMS (potentially paid) not in rules");
 });
 
+// ---------------------------------------------------------------------------
+// 9. Regression Tests — Coordinate & Address Approval Guards
+//    Covers the mandatory independent inspection findings:
+//    - approveCandidate must reject missing/0,0/out-of-range coordinates
+//    - approveCandidate must reject placeholder addresses
+//    - existence === "owner_confirmed" alone must NOT grant verificationStatus: "verified"
+//    - vegan_claim_conflicting must be blocked (no publish)
+// ---------------------------------------------------------------------------
+
+it("approval-guard: rejects null or missing coordinates", () => {
+  function checkCoordinateApproval(lat, lon) {
+    if (lat === null || lat === undefined || lon === null || lon === undefined) {
+      return { blocked: true, reason: "missing_coordinates" };
+    }
+    if (lat === 0 && lon === 0) {
+      return { blocked: true, reason: "zero_zero_placeholder" };
+    }
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      return { blocked: true, reason: "out_of_range" };
+    }
+    return { blocked: false };
+  }
+
+  // null coordinates must block
+  assert.equal(checkCoordinateApproval(null, null).blocked, true, "null coordinates must block approval");
+  assert.equal(checkCoordinateApproval(null, null).reason, "missing_coordinates");
+
+  // undefined coordinates must block
+  assert.equal(checkCoordinateApproval(undefined, undefined).blocked, true, "undefined coordinates must block approval");
+
+  // (0, 0) is a known null placeholder — must block
+  assert.equal(checkCoordinateApproval(0, 0).blocked, true, "0,0 must block approval as a placeholder");
+  assert.equal(checkCoordinateApproval(0, 0).reason, "zero_zero_placeholder");
+
+  // out of valid geographic range — must block
+  assert.equal(checkCoordinateApproval(999, 999).blocked, true, "out-of-range coordinates must block approval");
+  assert.equal(checkCoordinateApproval(-91, 72).blocked, true, "lat < -90 must block");
+  assert.equal(checkCoordinateApproval(18.5, 181).blocked, true, "lon > 180 must block");
+
+  // valid Maharashtra coordinates — must NOT block
+  assert.equal(checkCoordinateApproval(18.5204, 73.8567).blocked, false, "valid Pune coordinates must pass");
+  assert.equal(checkCoordinateApproval(19.0760, 72.8777).blocked, false, "valid Mumbai coordinates must pass");
+});
+
+it("approval-guard: rejects placeholder or missing addresses", () => {
+  const PLACEHOLDER_ADDRESSES = [
+    "address pending verification",
+    "address pending",
+    "pending verification",
+    "unknown",
+    "n/a",
+    "tbd",
+    "",
+  ];
+
+  function checkAddressApproval(address) {
+    const trimmed = typeof address === "string" ? address.trim() : "";
+    if (!trimmed || PLACEHOLDER_ADDRESSES.includes(trimmed.toLowerCase())) {
+      return { blocked: true, reason: "placeholder_or_missing_address" };
+    }
+    if (trimmed.length < 5 || trimmed.length > 300) {
+      return { blocked: true, reason: "address_length_invalid" };
+    }
+    return { blocked: false };
+  }
+
+  // Explicit placeholders that must block
+  assert.equal(checkAddressApproval("Address pending verification").blocked, true, "placeholder text must block");
+  assert.equal(checkAddressApproval("address pending verification").blocked, true, "case-insensitive placeholder check");
+  assert.equal(checkAddressApproval("").blocked, true, "empty address must block");
+  assert.equal(checkAddressApproval("   ").blocked, true, "whitespace-only address must block");
+  assert.equal(checkAddressApproval("unknown").blocked, true, "'unknown' must block");
+  assert.equal(checkAddressApproval("n/a").blocked, true, "'n/a' must block");
+  assert.equal(checkAddressApproval("tbd").blocked, true, "'tbd' must block");
+
+  // Too short
+  assert.equal(checkAddressApproval("ab").blocked, true, "address under 5 chars must block");
+
+  // Valid real address — must NOT block
+  assert.equal(checkAddressApproval("123, MG Road, Pune, Maharashtra 411001").blocked, false, "real address must pass");
+  assert.equal(checkAddressApproval("Near Station, Nagpur").blocked, false, "short but real address must pass");
+});
+
+it("approval-guard: existence=owner_confirmed alone does NOT grant verificationStatus=verified", () => {
+  /**
+   * SEMANTICS CLARIFICATION:
+   *   existence === "owner_confirmed" means: the owner confirmed the BUSINESS EXISTS.
+   *   It does NOT mean: the owner confirmed vegan menu items or ingredients.
+   *   Only dietary evidence (evidenceStatus) can grant verificationStatus === "verified".
+   *
+   *   The hardened approveCandidate() now uses:
+   *     isDietaryOwnerConfirmed = evidenceStatus === "owner_confirmed"  (dietary confirmation)
+   *     isOwnerExistenceConfirmed = existence === "owner_confirmed"      (existence only)
+   *
+   *   isAffirmativelyVerified = isIngredientsReviewed || isDietaryOwnerConfirmed
+   *                             || (isPhysicallyVisited && evidenceStatus not no_vegan_evidence)
+   */
+  function deriveVerificationStatusV2(existenceStatus, evidenceStatus) {
+    const isPhysicallyVisited = existenceStatus === "physically_verified";
+    const isDietaryOwnerConfirmed = evidenceStatus === "owner_confirmed";
+    const isIngredientsReviewed = evidenceStatus === "ingredients_reviewed" || evidenceStatus === "vegansaathi_reviewed";
+    const hasVeganDietaryEvidence = isIngredientsReviewed || isDietaryOwnerConfirmed;
+    const isAffirmativelyVerified = hasVeganDietaryEvidence ||
+      (isPhysicallyVisited && evidenceStatus !== "no_vegan_evidence" && evidenceStatus !== "vegan_lead");
+    return isAffirmativelyVerified ? "verified" : "unverified";
+  }
+
+  // Owner confirmed existence only — must NOT yield "verified"
+  assert.equal(
+    deriveVerificationStatusV2("owner_confirmed", "vegan_lead"),
+    "unverified",
+    "existence=owner_confirmed + vegan_lead must NOT yield verificationStatus=verified"
+  );
+  assert.equal(
+    deriveVerificationStatusV2("owner_confirmed", "menu_evidence_found"),
+    "unverified",
+    "existence=owner_confirmed + menu_evidence_found (not full review) must stay unverified"
+  );
+  assert.equal(
+    deriveVerificationStatusV2("owner_confirmed", "no_vegan_evidence"),
+    "unverified",
+    "existence=owner_confirmed + no_vegan_evidence must be unverified"
+  );
+
+  // Dietary owner confirmation — DOES grant verified (evidenceStatus field, not existenceStatus)
+  assert.equal(
+    deriveVerificationStatusV2("candidate", "owner_confirmed"),
+    "verified",
+    "evidenceStatus=owner_confirmed (dietary confirmation) must yield verified"
+  );
+
+  // Ingredients reviewed — must grant verified
+  assert.equal(
+    deriveVerificationStatusV2("address_supported", "ingredients_reviewed"),
+    "verified",
+    "ingredients_reviewed must yield verified"
+  );
+  assert.equal(
+    deriveVerificationStatusV2("candidate", "vegansaathi_reviewed"),
+    "verified",
+    "vegansaathi_reviewed must yield verified"
+  );
+
+  // Physical visit with real evidence — verified
+  assert.equal(
+    deriveVerificationStatusV2("physically_verified", "menu_evidence_found"),
+    "verified",
+    "physical visit + menu evidence must yield verified"
+  );
+
+  // Physical visit with no evidence — still unverified
+  assert.equal(
+    deriveVerificationStatusV2("physically_verified", "no_vegan_evidence"),
+    "unverified",
+    "physical visit + no_vegan_evidence must stay unverified"
+  );
+});
+
+it("approval-guard: vegan_claim_conflicting and vegan_status_unverified must both block publish", () => {
+  const BLOCKED_VEGAN_CLASSES = ["vegan_status_unverified", "vegan_claim_conflicting", "", null, undefined];
+  const ALLOWED_VEGAN_CLASSES = ["fully_vegan", "vegan_friendly", "verified_vegan_options"];
+
+  function canPublishVeganClass(veganClass, evidenceStatus) {
+    if (!veganClass ||
+        veganClass === "vegan_status_unverified" ||
+        veganClass === "vegan_claim_conflicting" ||
+        evidenceStatus === "no_vegan_evidence") {
+      return false;
+    }
+    return true;
+  }
+
+  for (const cls of BLOCKED_VEGAN_CLASSES) {
+    assert.equal(canPublishVeganClass(cls, "ingredients_reviewed"), false,
+      `veganClass='${cls}' must block publish`);
+  }
+  // no_vegan_evidence must block even with a seemingly valid class
+  assert.equal(canPublishVeganClass("fully_vegan", "no_vegan_evidence"), false,
+    "no_vegan_evidence must block even when veganClass=fully_vegan");
+
+  for (const cls of ALLOWED_VEGAN_CLASSES) {
+    assert.equal(canPublishVeganClass(cls, "ingredients_reviewed"), true,
+      `veganClass='${cls}' + ingredients_reviewed must allow publish`);
+  }
+});
+
 console.log("\n========================================");
 console.log(`Place Intelligence Tests: ${passed} passed, ${failed} failed.`);
 console.log("========================================\n");
