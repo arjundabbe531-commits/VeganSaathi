@@ -260,7 +260,10 @@ function getFilteredPlaces() {
       if (haystack.indexOf(searchTerm) === -1) return false;
     }
     if (vsActiveDietFilters.length > 0) {
-      const hasAll = vsActiveDietFilters.every(function (d) { return place.dietTags.indexOf(d) !== -1; });
+      const hasAll = vsActiveDietFilters.every(function (d) {
+        if (d === "vegan") return isVeganDietVerified(place);
+        return place.dietTags.indexOf(d) !== -1;
+      });
       if (!hasAll) return false;
     }
     if (vsActivePlaceType && place.placeType !== vsActivePlaceType) return false;

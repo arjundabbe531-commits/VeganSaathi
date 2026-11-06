@@ -209,6 +209,8 @@ def main():
             goto(pg, "place-details.html?id=unverified-1", docs=[place("unverified-1", name="Unverified Place")])
             badge_html = pg.eval_on_selector("#placeVerification", "el => el.innerHTML")
             log("10. unverified place shows 'Not yet verified'", "Not yet verified" in badge_html, badge_html)
+            diet_badges = pg.eval_on_selector_all("#placeDietBadges .vs-badge", "els => els.map(el => el.className).join(' ')")
+            log("10. unverified place detail does not show a Vegan badge", "vs-badge-vegan" not in diet_badges, diet_badges)
             ctx.close()
 
             # ---- 11. The map receives the normalized Firestore coordinates ----

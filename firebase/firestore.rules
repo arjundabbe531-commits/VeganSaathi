@@ -247,7 +247,9 @@ service cloud.firestore {
 
     // ---------------- placePhotos (Rights-cleared photo pipeline) ----------------
     match /placePhotos/{photoId} {
-      allow read: if (resource.data.approval_status == "approved")
+      allow read: if (resource.data.approval_status == "approved"
+          && exists(/databases/$(database)/documents/places/$(resource.data.place_id))
+          && get(/databases/$(database)/documents/places/$(resource.data.place_id)).data.status == "published")
         || isAdmin()
         || (isSignedIn() && resource.data.submitter_uid == request.auth.uid);
 
@@ -259,6 +261,8 @@ service cloud.firestore {
         && request.resource.data.approval_status == "pending"
         && request.resource.data.place_id is string
         && request.resource.data.place_id.size() > 0
+        && exists(/databases/$(database)/documents/places/$(request.resource.data.place_id))
+        && get(/databases/$(database)/documents/places/$(request.resource.data.place_id)).data.status == "published"
         && request.resource.data.photo_category in ["storefront", "interior", "food", "menu", "logo"]
         && request.resource.data.keys().hasOnly([
           "place_id", "submitter_uid", "submitter_name", "photo_category", "approval_status",
@@ -276,6 +280,8 @@ service cloud.firestore {
 
       allow update: if isAdmin()
         && resource.data.approval_status == "pending"
+        && exists(/databases/$(database)/documents/places/$(resource.data.place_id))
+        && get(/databases/$(database)/documents/places/$(resource.data.place_id)).data.status == "published"
         && request.resource.data.approval_status in ["approved", "rejected"]
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(["approval_status", "approving_admin_uid", "approval_timestamp", "rejection_reason"]);

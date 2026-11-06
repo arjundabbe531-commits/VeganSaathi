@@ -272,6 +272,11 @@ export function normalizePlace(rawDoc) {
     latitude: data.latitude,
     longitude: data.longitude,
     dietTags: data.dietTags.slice(),
+    veganClassification: typeof data.veganClassification === "string" ? data.veganClassification : "",
+    evidenceStatus: typeof data.evidenceStatus === "string" ? data.evidenceStatus : "",
+    verificationDimensions: data.verificationDimensions && typeof data.verificationDimensions === "object" && !Array.isArray(data.verificationDimensions)
+      ? { vegan_options_verified: data.verificationDimensions.vegan_options_verified === true }
+      : { vegan_options_verified: false },
     dietNotes: dietNotes,
     priceRange: priceRange,
     openingInfo: openingInfo,

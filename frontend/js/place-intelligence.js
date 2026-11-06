@@ -846,7 +846,10 @@ window.approvePhoto = async function(photoId) {
     const photoRef = doc(db, "placePhotos", photoId);
     const photoSnap = await getDoc(photoRef);
     if (!photoSnap.exists()) throw new Error("Photo submission no longer exists.");
-    validatePhotoApproval(photoSnap.data());
+    const photo = photoSnap.data();
+    const placeSnap = await getDoc(doc(db, "places", photo.place_id));
+    if (!placeSnap.exists()) throw new Error("Associated place no longer exists.");
+    validatePhotoApproval(photo, placeSnap.data());
     await updateDoc(doc(db, "placePhotos", photoId), {
       approval_status: "approved",
       approving_admin_uid: _currentAdmin.uid,

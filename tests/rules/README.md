@@ -9,7 +9,7 @@ project and are not part of `tests/run_all.ps1`. The active suite loads
 
 | File | What it asserts | Expected result on the current rules |
 |---|---|---|
-| `firestore.rules.test.mjs` | Active access control, R1–R3 hardening, payload validation, and photo-rights declarations | **Active target** |
+| `firestore.rules.test.mjs` | Active access control, R1–R3 hardening, payload validation, attributable photo-rights declarations, and published-place photo linkage | **Active target** |
 | `firestore.rules.proposed.test.mjs` | Reference R1–R3 and admin payload tests against `firebase/firestore.rules.proposed` | **Reference target** |
 | `common.mjs` | Shared setup and a valid community place document | — |
 

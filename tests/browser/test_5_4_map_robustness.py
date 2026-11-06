@@ -60,6 +60,7 @@ def init_script_for(docs):
         "window.__STUB_PLACES_DOCS__.forEach(function (d) {"
         "  d.data.createdAt = { toDate: function () { return new Date('2026-09-01T12:00:00Z'); } };"
         "  d.data.updatedAt = { toDate: function () { return new Date('2026-09-01T12:00:00Z'); } };"
+        "  if (d.data.verificationStatus === 'verified') d.data.lastVerifiedAt = { toDate: function () { return new Date('2026-10-01T12:00:00Z'); } };"
         "});"
     )
 
@@ -133,7 +134,12 @@ def main():
 
             # ---- 5. Filters update markers correctly ----
             ctx, pg, errs = new_page(browser)
-            goto_explore(pg, [place("p1", dietTags=["vegan"]), place("p2", dietTags=["vegetarian"])])
+            goto_explore(pg, [
+                place("p1", dietTags=["vegan"], verificationStatus="verified",
+                      veganClassification="verified_vegan_options", evidenceStatus="ingredients_reviewed",
+                      verificationDimensions={"vegan_options_verified": True}),
+                place("p2", dietTags=["vegetarian"])
+            ])
             click_map(pg)
             before = stub_value(pg, "__STUB_LAYERGROUP_MARKER_COUNT__")
             pg.click('button.vs-filter-chip[data-diet="vegan"]')

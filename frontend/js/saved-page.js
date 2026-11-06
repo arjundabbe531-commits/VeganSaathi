@@ -40,7 +40,7 @@ async function loadAndRenderSaved(user) {
       '<div class="vs-place-card__body">' +
       '<h3 class="vs-place-card__title">' + escapeHtml(place.name) + "</h3>" +
       '<div class="vs-place-card__meta">' + escapeHtml(capitalize(place.placeType)) + (place.area ? " &middot; " + escapeHtml(place.area) : "") + "</div>" +
-      "<div>" + renderDietBadges(place.dietTags) + "</div>" +
+      "<div>" + renderPlaceDietBadges(place) + "</div>" +
       '<div class="d-flex gap-2 mt-2">' +
       '<a href="' + escapeHtml(placeDetailsUrl(place.id)) + '" class="btn btn-vs-primary btn-sm">View Details</a>' +
       '<button type="button" class="btn btn-vs-outline btn-sm remove-saved-btn" data-place-id="' + escapeHtml(place.id) + '">Remove</button>' +

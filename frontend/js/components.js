@@ -241,6 +241,21 @@ function renderDietBadges(dietTags) {
   }).join(" ");
 }
 
+function isVeganDietVerified(place) {
+  return Boolean(place &&
+    place.verificationStatus === "verified" &&
+    place.verificationDimensions &&
+    place.verificationDimensions.vegan_options_verified === true &&
+    ["fully_vegan", "vegan_friendly", "verified_vegan_options"].includes(place.veganClassification) &&
+    ["ingredients_reviewed", "owner_confirmed", "vegansaathi_reviewed"].includes(place.evidenceStatus) &&
+    Array.isArray(place.dietTags) && place.dietTags.includes("vegan"));
+}
+
+function renderPlaceDietBadges(place) {
+  const tags = Array.isArray(place?.dietTags) ? place.dietTags : [];
+  return renderDietBadges(isVeganDietVerified(place) ? tags : tags.filter((tag) => tag !== "vegan"));
+}
+
 /* ---------------- Verification badge ---------------- */
 // 90-day soft "re-check due" cue (Phase 5 decision D5, docs/PHASE_5_PLAN.md).
 // Presentation only — never changes verificationStatus itself, and the
@@ -308,7 +323,7 @@ function renderPlaceCard(place, km) {
     '<div class="vs-place-card__body">' +
     '<h3 class="vs-place-card__title">' + escapeHtml(place.name) + "</h3>" +
     '<div class="vs-place-card__meta">' + metaText + "</div>" +
-    '<div>' + renderDietBadges(place.dietTags) + "</div>" +
+    '<div>' + renderPlaceDietBadges(place) + "</div>" +
     '<div class="d-flex justify-content-between align-items-center mt-1">' +
     '<span class="text-muted-vs" style="font-size:0.85rem;">' + escapeHtml(priceText) + "</span>" +
     renderVerificationBadge(place) +

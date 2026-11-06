@@ -141,7 +141,7 @@ function renderPlaceDetail(place) {
   document.getElementById("placeAddress").textContent = place.address;
   document.getElementById("placePrice").textContent = capitalize(place.priceRange);
   document.getElementById("placeDescription").textContent = place.description;
-  document.getElementById("placeDietBadges").innerHTML = renderDietBadges(place.dietTags);
+  document.getElementById("placeDietBadges").innerHTML = renderPlaceDietBadges(place);
   document.getElementById("placeVerification").innerHTML = renderVerificationBadge(place);
 }
 

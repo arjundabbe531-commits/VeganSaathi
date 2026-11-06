@@ -303,10 +303,12 @@ describe("Photo rights declaration enforcement", () => {
   });
 
   it("accepts a pending community photo with an attributable rights declaration", async () => {
+    await seedPlace("pub1", publishedPlace);
     await assertSucceeds(setDoc(doc(as("u1"), "placePhotos", "photo1"), validPhoto()));
   });
 
   it("rejects photos without permission/original-work declaration, attribution, or with arbitrary fields", async () => {
+    await seedPlace("pub1", publishedPlace);
     const noRights = validPhoto();
     noRights.is_original_work = false;
     noRights.rights_holder = "";
@@ -321,10 +323,25 @@ describe("Photo rights declaration enforcement", () => {
 
   it("allows admin approval only as a pending to approved/rejected transition", async () => {
     await seedUsers();
+    await seedPlace("pub1", publishedPlace);
     await seed(env, async (db) => setDoc(doc(db, "placePhotos", "photo1"), validPhoto()));
     await assertSucceeds(updateDoc(doc(as("admin1"), "placePhotos", "photo1"), {
       approval_status: "approved", approving_admin_uid: "admin1", approval_timestamp: serverTimestamp()
     }));
     await assertFails(updateDoc(doc(as("admin1"), "placePhotos", "photo1"), { approval_status: "rejected" }));
+  });
+
+  it("refuses photo creation and approval for a missing or unpublished place", async () => {
+    await seedUsers();
+    const pendingPlace = { ...publishedPlace, status: "pending", submittedBy: "u1" };
+    await seedPlace("pending-place", pendingPlace);
+    const pendingPhoto = { ...validPhoto(), place_id: "pending-place" };
+    await assertFails(setDoc(doc(as("u1"), "placePhotos", "photo-pending-place"), pendingPhoto));
+    await seed(env, async (db) => setDoc(doc(db, "placePhotos", "photo-pending-place"), pendingPhoto));
+    await assertFails(updateDoc(doc(as("admin1"), "placePhotos", "photo-pending-place"), {
+      approval_status: "approved", approving_admin_uid: "admin1", approval_timestamp: serverTimestamp()
+    }));
+    const missingPlacePhoto = { ...validPhoto(), place_id: "not-there" };
+    await assertFails(setDoc(doc(as("u1"), "placePhotos", "photo-missing-place"), missingPlacePhoto));
   });
 });

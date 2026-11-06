@@ -1,4 +1,4 @@
-export function validatePhotoApproval(photo) {
+export function validatePhotoApproval(photo, place) {
   if (!photo || photo.approval_status !== "pending") throw new Error("Photo is no longer pending review.");
   if (!(photo.is_original_work === true || photo.has_permission_to_publish === true)) {
     throw new Error("A confirmed original-work declaration or explicit publication permission is required.");
@@ -11,5 +11,6 @@ export function validatePhotoApproval(photo) {
     throw new Error("Required licence attribution is missing.");
   }
   if (typeof photo.place_id !== "string" || !photo.place_id.trim()) throw new Error("Photo must identify its associated place.");
+  if (!place || place.status !== "published") throw new Error("Photos can be approved only for an existing published place.");
   return true;
 }
