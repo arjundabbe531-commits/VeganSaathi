@@ -53,7 +53,7 @@ function renderNavbar(activePage, user, isAdmin) {
     '<div class="container">' +
     '<a class="navbar-brand" href="' + base + 'index.html">' +
     '<span>🌿 VeganSaathi</span>' +
-    '<span class="navbar-brand-badge d-none d-sm-inline">SSGMCE CEP</span>' +
+    '<span class="navbar-brand-badge d-none d-sm-inline">Maharashtra</span>' +
     '</a>' +
     '<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#vsNavCollapse" aria-controls="vsNavCollapse" aria-expanded="false" aria-label="Toggle navigation">' +
     '<span class="navbar-toggler-icon"></span></button>' +
@@ -76,7 +76,7 @@ function renderFooter() {
     '<div class="col-md-4">' +
     "<h5>VeganSaathi</h5>" +
     '<p class="text-muted-vs" style="color:#c8d3c0;">Connecting people. Promoting veganism. ' +
-    "Community-verified vegan, vegetarian, Jain and eggetarian food discovery \u2014 started at SSGMCE, Shegaon, open to all.</p>" +
+    "Community-verified vegan, vegetarian, Jain and eggetarian food discovery \u2014 built for Maharashtra, open to all.</p>" +
     "</div>" +
     '<div class="col-6 col-md-2">' +
     "<h5>Explore</h5><ul class=\"list-unstyled\">" +
@@ -96,16 +96,16 @@ function renderFooter() {
     "</ul></div>" +
     '<div class="col-6 col-md-2">' +
     "<h5>About</h5><ul class=\"list-unstyled\">" +
-    "<li>SSGMCE, Shegaon — B.E. IT CEP</li>" +
-    "<li>Sant Gadge Baba Amravati University</li>" +
+    "<li>VeganSaathi — Community Project</li>" +
+    "<li>Maharashtra, India</li>" +
     "</ul></div>" +
     '<div class="col-6 col-md-2">' +
     "<h5>Contact</h5><ul class=\"list-unstyled\">" +
-    '<li><a href="mailto:vegansaathi.cep@gmail.com">Email Team</a></li>' +
+    '<li><a href="mailto:vegansaathi@gmail.com">Email Team</a></li>' +
     '<li><a href="https://github.com/arjundabbe531-commits/VeganSaathi" target="_blank" rel="noopener noreferrer">GitHub Project</a></li>' +
     "</ul></div>" +
     "</div>" +
-    '<div class="vs-footer__bottom">&copy; 2026 VeganSaathi — A student Community Engagement Project. Not a commercial product.</div>' +
+    '<div class="vs-footer__bottom">&copy; 2026 VeganSaathi — An independent community discovery project. Open-source and non-commercial.</div>' +
     "</div></footer>";
 }
 

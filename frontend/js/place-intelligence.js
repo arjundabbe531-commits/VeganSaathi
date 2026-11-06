@@ -21,6 +21,7 @@ import {
   setDoc,
   addDoc,
   updateDoc,
+  writeBatch,
   serverTimestamp,
   orderBy,
   limit as firestoreLimit,
@@ -32,6 +33,7 @@ import { isAdmin } from "./admin-service.js";
 let _currentAdmin = null;
 let _currentManifest = null;
 let _stagedCandidates = [];
+const _candidateCache = new Map(); // candidate_id -> candidate record (in-memory + Firestore cache)
 let _selectedCandidateId = null;
 let _qualityData = null;
 
@@ -353,6 +355,12 @@ function renderCandidateTable(candidates) {
     return;
   }
 
+  // Cache candidates in memory for verification panel access
+  candidates.forEach((c) => {
+    const id = c.candidate_id || c.id;
+    if (id) _candidateCache.set(id, c);
+  });
+
   const rows = candidates.slice(0, 50).map((c) => `
     <tr class="candidate-row" data-id="${escHtml(c.candidate_id || "")}">
       <td style="font-size:0.82rem;">${escHtml(c.name || "—")}</td>
@@ -458,6 +466,11 @@ async function loadCandidates() {
       return true;
     });
 
+    filtered.forEach((c) => {
+      const id = c.candidate_id || c.id;
+      if (id) _candidateCache.set(id, c);
+    });
+
     renderCandidateListFull(filtered, listEl);
     return;
   }
@@ -468,7 +481,11 @@ async function loadCandidates() {
     const db = getFirebaseDb();
     const snap = await getDocs(query(collection(db, "placeCandidates"), firestoreLimit(100)));
     const candidates = [];
-    snap.forEach((d) => candidates.push({ id: d.id, ...d.data() }));
+    snap.forEach((d) => {
+      const c = { id: d.id, candidate_id: d.id, ...d.data() };
+      candidates.push(c);
+      _candidateCache.set(d.id, c);
+    });
     if (candidates.length === 0) {
       listEl.innerHTML = `<div class="text-muted-vs text-center py-5" style="font-size:0.9rem;"><div style="font-size:2.5rem;" class="mb-3">🔍</div>No candidates in queue. Load a pilot file from the Import tab.</div>`;
     } else {
@@ -484,6 +501,12 @@ function renderCandidateListFull(candidates, container) {
     container.innerHTML = `<div class="text-muted-vs text-center py-4">No candidates match the current filters.</div>`;
     return;
   }
+
+  // Cache candidates for verification panel access
+  candidates.forEach((c) => {
+    const id = c.candidate_id || c.id;
+    if (id) _candidateCache.set(id, c);
+  });
 
   const rows = candidates.slice(0, 100).map((c) => `
     <div class="vs-card p-3 mb-2 candidate-row" data-id="${escHtml(c.candidate_id || c.id || "")}">
@@ -513,15 +536,44 @@ function renderCandidateListFull(candidates, container) {
 
 /* ---------- Verification Panel ---------- */
 
-window.openVerificationPanel = function(candidateId) {
+window.openVerificationPanel = async function(candidateId) {
+  if (!candidateId) return;
+
   // Switch to verification tab
   document.querySelector('[data-pane="verification"]')?.click();
   _selectedCandidateId = candidateId;
 
-  const candidate = _stagedCandidates.find((c) => (c.candidate_id || c.id) === candidateId);
-  if (!candidate) return;
+  // 1. Check in-memory cache / staged candidates
+  let candidate = _candidateCache.get(candidateId) || _stagedCandidates.find((c) => (c.candidate_id || c.id) === candidateId);
 
+  // 2. If not found in memory (e.g. direct deep link or fresh page load), query Firestore
+  if (!candidate) {
+    try {
+      const db = getFirebaseDb();
+      const candDoc = await getDoc(doc(db, "placeCandidates", candidateId));
+      if (candDoc.exists()) {
+        candidate = { id: candDoc.id, candidate_id: candDoc.id, ...candDoc.data() };
+        _candidateCache.set(candidateId, candidate);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch candidate from Firestore:", err);
+    }
+  }
+
+  const queueEl = document.getElementById("verificationQueue");
   const panel = document.getElementById("verificationPanel");
+
+  if (!candidate) {
+    if (panel) panel.classList.add("d-none");
+    if (queueEl) {
+      queueEl.innerHTML = `
+        <div class="alert alert-warning p-3">
+          <strong>Candidate Not Found:</strong> Could not retrieve record <code>${escHtml(candidateId)}</code> from staging memory or Firestore. It may have already been published or rejected.
+        </div>`;
+    }
+    return;
+  }
+
   if (panel) panel.classList.remove("d-none");
 
   // Populate identity
@@ -532,7 +584,7 @@ window.openVerificationPanel = function(candidateId) {
         <tr><td class="text-muted-vs" style="width:35%;">Name</td><td class="fw-bold">${escHtml(candidate.name || "—")}</td></tr>
         <tr><td class="text-muted-vs">Address</td><td>${escHtml(candidate.address || "—")}</td></tr>
         <tr><td class="text-muted-vs">City</td><td>${escHtml(candidate.city || "—")}</td></tr>
-        <tr><td class="text-muted-vs">Coordinates</td><td>${candidate.latitude ? `${candidate.latitude.toFixed(5)}, ${candidate.longitude.toFixed(5)}` : "—"}</td></tr>
+        <tr><td class="text-muted-vs">Coordinates</td><td>${candidate.latitude ? `${Number(candidate.latitude).toFixed(5)}, ${Number(candidate.longitude).toFixed(5)}` : "—"}</td></tr>
         <tr><td class="text-muted-vs">Website</td><td>${candidate.website ? `<a href="${escHtml(candidate.website)}" target="_blank" rel="noopener noreferrer">${escHtml(candidate.website)}</a>` : "—"}</td></tr>
         <tr><td class="text-muted-vs">Phone</td><td>${escHtml(candidate.phone || "—")}</td></tr>
         <tr><td class="text-muted-vs">Category</td><td>${escHtml(candidate.source_category || "—")} → ${escHtml(candidate.mapped_place_type || "—")}</td></tr>
@@ -567,7 +619,7 @@ window.openVerificationPanel = function(candidateId) {
       </table>`;
   }
 
-  // Wire approval buttons
+  // Wire approval and rejection buttons
   const approveBtn = document.getElementById("vd-approve-btn");
   if (approveBtn) {
     approveBtn.onclick = () => approveCandidate(candidate);
@@ -579,12 +631,12 @@ window.openVerificationPanel = function(candidateId) {
 };
 
 async function approveCandidate(candidate) {
-  const veganClass = document.getElementById("vd-vegan-class")?.value;
-  const existence = document.getElementById("vd-existence")?.value;
-  const operating = document.getElementById("vd-operating")?.value;
-  const evidenceStatus = document.getElementById("vd-evidence")?.value;
-  const evidenceUrl = document.getElementById("vd-evidence-url")?.value?.trim();
-  const notes = document.getElementById("vd-notes")?.value?.trim();
+  const veganClass = document.getElementById("vd-vegan-class")?.value || "vegan_status_unverified";
+  const existence = document.getElementById("vd-existence")?.value || "candidate";
+  const operating = document.getElementById("vd-operating")?.value || "unknown";
+  const evidenceStatus = document.getElementById("vd-evidence")?.value || "no_vegan_evidence";
+  const evidenceUrl = document.getElementById("vd-evidence-url")?.value?.trim() || "";
+  const notes = document.getElementById("vd-notes")?.value?.trim() || "";
 
   if (!notes || notes.length < 10) {
     showResult("vd-action-result", "Reviewer notes are required (minimum 10 characters).", "warning");
@@ -594,61 +646,98 @@ async function approveCandidate(candidate) {
     if (!confirm("You are approving a place as 'Unverified'. Are you sure this should be published?")) return;
   }
 
-  if (!_currentAdmin) return;
+  if (!_currentAdmin) {
+    showResult("vd-action-result", "Not authenticated as administrator.", "danger");
+    return;
+  }
   const db = getFirebaseDb();
 
+  // Dietary tags determination:
+  // Do NOT blindly default every place to ["vegan"]!
+  // Map based on reviewed vegan classification and verified menu evidence:
+  let dietTags = [];
+  if (veganClass === "fully_vegan") {
+    dietTags = ["vegan"];
+  } else if (veganClass === "vegan_friendly" || veganClass === "verified_vegan_options") {
+    dietTags = ["vegan", "vegetarian"];
+  } else {
+    // For unverified or general vegetarian listings
+    dietTags = Array.isArray(candidate.dietTags) && candidate.dietTags.length > 0
+      ? candidate.dietTags.filter(t => ["vegan", "vegetarian", "eggetarian", "jain"].includes(t))
+      : ["vegetarian"];
+    if (dietTags.length === 0) dietTags = ["vegetarian"];
+  }
+
+  // Verification status determination:
+  // VerificationStatus="verified" requires genuine affirmative evidence (physical fieldwork or reviewed ingredients/owner confirmation)
+  // Per database schema: unverified places have verificationStatus="unverified" and lastVerifiedAt=null.
+  const isAffirmativelyVerified = (
+    evidenceStatus === "ingredients_reviewed" ||
+    evidenceStatus === "owner_confirmed" ||
+    evidenceStatus === "vegansaathi_reviewed" ||
+    existence === "owner_confirmed"
+  );
+  const verificationStatus = isAffirmativelyVerified ? "verified" : "unverified";
+  const lastVerifiedAt = isAffirmativelyVerified ? serverTimestamp() : null;
+
   try {
-    // Create the published place record from candidate
+    const candDocId = candidate.candidate_id || candidate.id;
+    const batch = writeBatch(db);
+
+    const newPlaceRef = doc(collection(db, "places"));
     const placeData = {
       name: candidate.name || "",
-      placeType: candidate.mapped_place_type || "other",
-      address: candidate.address || "",
+      placeType: ["restaurant", "mess", "canteen", "cafe", "dhaba", "other"].includes(candidate.mapped_place_type)
+        ? candidate.mapped_place_type
+        : "restaurant",
+      address: candidate.address || "Address pending verification",
       area: candidate.area || "Area not listed",
       city: candidate.city || "",
       district: candidate.district || "",
       state: candidate.state || "Maharashtra",
       country: candidate.country || "India",
       postalCode: candidate.postal_code || "",
-      latitude: candidate.latitude || 0,
-      longitude: candidate.longitude || 0,
-      dietTags: ["vegan"],
+      latitude: typeof candidate.latitude === "number" ? candidate.latitude : 0,
+      longitude: typeof candidate.longitude === "number" ? candidate.longitude : 0,
+      dietTags: dietTags,
       description: candidate.description || "",
       website: candidate.website || "",
       phone: candidate.phone || "",
-      imageUrl: "",
+      imageUrl: candidate.imageUrl || "",
       status: "published",
-      verificationStatus: "verified",
-      veganClassification: veganClass,
-      existenceStatus: existence || "candidate",
-      operatingStatus: operating || "unknown",
-      evidenceStatus: evidenceStatus || "no_vegan_evidence",
-      evidenceUrl: evidenceUrl || "",
-      verificationNote: notes,
-      source: "import",
-      sourceId: candidate.source_id || "",
-      sourceLicence: candidate.licence || "",
-      sourceAttribution: candidate.source_attribution || "",
-      upstreamSourceIds: candidate.upstream_source_ids || {},
-      candidateId: candidate.candidate_id || "",
-      batchId: candidate.batch_id || "",
-      submittedBy: _currentAdmin.uid,
-      submittedByName: _currentAdmin.displayName || "Admin",
-      lastVerifiedAt: serverTimestamp(),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-
-    const placeRef = await addDoc(collection(db, "places"), placeData);
-
-    // Record verification history
-    await addDoc(collection(db, "verificationHistory"), {
-      placeId: placeRef.id,
-      candidateId: candidate.candidate_id || "",
+      verificationStatus: verificationStatus,
+      lastVerifiedAt: lastVerifiedAt,
       veganClassification: veganClass,
       existenceStatus: existence,
       operatingStatus: operating,
       evidenceStatus: evidenceStatus,
-      evidenceUrl: evidenceUrl || "",
+      evidenceUrl: evidenceUrl,
+      verificationNote: notes,
+      source: candidate.source_id && candidate.source_id.includes("community") ? "community" : "import",
+      sourceId: candidate.source_id || "",
+      sourceLicence: candidate.licence || "",
+      sourceAttribution: candidate.source_attribution || "",
+      upstreamSourceIds: candidate.upstream_source_ids || {},
+      candidateId: candDocId || "",
+      batchId: candidate.batch_id || "",
+      submittedBy: _currentAdmin.uid,
+      submittedByName: _currentAdmin.displayName || "Admin",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    batch.set(newPlaceRef, placeData);
+
+    const historyRef = doc(collection(db, "verificationHistory"));
+    batch.set(historyRef, {
+      placeId: newPlaceRef.id,
+      candidateId: candDocId || "",
+      veganClassification: veganClass,
+      existenceStatus: existence,
+      operatingStatus: operating,
+      evidenceStatus: evidenceStatus,
+      evidenceUrl: evidenceUrl,
+      dietTags: dietTags,
+      verificationStatus: verificationStatus,
       notes: notes,
       reviewerUid: _currentAdmin.uid,
       reviewerName: _currentAdmin.displayName || "Admin",
@@ -656,19 +745,20 @@ async function approveCandidate(candidate) {
       timestamp: serverTimestamp(),
     });
 
-    // Update candidate status
-    if (candidate.candidate_id) {
-      try {
-        await updateDoc(doc(db, "placeCandidates", candidate.candidate_id), {
-          import_status: "approved",
-          approvedPlaceId: placeRef.id,
-          approvedBy: _currentAdmin.uid,
-          approvedAt: serverTimestamp(),
-        });
-      } catch {}
+    if (candDocId) {
+      const candRef = doc(db, "placeCandidates", candDocId);
+      batch.update(candRef, {
+        import_status: "approved",
+        approvedPlaceId: newPlaceRef.id,
+        approvedBy: _currentAdmin.uid,
+        approvedAt: serverTimestamp(),
+      });
     }
 
-    showResult("vd-action-result", `✅ Place approved and published (ID: ${placeRef.id})`, "success");
+    // Atomic execution
+    await batch.commit();
+
+    showResult("vd-action-result", `✅ Place atomically published (Place ID: ${newPlaceRef.id}) with status='${verificationStatus}'`, "success");
     loadKPIs();
   } catch (err) {
     showResult("vd-action-result", "Failed to publish: " + err.message, "danger");
@@ -685,15 +775,27 @@ async function rejectCandidate(candidate) {
 
   const db = getFirebaseDb();
   try {
-    if (candidate.candidate_id) {
-      await updateDoc(doc(db, "placeCandidates", candidate.candidate_id), {
+    const candDocId = candidate.candidate_id || candidate.id;
+    const batch = writeBatch(db);
+    if (candDocId) {
+      batch.update(doc(db, "placeCandidates", candDocId), {
         import_status: "rejected",
         rejectionNotes: notes,
         rejectedBy: _currentAdmin?.uid,
         rejectedAt: serverTimestamp(),
       });
     }
-    showResult("vd-action-result", "Candidate rejected.", "secondary");
+    const historyRef = doc(collection(db, "verificationHistory"));
+    batch.set(historyRef, {
+      candidateId: candDocId || "",
+      notes: notes,
+      reviewerUid: _currentAdmin?.uid,
+      reviewerName: _currentAdmin?.displayName || "Admin",
+      decision: "rejected",
+      timestamp: serverTimestamp(),
+    });
+    await batch.commit();
+    showResult("vd-action-result", "Candidate rejected and audit log saved.", "secondary");
   } catch (err) {
     showResult("vd-action-result", "Failed to reject: " + err.message, "danger");
   }

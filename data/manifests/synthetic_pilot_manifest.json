@@ -1,0 +1,29 @@
+{
+  "batch_id": "synthetic-test-pilot-20261105-174217",
+  "source_id": "synthetic-demonstration-fixture",
+  "dataset_version": "synthetic-fixtures-2026.1",
+  "geographic_scope": "Maharashtra synthetic test coverage (Nagpur, Pune, Mumbai, Shegaon, Akola)",
+  "bounding_box": {
+    "min_lat": 18.0,
+    "max_lat": 22.0,
+    "min_lon": 72.5,
+    "max_lon": 80.0
+  },
+  "extraction_date": "2026-11-05",
+  "processing_start": "2026-11-05T17:42:17.111122+00:00",
+  "processing_end": "2026-11-05T17:42:17.114112+00:00",
+  "input_count": 15,
+  "geographic_filtered_count": 0,
+  "category_filtered_count": 0,
+  "rejected_count": 0,
+  "duplicate_count": 2,
+  "candidate_count": 15,
+  "error_count": 0,
+  "output_path": "D:\\VeganSaathi-Git-Workspace\\scripts\\data-pipeline\\../../data/processed/synthetic_pilot_candidates.ndjson",
+  "licence": "Project Test Fixture (Not a live upstream export)",
+  "licence_url": "",
+  "config_hash": "",
+  "import_status": "complete",
+  "errors": [],
+  "notes": "SYNTHETIC TEST FIXTURE ONLY: This batch processes project-created test records to validate data normalization, quality scoring, and deduplication logic. No genuine upstream Overture, OSM, or fieldwork extraction occurred in this run. These records must NEVER be published or imported as verified real-world businesses."
+}

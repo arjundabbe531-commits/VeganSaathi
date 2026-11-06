@@ -67,6 +67,20 @@ service cloud.firestore {
         && lon >= -180 && lon <= 180;
     }
 
+    function isValidPlacePayload(data) {
+      return isValidPlaceType(data.placeType)
+        && isValidDietTags(data.dietTags)
+        && isValidPriceRange(data.priceRange)
+        && isValidCoordinates(data.latitude, data.longitude)
+        && data.name is string
+        && data.name.size() >= 2
+        && data.name.size() <= 100
+        && data.address is string
+        && data.address.size() > 0
+        && data.address.size() <= 300
+        && (data.verificationStatus != "verified" || data.lastVerifiedAt is timestamp);
+    }
+
     // ---------------- users ----------------
     // Document ID == Firebase Auth uid.
     match /users/{userId} {
@@ -97,26 +111,18 @@ service cloud.firestore {
         || isAdmin()
         || (isSignedIn() && resource.data.submittedBy == request.auth.uid);
 
-      // Admins can create places directly (e.g. from approved import batches).
+      // Admins can create places directly (e.g. from approved import batches),
+      // subject to valid schema and verification payload requirements.
       // A new community submission always starts pending/unverified and source="community".
       // A user cannot publish, pre-verify, or spoof fieldwork attribution.
-      allow create: if isAdmin()
+      allow create: if (isAdmin() && isValidPlacePayload(request.resource.data))
         || (
           isSignedIn()
           && request.resource.data.submittedBy == request.auth.uid
           && request.resource.data.source == "community"
           && request.resource.data.status == "pending"
           && request.resource.data.verificationStatus == "unverified"
-          && isValidPlaceType(request.resource.data.placeType)
-          && isValidDietTags(request.resource.data.dietTags)
-          && isValidPriceRange(request.resource.data.priceRange)
-          && isValidCoordinates(request.resource.data.latitude, request.resource.data.longitude)
-          && request.resource.data.name is string
-          && request.resource.data.name.size() >= 2
-          && request.resource.data.name.size() <= 100
-          && request.resource.data.address is string
-          && request.resource.data.address.size() > 0
-          && request.resource.data.address.size() <= 300
+          && isValidPlacePayload(request.resource.data)
         );
 
       // Admins can change anything (approve, reject, edit, re-verify).

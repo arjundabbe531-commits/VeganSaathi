@@ -8,7 +8,7 @@
    ========================================================================== */
 import { describe, it, before, beforeEach, after } from "node:test";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { makeEnv, communityPlace, publishedPlace, seed, doc, setDoc, updateDoc, serverTimestamp } from "./common.mjs";
+import { makeEnv, communityPlace, publishedPlace, seed, doc, setDoc, getDoc, updateDoc, serverTimestamp } from "./common.mjs";
 
 let env;
 before(async () => { env = await makeEnv("proposed"); });  // explicitly firebase/firestore.rules.proposed
@@ -75,5 +75,92 @@ describe("PROPOSED R3 — users may write only known profile fields with a valid
   it("refuses an invalid dietPreference on update", async () => {
     await seed(env, async (db) => setDoc(doc(db, "users", "u1"), { uid: "u1", name: "A", email: "a@ssgmce.ac.in", dietPreference: "vegan", role: "user", createdAt: new Date() }));
     await assertFails(updateDoc(doc(as("u1"), "users", "u1"), { dietPreference: "carnivore" }));
+  });
+});
+
+describe("PROPOSED Admin place creation payload validation & intelligence collections", () => {
+  async function seedAdmin() {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "users", "admin1"), { uid: "admin1", name: "Admin", email: "admin@example.com", dietPreference: "unspecified", role: "admin", createdAt: new Date() });
+    });
+  }
+
+  it("admin can create place with valid schema and verified timestamp", async () => {
+    await seedAdmin();
+    const validPlace = {
+      name: "Valid Vegan Cafe",
+      placeType: "cafe",
+      address: "123 Green Way, Pune",
+      latitude: 18.5204,
+      longitude: 73.8567,
+      dietTags: ["vegan"],
+      priceRange: "moderate",
+      status: "published",
+      verificationStatus: "verified",
+      lastVerifiedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    await assertSucceeds(setDoc(doc(as("admin1"), "places", "admin-p1"), validPlace));
+  });
+
+  it("admin cannot create place marked verified without lastVerifiedAt timestamp", async () => {
+    await seedAdmin();
+    const invalidVerified = {
+      name: "Unverified Timeless Cafe",
+      placeType: "cafe",
+      address: "123 Green Way, Pune",
+      latitude: 18.5204,
+      longitude: 73.8567,
+      dietTags: ["vegan"],
+      priceRange: "moderate",
+      status: "published",
+      verificationStatus: "verified",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    await assertFails(setDoc(doc(as("admin1"), "places", "admin-p2"), invalidVerified));
+  });
+
+  it("admin cannot create place with invalid coordinates or invalid placeType", async () => {
+    await seedAdmin();
+    const badCoords = {
+      name: "Invalid Coordinates Cafe",
+      placeType: "cafe",
+      address: "123 Green Way, Pune",
+      latitude: 999,
+      longitude: 73.8567,
+      dietTags: ["vegan"],
+      priceRange: "moderate",
+      status: "published",
+      verificationStatus: "unverified",
+      createdAt: serverTimestamp(),
+    };
+    await assertFails(setDoc(doc(as("admin1"), "places", "admin-p3"), badCoords));
+
+    const badType = {
+      name: "Bad Type Joint",
+      placeType: "invalid_type",
+      address: "123 Green Way, Pune",
+      latitude: 18.5204,
+      longitude: 73.8567,
+      dietTags: ["vegan"],
+      priceRange: "moderate",
+      status: "published",
+      verificationStatus: "unverified",
+      createdAt: serverTimestamp(),
+    };
+    await assertFails(setDoc(doc(as("admin1"), "places", "admin-p4"), badType));
+  });
+
+  it("non-admin cannot read or write placeCandidates staging", async () => {
+    await assertFails(setDoc(doc(as("u1"), "placeCandidates", "cand1"), { name: "Staged" }));
+    await assertFails(getDoc(doc(as("u1"), "placeCandidates", "cand1")));
+  });
+
+  it("admin can read and write placeCandidates and verificationHistory", async () => {
+    await seedAdmin();
+    await assertSucceeds(setDoc(doc(as("admin1"), "placeCandidates", "cand1"), { name: "Staged", status: "pending" }));
+    await assertSucceeds(setDoc(doc(as("admin1"), "verificationHistory", "vh1"), { candidateId: "cand1", decision: "approved" }));
   });
 });

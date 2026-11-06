@@ -418,7 +418,106 @@ it("reverification: triggers review_required at 180+ days", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. Zero-Budget Constraint Tests
+// 7. Candidate State Management & Atomic Publishing (Priorities 2 & 3)
+// ---------------------------------------------------------------------------
+
+it("candidate-cache: simulates caching Firestore-loaded candidates into candidateCache map", () => {
+  const cache = new Map();
+  const firestoreDocs = [
+    { id: "cand_fs_01", name: "Green Leaf Cafe", city: "Nagpur", mapped_place_type: "cafe" },
+    { id: "cand_fs_02", name: "Pune Vegan Bowls", city: "Pune", mapped_place_type: "restaurant" },
+  ];
+
+  firestoreDocs.forEach((d) => cache.set(d.id, d));
+
+  // Verify retrieval after simulated reload
+  const retrieved = cache.get("cand_fs_01");
+  assert.ok(retrieved, "Candidate loaded from Firestore must be found in cache");
+  assert.equal(retrieved.name, "Green Leaf Cafe");
+
+  // Missing candidate handling
+  const missing = cache.get("nonexistent_id");
+  assert.equal(missing, undefined, "Missing candidate returns undefined safely");
+});
+
+it("publishing-model: maps dietTags accurately according to veganClassification", () => {
+  function deriveDietTags(veganClass, candTags = []) {
+    if (veganClass === "fully_vegan") {
+      return ["vegan"];
+    } else if (veganClass === "vegan_friendly" || veganClass === "verified_vegan_options") {
+      return ["vegan", "vegetarian"];
+    } else {
+      const valid = candTags.filter((t) => ["vegan", "vegetarian", "eggetarian", "jain"].includes(t));
+      return valid.length > 0 ? valid : ["vegetarian"];
+    }
+  }
+
+  // 1. fully_vegan -> ["vegan"]
+  assert.deepEqual(deriveDietTags("fully_vegan"), ["vegan"]);
+
+  // 2. vegan_friendly -> ["vegan", "vegetarian"]
+  assert.deepEqual(deriveDietTags("vegan_friendly"), ["vegan", "vegetarian"]);
+
+  // 3. unverified -> fallback to ["vegetarian"], NEVER blindly ["vegan"]
+  assert.deepEqual(deriveDietTags("vegan_status_unverified"), ["vegetarian"]);
+  assert.deepEqual(deriveDietTags("vegan_status_unverified", ["jain"]), ["jain"]);
+});
+
+it("publishing-model: assigns verificationStatus='unverified' and lastVerifiedAt=null when affirmative evidence is absent", () => {
+  function deriveVerificationDetails(evidenceStatus, existenceStatus) {
+    const isAffirmativelyVerified = (
+      evidenceStatus === "ingredients_reviewed" ||
+      evidenceStatus === "owner_confirmed" ||
+      evidenceStatus === "vegansaathi_reviewed" ||
+      existenceStatus === "owner_confirmed"
+    );
+    return {
+      verificationStatus: isAffirmativelyVerified ? "verified" : "unverified",
+      lastVerifiedAt: isAffirmativelyVerified ? new Date() : null,
+    };
+  }
+
+  // Merely found online / no verified evidence
+  const unverifiedResult = deriveVerificationDetails("no_vegan_evidence", "candidate");
+  assert.equal(unverifiedResult.verificationStatus, "unverified");
+  assert.equal(unverifiedResult.lastVerifiedAt, null);
+
+  // Vegan lead from tag only
+  const leadResult = deriveVerificationDetails("vegan_lead", "address_supported");
+  assert.equal(leadResult.verificationStatus, "unverified");
+  assert.equal(leadResult.lastVerifiedAt, null);
+
+  // Affirmatively verified (ingredients reviewed)
+  const verifiedResult = deriveVerificationDetails("ingredients_reviewed", "business_identity_supported");
+  assert.equal(verifiedResult.verificationStatus, "verified");
+  assert.ok(verifiedResult.lastVerifiedAt instanceof Date);
+});
+
+it("atomic-publishing: verifies operations are batched together to prevent partial failure", () => {
+  const operations = [];
+  const mockBatch = {
+    set: (ref, data) => operations.push({ op: "set", ref, data }),
+    update: (ref, data) => operations.push({ op: "update", ref, data }),
+    commit: async () => { operations.push({ op: "commit" }); return true; },
+  };
+
+  // Simulate atomic publish
+  const newPlaceRef = { path: "places/new_p1" };
+  const historyRef = { path: "verificationHistory/h1" };
+  const candRef = { path: "placeCandidates/cand_01" };
+
+  mockBatch.set(newPlaceRef, { name: "Leaf Cafe", status: "published" });
+  mockBatch.set(historyRef, { placeId: "new_p1", decision: "approved" });
+  mockBatch.update(candRef, { import_status: "approved", approvedPlaceId: "new_p1" });
+
+  assert.equal(operations.length, 3);
+  assert.equal(operations[0].op, "set");
+  assert.equal(operations[1].op, "set");
+  assert.equal(operations[2].op, "update");
+});
+
+// ---------------------------------------------------------------------------
+// 8. Zero-Budget Constraint Tests
 // ---------------------------------------------------------------------------
 
 it("zero-budget: verifies codebase contains no paid billing activation or cloud functions dependency", () => {

@@ -42,8 +42,8 @@ const VALID_SOURCES = ["fieldwork", "community"];
 
    VeganSaathi is not restricted to a single city or region. Any place with
    well-formed coordinates anywhere in the world is accepted. The application
-   began as a project around SSGMCE, Shegaon, but that is the project's origin,
-   not a permanent geographic limit.
+   has global scope, accepting verified plant-based places across Maharashtra,
+   India, and worldwide.
 
    Use COORD_BOUNDS when writing new code. PILOT_BOUNDS is an alias kept for
    backward compatibility with existing imports — do not introduce new

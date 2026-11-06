@@ -3,8 +3,10 @@
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_nagpur_001",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "Earth Cafe Nagpur",
-    "name_alt": ["Earth Cafe & Bakery"],
+    "name": "[TEST FIXTURE] Earth Cafe Nagpur",
+    "name_alt": [
+      "Earth Cafe & Bakery"
+    ],
     "brand": "",
     "address": "Plot 14, Opposite Shivaji Park, Dharampeth",
     "area": "Dharampeth",
@@ -22,17 +24,27 @@
     "source_category": "cafe",
     "mapped_place_type": "cafe",
     "operating_status": "open",
-    "vegan_signals": ["plant_based", "vegan_friendly", "almond_milk"],
+    "vegan_signals": [
+      "plant_based",
+      "vegan_friendly",
+      "almond_milk"
+    ],
     "vegan_signal_strength": "moderate",
-    "upstream_source_ids": { "overture_gers": "gers_ov_nagpur_001", "overture_source": "meta" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_nagpur_001"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "openstreetmap-geofabrik",
     "source_record_id": "osm_n_nagpur_002",
     "source_dataset_version": "osm-daily-2026",
-    "name": "Sarvodaya Sattvic Dining",
+    "name": "[TEST FIXTURE] Sarvodaya Sattvic Dining",
     "name_alt": [],
     "brand": "",
     "address": "Tekdi Road, Near Railway Station, Sitabuldi",
@@ -51,18 +63,30 @@
     "source_category": "amenity=restaurant",
     "mapped_place_type": "restaurant",
     "operating_status": "open",
-    "vegan_signals": ["cuisine=vegetarian", "sattvic", "plant_based"],
+    "vegan_signals": [
+      "cuisine=vegetarian",
+      "sattvic",
+      "plant_based"
+    ],
     "vegan_signal_strength": "moderate",
-    "upstream_source_ids": { "osm_id": "node/987123456" },
-    "source_attribution": "© OpenStreetMap contributors (ODbL 1.0)",
-    "licence": "ODbL 1.0"
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "osm_n_nagpur_002"
+    },
+    "source_attribution": "\u00a9 OpenStreetMap contributors (ODbL 1.0)",
+    "licence": "ODbL 1.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_nagpur_003",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "Jagdish Mess",
-    "name_alt": ["Jagdish Student Canteen"],
+    "name": "[TEST FIXTURE] Jagdish Mess",
+    "name_alt": [
+      "Jagdish Student Canteen"
+    ],
     "brand": "",
     "address": "Mahajan Market, Sitabuldi",
     "area": "Sitabuldi",
@@ -72,7 +96,7 @@
     "country": "India",
     "postal_code": "440012",
     "latitude": 21.1465,
-    "longitude": 79.0830,
+    "longitude": 79.083,
     "location_confidence": "medium",
     "website": "",
     "phone": "+91 712 252 3344",
@@ -82,16 +106,24 @@
     "operating_status": "open",
     "vegan_signals": [],
     "vegan_signal_strength": "none",
-    "upstream_source_ids": { "overture_gers": "gers_ov_nagpur_003" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_nagpur_003"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_pune_001",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "The Real Green Cafe",
-    "name_alt": ["Real Green 100% Vegan"],
+    "name": "[TEST FIXTURE] The Real Green Cafe",
+    "name_alt": [
+      "Real Green 100% Vegan"
+    ],
     "brand": "",
     "address": "Shop 17, The Hub, Lane 6, Koregaon Park",
     "area": "Koregaon Park",
@@ -101,7 +133,7 @@
     "country": "India",
     "postal_code": "411001",
     "latitude": 18.5362,
-    "longitude": 73.8940,
+    "longitude": 73.894,
     "location_confidence": "high",
     "website": "https://therealgreencafe.com",
     "phone": "+91 88888 12345",
@@ -109,17 +141,28 @@
     "source_category": "restaurant",
     "mapped_place_type": "cafe",
     "operating_status": "open",
-    "vegan_signals": ["fully_vegan", "100%_vegan", "diet:vegan=only", "plant_based"],
+    "vegan_signals": [
+      "fully_vegan",
+      "100%_vegan",
+      "diet:vegan=only",
+      "plant_based"
+    ],
     "vegan_signal_strength": "strong",
-    "upstream_source_ids": { "overture_gers": "gers_ov_pune_001" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_pune_001"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "openstreetmap-geofabrik",
     "source_record_id": "osm_n_pune_002",
     "source_dataset_version": "osm-daily-2026",
-    "name": "The Real Green Cafe",
+    "name": "[TEST FIXTURE] The Real Green Cafe",
     "name_alt": [],
     "brand": "",
     "address": "Lane 6, Koregaon Park",
@@ -138,18 +181,29 @@
     "source_category": "amenity=cafe",
     "mapped_place_type": "cafe",
     "operating_status": "open",
-    "vegan_signals": ["diet:vegan=only", "cuisine=vegan"],
+    "vegan_signals": [
+      "diet:vegan=only",
+      "cuisine=vegan"
+    ],
     "vegan_signal_strength": "strong",
-    "upstream_source_ids": { "osm_id": "node/12345678" },
-    "source_attribution": "© OpenStreetMap contributors (ODbL 1.0)",
-    "licence": "ODbL 1.0"
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_pune_001"
+    },
+    "source_attribution": "\u00a9 OpenStreetMap contributors (ODbL 1.0)",
+    "licence": "ODbL 1.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_pune_003",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "Sante Spa Cuisine",
-    "name_alt": ["Sante Pune"],
+    "name": "[TEST FIXTURE] Sante Spa Cuisine",
+    "name_alt": [
+      "Sante Pune"
+    ],
     "brand": "",
     "address": "1, Mint Home, Lane 1, Koregaon Park",
     "area": "Koregaon Park",
@@ -158,7 +212,7 @@
     "state": "Maharashtra",
     "country": "India",
     "postal_code": "411001",
-    "latitude": 18.5390,
+    "latitude": 18.539,
     "longitude": 73.8895,
     "location_confidence": "high",
     "website": "https://santespacuisine.com",
@@ -167,17 +221,28 @@
     "source_category": "restaurant",
     "mapped_place_type": "restaurant",
     "operating_status": "open",
-    "vegan_signals": ["vegan_friendly", "vegan_options", "organic", "plant_based"],
+    "vegan_signals": [
+      "vegan_friendly",
+      "vegan_options",
+      "organic",
+      "plant_based"
+    ],
     "vegan_signal_strength": "moderate",
-    "upstream_source_ids": { "overture_gers": "gers_ov_pune_003" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_pune_003"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_pune_004",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "Earthlings Cafe",
+    "name": "[TEST FIXTURE] Earthlings Cafe",
     "name_alt": [],
     "brand": "",
     "address": "Opposite Joggers Park, Kalyani Nagar",
@@ -196,18 +261,30 @@
     "source_category": "cafe",
     "mapped_place_type": "cafe",
     "operating_status": "open",
-    "vegan_signals": ["fully_vegan", "plant_based", "cruelty_free"],
+    "vegan_signals": [
+      "fully_vegan",
+      "plant_based",
+      "cruelty_free"
+    ],
     "vegan_signal_strength": "strong",
-    "upstream_source_ids": { "overture_gers": "gers_ov_pune_004" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_pune_004"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_mumbai_001",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "Rare Earth The Vegan Cafe",
-    "name_alt": ["Rare Earth Organics"],
+    "name": "[TEST FIXTURE] Rare Earth The Vegan Cafe",
+    "name_alt": [
+      "Rare Earth Organics"
+    ],
     "brand": "",
     "address": "Sethna Building, 5th Road, Khar West",
     "area": "Khar West",
@@ -217,7 +294,7 @@
     "country": "India",
     "postal_code": "400052",
     "latitude": 19.0688,
-    "longitude": 72.8360,
+    "longitude": 72.836,
     "location_confidence": "high",
     "website": "https://rareearthcafe.com",
     "phone": "+91 98200 45678",
@@ -225,18 +302,31 @@
     "source_category": "cafe",
     "mapped_place_type": "cafe",
     "operating_status": "open",
-    "vegan_signals": ["fully_vegan", "100%_vegan", "diet:vegan=only", "organic"],
+    "vegan_signals": [
+      "fully_vegan",
+      "100%_vegan",
+      "diet:vegan=only",
+      "organic"
+    ],
     "vegan_signal_strength": "strong",
-    "upstream_source_ids": { "overture_gers": "gers_ov_mumbai_001" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_mumbai_001"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_mumbai_002",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "Earth Cafe @ Waterfield",
-    "name_alt": ["Earth Cafe Bandra"],
+    "name": "[TEST FIXTURE] Earth Cafe @ Waterfield",
+    "name_alt": [
+      "Earth Cafe Bandra"
+    ],
     "brand": "",
     "address": "Durga Chambers, Waterfield Road, Bandra West",
     "area": "Bandra West",
@@ -254,18 +344,30 @@
     "source_category": "restaurant",
     "mapped_place_type": "restaurant",
     "operating_status": "open",
-    "vegan_signals": ["fully_vegan", "gluten_free", "plant_based"],
+    "vegan_signals": [
+      "fully_vegan",
+      "gluten_free",
+      "plant_based"
+    ],
     "vegan_signal_strength": "strong",
-    "upstream_source_ids": { "overture_gers": "gers_ov_mumbai_002" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_mumbai_002"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "openstreetmap-geofabrik",
     "source_record_id": "osm_n_mumbai_003",
     "source_dataset_version": "osm-daily-2026",
-    "name": "Yogisattva",
-    "name_alt": ["Yogisattva Plant Based Cafe"],
+    "name": "[TEST FIXTURE] Yogisattva",
+    "name_alt": [
+      "Yogisattva Plant Based Cafe"
+    ],
     "brand": "",
     "address": "Pinnacle House, 7th Floor, 15th Road, Khar West",
     "area": "Khar West",
@@ -283,18 +385,30 @@
     "source_category": "amenity=cafe",
     "mapped_place_type": "cafe",
     "operating_status": "open",
-    "vegan_signals": ["diet:vegan=only", "cuisine=vegan", "plant_based"],
+    "vegan_signals": [
+      "diet:vegan=only",
+      "cuisine=vegan",
+      "plant_based"
+    ],
     "vegan_signal_strength": "strong",
-    "upstream_source_ids": { "osm_id": "node/45678901" },
-    "source_attribution": "© OpenStreetMap contributors (ODbL 1.0)",
-    "licence": "ODbL 1.0"
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "osm_n_mumbai_003"
+    },
+    "source_attribution": "\u00a9 OpenStreetMap contributors (ODbL 1.0)",
+    "licence": "ODbL 1.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_mumbai_004",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "Birdsong Organic Cafe",
-    "name_alt": ["Birdsong Cafe"],
+    "name": "[TEST FIXTURE] Birdsong Organic Cafe",
+    "name_alt": [
+      "Birdsong Cafe"
+    ],
     "brand": "",
     "address": "Waroda Road, Off Hill Road, Bandra West",
     "area": "Bandra West",
@@ -304,7 +418,7 @@
     "country": "India",
     "postal_code": "400050",
     "latitude": 19.0556,
-    "longitude": 72.8290,
+    "longitude": 72.829,
     "location_confidence": "high",
     "website": "https://birdsongcafe.com",
     "phone": "+91 22 2642 2323",
@@ -312,18 +426,30 @@
     "source_category": "cafe",
     "mapped_place_type": "cafe",
     "operating_status": "open",
-    "vegan_signals": ["vegan_options", "organic", "dairy_free_milk"],
+    "vegan_signals": [
+      "vegan_options",
+      "organic",
+      "dairy_free_milk"
+    ],
     "vegan_signal_strength": "moderate",
-    "upstream_source_ids": { "overture_gers": "gers_ov_mumbai_004" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_mumbai_004"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_shegaon_001",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "Shri Gajanan Maharaj Sansthan Mahaprasad",
-    "name_alt": ["Sansthan Mahaprasad Complex"],
+    "name": "[TEST FIXTURE] Shri Gajanan Maharaj Sansthan Mahaprasad",
+    "name_alt": [
+      "Sansthan Mahaprasad Complex"
+    ],
     "brand": "Shri Gajanan Sansthan",
     "address": "Temple Complex, Station Road",
     "area": "Temple Area",
@@ -341,17 +467,26 @@
     "source_category": "canteen",
     "mapped_place_type": "canteen",
     "operating_status": "open",
-    "vegan_signals": ["sattvic", "pure_vegetarian"],
+    "vegan_signals": [
+      "sattvic",
+      "pure_vegetarian"
+    ],
     "vegan_signal_strength": "weak",
-    "upstream_source_ids": { "overture_gers": "gers_ov_shegaon_001" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_shegaon_001"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "openstreetmap-geofabrik",
     "source_record_id": "osm_n_shegaon_002",
     "source_dataset_version": "osm-daily-2026",
-    "name": "Anand Student Dining Mess",
+    "name": "[TEST FIXTURE] Anand Student Dining Mess",
     "name_alt": [],
     "brand": "",
     "address": "Near SSGMCE Engineering Campus, Shegaon",
@@ -370,17 +505,26 @@
     "source_category": "amenity=restaurant",
     "mapped_place_type": "mess",
     "operating_status": "open",
-    "vegan_signals": ["vegetarian", "rotis_no_ghee_on_request"],
+    "vegan_signals": [
+      "vegetarian",
+      "rotis_no_ghee_on_request"
+    ],
     "vegan_signal_strength": "weak",
-    "upstream_source_ids": { "osm_id": "node/67891234" },
-    "source_attribution": "© OpenStreetMap contributors (ODbL 1.0)",
-    "licence": "ODbL 1.0"
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "osm_n_shegaon_002"
+    },
+    "source_attribution": "\u00a9 OpenStreetMap contributors (ODbL 1.0)",
+    "licence": "ODbL 1.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_akola_001",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "Green Leaf Garden Restaurant",
+    "name": "[TEST FIXTURE] Green Leaf Garden Restaurant",
     "name_alt": [],
     "brand": "",
     "address": "Ramdaspeth, Near Collector Office Road",
@@ -399,18 +543,29 @@
     "source_category": "restaurant",
     "mapped_place_type": "restaurant",
     "operating_status": "open",
-    "vegan_signals": ["vegetarian", "plant_based_options"],
+    "vegan_signals": [
+      "vegetarian",
+      "plant_based_options"
+    ],
     "vegan_signal_strength": "weak",
-    "upstream_source_ids": { "overture_gers": "gers_ov_akola_001" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_akola_001"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   },
   {
     "source_id": "overture-maps-places",
     "source_record_id": "gers_ov_akola_002",
     "source_dataset_version": "overture-2025-05-21.0",
-    "name": "Krishna Bhojanalaya",
-    "name_alt": ["Krishna Canteen"],
+    "name": "[TEST FIXTURE] Krishna Bhojanalaya",
+    "name_alt": [
+      "Krishna Canteen"
+    ],
     "brand": "",
     "address": "Station Road, Akola",
     "area": "Station Road",
@@ -420,7 +575,7 @@
     "country": "India",
     "postal_code": "444001",
     "latitude": 20.7095,
-    "longitude": 77.0020,
+    "longitude": 77.002,
     "location_confidence": "medium",
     "website": "",
     "phone": "+91 724 241 1223",
@@ -430,8 +585,14 @@
     "operating_status": "open",
     "vegan_signals": [],
     "vegan_signal_strength": "none",
-    "upstream_source_ids": { "overture_gers": "gers_ov_akola_002" },
+    "upstream_source_ids": {
+      "synthetic_fixture_id": "gers_ov_akola_002"
+    },
     "source_attribution": "Overture Maps Foundation (CDLA Permissive 2.0)",
-    "licence": "CDLA Permissive 2.0"
+    "licence": "CDLA Permissive 2.0",
+    "is_synthetic_fixture": true,
+    "dataset_origin": "synthetic_test_fixture",
+    "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
+    "verification_status": "unverified_test_data"
   }
 ]

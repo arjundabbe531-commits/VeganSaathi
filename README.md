@@ -2,20 +2,17 @@
 
 **Connecting People. Promoting Veganism.**
 
-A Community Engagement Project (CEP) by 3rd-semester B.E. Information Technology students
-at Shri Sant Gajanan Maharaj College of Engineering (SSGMCE), Shegaon, affiliated to Sant
-Gadge Baba Amravati University (SGBAU).
+An independent, community-driven vegan discovery and awareness platform for Maharashtra and beyond.
 
 ## Problem Statement
 
 Existing food-discovery apps use a crude veg/non-veg binary and cover mainly restaurants in
-big cities, leaving hostel messes, small local eateries, and the vegan/vegetarian/
-eggetarian/Jain distinction underserved — especially in a small town like Shegaon. See
-`docs/PROJECT_SPEC.md` for the full problem statement and supporting research.
+big cities, leaving local eateries, student messes, and the vegan/vegetarian/eggetarian/Jain
+distinction underserved. See `docs/PROJECT_SPEC.md` for the full problem statement and supporting research.
 
 ## Objectives
 
-1. Help users discover vegan-friendly and relevant food places anywhere, with initial research originating from SSGMCE/Shegaon.
+1. Help users discover vegan-friendly and relevant food places across Maharashtra and India.
 2. Let the community contribute new places and information.
 3. Provide a "last verified" trust mechanism.
 4. Let users report outdated/incorrect information.
@@ -127,10 +124,10 @@ and rendering against stubbed services. The emulator suite proves the rules file
 behaviour. Neither proves the live Firebase project works — that needs a manual pass with
 a real account, documented in `docs/PROJECT_STATUS.md`.
 
-## Community Engagement
+## Community Engagement & Fieldwork
 
-This project's core CEP requirement — real fieldwork, surveys, interviews, and a
-verification workflow — is documented in `docs/CEP_REQUIREMENTS.md`.
+Community fieldwork, surveys, place discovery, and the verification workflow are
+documented in `docs/FIELDWORK_GUIDE.md` and `docs/CEP_REQUIREMENTS.md`.
 
 ## Current Status
 

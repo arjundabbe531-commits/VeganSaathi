@@ -1,15 +1,16 @@
 # TEST_RESULTS.md — VeganSaathi
 
-## Canonical test count (Candidate Baseline 2026-11-05) — read this first
+## Canonical test count (Candidate Baseline 2026-11-06) — read this first
 
 | Category | Count | How it is produced |
 |---|---|---|
-| Node unit test checks (PASS lines) | **162** | `test-places-service.mjs` (43) + `test-admin-service.mjs` (30) + `test-cloudinary-service.mjs` (32) + `test-geolocation.mjs` (14) + `test-import-validator.mjs` (23) + `test-controlled-integration.mjs` (14) + `test-alternatives.mjs` (6) |
+| Node unit test checks (PASS lines) | **184** | `test-places-service.mjs` (43) + `test-admin-service.mjs` (30) + `test-cloudinary-service.mjs` (32) + `test-geolocation.mjs` (14) + `test-import-validator.mjs` (23) + `test-controlled-integration.mjs` (14) + `test-alternatives.mjs` (6) + `test-place-intelligence.mjs` (22) |
+| Python data pipeline tests | **8** | `tests/test_data_pipeline.py` (pipeline processing, normalization, deduplication, synthetic fixture verification) |
 | Browser test checks (PASS lines) | **245** | 17 + 16 + 21 + 66 + 28 + 38 + 41 + 18 across 8 Playwright suites (100% PASS on Windows host via Microsoft Edge / Playwright) |
-| Static gates (pass/fail, one each) | **2** | duplicate-global checker across 17 pages (`check-duplicate-globals.js`); rules-fixture consistency check (`check_fixture_static.py`) |
+| Static gates (pass/fail, one each) | **2** | duplicate-global checker across 18 pages (`check-duplicate-globals.js`); rules-fixture consistency check (`check_fixture_static.py`) |
 | `node --check` syntax pass | **42 files** | All JS/MJS syntax valid (0 syntax errors). |
-| Firestore Emulator Security Rules | **62** | 50 current-behaviour (`firestore.rules.test.mjs`) + 12 proposed R1–R3 (`firestore.rules.proposed.test.mjs`) cases |
-| **Total Automated Local Verifications** | **513** | 162 unit + 245 browser + 2 static gates + 42 syntax + 62 emulator security rules checks. 100% PASS. |
+| Firestore Emulator Security Rules | **67** | 50 current-behaviour (`firestore.rules.test.mjs`) + 17 proposed R1–R3, admin payload, and Place Intelligence staging rules (`firestore.rules.proposed.test.mjs`) cases |
+| **Total Automated Local Verifications** | **548** | 184 unit + 8 python + 245 browser + 2 static gates + 42 syntax + 67 emulator security rules checks. 100% PASS. |
 | **Explicitly unverified / deferred** | Live Cloudinary + Live Firebase | Live Cloudinary upload (isConfigured: false pending production credentials); live Firestore project writes & production deployment to `vegansaathi-88d2f`. |
 
 ---

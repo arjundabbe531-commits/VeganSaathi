@@ -1,11 +1,11 @@
 {
   "total_candidates": 15,
-  "exact_duplicate_pairs": 0,
+  "exact_duplicate_pairs": 1,
   "highly_probable_duplicate_pairs": 1,
   "possible_duplicate_pairs": 0,
   "franchise_branch_pairs": 0,
-  "suspected_duplicate_candidates": 0,
-  "unique_candidates": 15,
+  "suspected_duplicate_candidates": 1,
+  "unique_candidates": 14,
   "field_completeness": {
     "has_name": 15,
     "has_coordinates": 15,
@@ -34,14 +34,26 @@
     "dhaba": 1
   },
   "by_source": {
-    "overture-maps-places": 11,
-    "openstreetmap-geofabrik": 4
+    "synthetic-demonstration-fixture": 15
   },
-  "batch_id": "mh-pilot-20261105-172942",
+  "batch_id": "synthetic-test-pilot-20261105-174217",
+  "is_synthetic_fixture": true,
+  "dataset_origin": "synthetic_maharashtra_pilot_fixtures.json",
+  "batch_purpose": "pipeline_unit_and_flow_testing",
+  "real_world_verification_status": "none (synthetic demonstration fixture only)",
   "duplicate_pairs": [
     {
-      "a": "cand_overtur_gers_ov_pune_001",
-      "b": "cand_openstr_osm_n_pune_002",
+      "a": "cand_synthetic_osm_n_pune_002",
+      "b": "cand_synthetic_gers_ov_pune_001",
+      "type": "exact",
+      "score": 1.0,
+      "signals": [
+        "shared_source_id:synthetic_fixture_id:gers_ov_pune_001"
+      ]
+    },
+    {
+      "a": "cand_synthetic_gers_ov_pune_001",
+      "b": "cand_synthetic_osm_n_pune_002",
       "type": "highly_probable",
       "score": 0.95,
       "signals": [

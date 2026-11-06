@@ -51,7 +51,7 @@ const GEMINI_SAMPLE_REPORT = {
       sourceId: "VS-IN-MH-SHG-0002",
       name: "Govinda Bhojanalay",
       placeType: "mess",
-      address: "Near SSGMCE College Gate, Shegaon",
+      address: "Near College Gate, Shegaon",
       area: "College Gate",
       city: "Shegaon",
       state: "Maharashtra",
