@@ -9,7 +9,7 @@ project and are not part of `tests/run_all.ps1`. The active suite loads
 
 | File | What it asserts | Expected result on the current rules |
 |---|---|---|
-| `firestore.rules.test.mjs` | Active access control, R1–R3 hardening, payload validation, attributable photo-rights declarations, and published-place photo linkage | **Active target** |
+| `firestore.rules.test.mjs` | Active access control, R1–R3 hardening, payload validation, disabled photo intake, evidence-bound photo approval/history, and published-place photo linkage | **Active target** |
 | `firestore.rules.proposed.test.mjs` | Reference R1–R3 and admin payload tests against `firebase/firestore.rules.proposed` | **Reference target** |
 | `common.mjs` | Shared setup and a valid community place document | — |
 
@@ -40,12 +40,13 @@ From the project root, one command starts the emulator, runs the tests and stops
 
     firebase emulators:exec --only firestore --project vegansaathi-rules-test "node --test tests/rules/firestore.rules.test.mjs"
 
-Then the proposals (expected to fail until applied):
+Then run the proposed reference file separately (it is not the active rules target):
 
     firebase emulators:exec --only firestore --project vegansaathi-rules-test "node --test tests/rules/firestore.rules.proposed.test.mjs"
 
-The port is set to 8080 in `firebase.json` under `emulators`. If port 8080 is in use, change it
-there.
+The port is set to 8080 in `firebase.json` under `emulators`. If port 8080 is occupied, use
+a temporary copy of `firebase.json` with a free emulator port and pass it with `--config`;
+keep the checked-in project configuration unchanged for that local test.
 
 ## How to read the result
 

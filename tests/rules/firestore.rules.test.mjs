@@ -10,6 +10,7 @@
    ========================================================================== */
 import { describe, it, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
+import { writeBatch } from "firebase/firestore";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import { makeEnv, communityPlace, seed, doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp } from "./common.mjs";
 
@@ -335,42 +336,55 @@ describe("Synthetic fixture staging isolation", () => {
   });
 });
 
-describe("Photo rights declaration enforcement", () => {
+describe("Disabled photo intake and traceable rights review", () => {
   const validPhoto = () => ({
     place_id: "pub1", submitter_uid: "u1", submitter_name: "Student One",
     photo_category: "food", approval_status: "pending", submission_type: "community_member",
     is_original_work: true, has_permission_to_publish: false, photographer_name: "Student One",
-    rights_holder: "Student One", attribution_required: false, attribution_text: "",
-    licence: "all_rights_reserved_explicit_permission", upload_timestamp: serverTimestamp()
+    creator_name: "Student One", rights_holder: "Student One", permission_basis: "original_work",
+    permission_evidence_ref: "evidence-record:photo-rights-001", attribution_required: false, attribution_text: "",
+    licence: "original-work", upload_timestamp: serverTimestamp()
   });
 
-  it("accepts a pending community photo with an attributable rights declaration", async () => {
+  it("keeps photo creation disabled until the trusted rights intake workflow exists", async () => {
     await seedPlace("pub1", publishedPlace);
-    await assertSucceeds(setDoc(doc(as("u1"), "placePhotos", "photo1"), validPhoto()));
+    await assertFails(setDoc(doc(as("u1"), "placePhotos", "photo1"), validPhoto()));
+    await assertFails(setDoc(doc(as("admin1"), "placePhotos", "photo2"), validPhoto()));
   });
 
-  it("rejects photos without permission/original-work declaration, attribution, or with arbitrary fields", async () => {
-    await seedPlace("pub1", publishedPlace);
-    const noRights = validPhoto();
-    noRights.is_original_work = false;
-    noRights.rights_holder = "";
-    noRights.photographer_name = "";
-    await assertFails(setDoc(doc(as("u1"), "placePhotos", "photo-no-rights"), noRights));
-    const missingAttribution = validPhoto();
-    missingAttribution.attribution_required = true;
-    await assertFails(setDoc(doc(as("u1"), "placePhotos", "photo-no-attribution"), missingAttribution));
-    const extra = { ...validPhoto(), internal_note: "private" };
-    await assertFails(setDoc(doc(as("u1"), "placePhotos", "photo-extra"), extra));
-  });
-
-  it("allows admin approval only as a pending to approved/rejected transition", async () => {
+  it("requires an immutable rights-evidence record and admin review transaction to approve", async () => {
     await seedUsers();
     await seedPlace("pub1", publishedPlace);
     await seed(env, async (db) => setDoc(doc(db, "placePhotos", "photo1"), validPhoto()));
-    await assertSucceeds(updateDoc(doc(as("admin1"), "placePhotos", "photo1"), {
-      approval_status: "approved", approving_admin_uid: "admin1", approval_timestamp: serverTimestamp()
-    }));
-    await assertFails(updateDoc(doc(as("admin1"), "placePhotos", "photo1"), { approval_status: "rejected" }));
+    const adminDb = as("admin1");
+    const photoRef = doc(adminDb, "placePhotos", "photo1");
+    const historyId = "photo1-review1";
+    const reviewedAt = serverTimestamp();
+    const changes = {
+      approval_status: "approved", approving_admin_uid: "admin1", approval_timestamp: reviewedAt,
+      rights_review_status: "accepted", rights_reviewed_by: "admin1", rights_reviewed_at: reviewedAt,
+      rights_review_notes: "Checked evidence record photo-rights-001.", rights_review_history_id: historyId
+    };
+    await assertFails(updateDoc(photoRef, changes));
+    const batch = writeBatch(adminDb);
+    batch.update(photoRef, changes);
+    batch.set(doc(adminDb, "photoRightsReviewHistory", historyId), {
+      photo_id: "photo1", decision: "approved", reviewer_uid: "admin1", reviewed_at: reviewedAt,
+      rights_evidence_snapshot: {
+        creator_name: "Student One", rights_holder: "Student One", permission_basis: "original_work",
+        permission_evidence_ref: "evidence-record:photo-rights-001", licence: "original-work",
+        attribution_required: false, attribution_text: ""
+      }
+    });
+    await assertSucceeds(batch.commit());
+    await assertFails(updateDoc(doc(as("admin1"), "photoRightsReviewHistory", historyId), { decision: "rejected" }));
+  });
+
+  it("prevents admin approval without a matching immutable history transaction", async () => {
+    await seedUsers();
+    await seedPlace("pub1", publishedPlace);
+    await seed(env, async (db) => setDoc(doc(db, "placePhotos", "photo1"), validPhoto()));
+    await assertFails(updateDoc(doc(as("admin1"), "placePhotos", "photo1"), { approval_status: "approved" }));
   });
 
   it("refuses photo creation and approval for a missing or unpublished place", async () => {
@@ -398,6 +412,8 @@ describe("Unimplemented future workflows remain write-disabled", () => {
     await seed(env, async (db) => setDoc(doc(db, "editSuggestions", "suggestion-existing"), ownSuggestion));
     await assertFails(updateDoc(doc(as("admin1"), "editSuggestions", "suggestion-existing"), { status: "approved" }));
     await assertFails(deleteDoc(doc(as("admin1"), "editSuggestions", "suggestion-existing")));
+    await assertFails(getDoc(doc(as("u1"), "editSuggestions", "suggestion-existing")));
+    await assertFails(getDoc(doc(as("admin1"), "editSuggestions", "suggestion-existing")));
   });
 
   it("blocks businessClaims writes by users and administrators", async () => {
@@ -408,5 +424,7 @@ describe("Unimplemented future workflows remain write-disabled", () => {
     await seed(env, async (db) => setDoc(doc(db, "businessClaims", "claim-existing"), ownClaim));
     await assertFails(updateDoc(doc(as("admin1"), "businessClaims", "claim-existing"), { status: "approved" }));
     await assertFails(deleteDoc(doc(as("admin1"), "businessClaims", "claim-existing")));
+    await assertFails(getDoc(doc(as("u1"), "businessClaims", "claim-existing")));
+    await assertFails(getDoc(doc(as("admin1"), "businessClaims", "claim-existing")));
   });
 });

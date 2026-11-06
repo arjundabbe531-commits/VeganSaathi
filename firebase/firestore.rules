@@ -58,8 +58,7 @@ service cloud.firestore {
     // Global coordinate validation: accepts any well-formed lat/lon pair.
     // VeganSaathi is not restricted to a single region; see COORD_BOUNDS in
     // frontend/js/places-service.js for the matching client-side constant.
-    // NOTE: these rules have not yet been deployed to the live project.
-    // Deployment is an explicitly authorized step scheduled for Phase 4.
+    // Candidate rules are emulator-tested only; production deployment is not authorized.
     function isValidCoordinates(lat, lon) {
       return (lat is int || lat is float)
         && (lon is int || lon is float)
@@ -83,6 +82,25 @@ service cloud.firestore {
         && data.address.size() > 0
         && data.address.size() <= 300
         && (data.verificationStatus != "verified" || data.lastVerifiedAt is timestamp);
+    }
+
+    function hasTraceablePhotoRights(data) {
+      return data.keys().hasAll([
+          "creator_name", "rights_holder", "permission_basis", "permission_evidence_ref",
+          "licence", "attribution_required", "attribution_text"
+        ])
+        && data.creator_name is string && data.creator_name.size() > 0 && data.creator_name.size() <= 120
+        && data.rights_holder is string && data.rights_holder.size() > 0 && data.rights_holder.size() <= 120
+        && data.permission_basis in ["original_work", "written_permission", "open_license"]
+        && data.permission_evidence_ref is string && data.permission_evidence_ref.size() >= 5 && data.permission_evidence_ref.size() <= 500
+        && (data.permission_evidence_ref.matches('^https://.+$')
+          || data.permission_evidence_ref.matches('^evidence-record:[A-Za-z0-9_-]+$'))
+        && data.licence is string && data.licence.size() > 0 && data.licence.size() <= 200
+        && data.attribution_required is bool
+        && data.attribution_text is string && data.attribution_text.size() <= 500
+        && (data.attribution_required == false || data.attribution_text.size() > 0)
+        && (data.permission_basis != "original_work" || data.is_original_work == true)
+        && (data.permission_basis != "written_permission" || data.has_permission_to_publish == true);
     }
 
     // ---------------- users ----------------
@@ -227,9 +245,8 @@ service cloud.firestore {
 
     // ---------------- editSuggestions (disabled until a strict schema and workflow are approved) ----------------
     match /editSuggestions/{suggestionId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.suggestedBy == request.auth.uid);
-      // No client writes are permitted while this future workflow is unimplemented.
-      allow create, update, delete: if false;
+      // No client access is permitted while this future workflow is unimplemented.
+      allow read, create, update, delete: if false;
     }
 
     // ---------------- placeCandidates (Place Intelligence staging) ----------------
@@ -261,7 +278,7 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // ---------------- placePhotos (Rights-cleared photo pipeline) ----------------
+    // ---------------- placePhotos (submission disabled; auditable review only) ----------------
     match /placePhotos/{photoId} {
       allow read: if (resource.data.approval_status == "approved"
           && exists(/databases/$(database)/documents/places/$(resource.data.place_id))
@@ -269,41 +286,54 @@ service cloud.firestore {
         || isAdmin()
         || (isSignedIn() && resource.data.submitter_uid == request.auth.uid);
 
-      // A rights claim and an attributable creator/rights holder are required
-      // before a photo can enter the moderation queue. Do not accept arbitrary
-      // metadata that could later be mistaken for verified permission.
-      allow create: if isSignedIn()
-        && request.resource.data.submitter_uid == request.auth.uid
-        && request.resource.data.approval_status == "pending"
-        && request.resource.data.place_id is string
-        && request.resource.data.place_id.size() > 0
-        && exists(/databases/$(database)/documents/places/$(request.resource.data.place_id))
-        && get(/databases/$(database)/documents/places/$(request.resource.data.place_id)).data.status == "published"
-        && request.resource.data.photo_category in ["storefront", "interior", "food", "menu", "logo"]
-        && request.resource.data.keys().hasOnly([
-          "place_id", "submitter_uid", "submitter_name", "photo_category", "approval_status",
-          "submission_type", "is_original_work", "has_permission_to_publish", "rights_holder",
-          "photographer_name", "temp_url", "cloudinary_url", "cloudinary_asset_id",
-          "attribution_required", "attribution_text", "licence", "upload_timestamp", "public_alt_text"
-        ])
-        && ((request.resource.data.is_original_work == true)
-          || (request.resource.data.has_permission_to_publish == true))
-        && ((request.resource.data.rights_holder is string && request.resource.data.rights_holder.size() > 0)
-          || (request.resource.data.photographer_name is string && request.resource.data.photographer_name.size() > 0))
-        && (!("attribution_required" in request.resource.data)
-          || request.resource.data.attribution_required != true
-          || (request.resource.data.attribution_text is string && request.resource.data.attribution_text.size() > 0));
+      // Uploads remain disabled until the app can collect and retain reviewable
+      // rights evidence. Admin approval of a seeded pending record requires a
+      // traceable rights record and matching immutable review history.
+      allow create: if false;
 
       allow update: if isAdmin()
         && resource.data.approval_status == "pending"
         && exists(/databases/$(database)/documents/places/$(resource.data.place_id))
         && get(/databases/$(database)/documents/places/$(resource.data.place_id)).data.status == "published"
+        && (request.resource.data.approval_status != "approved" || hasTraceablePhotoRights(resource.data))
         && request.resource.data.approval_status in ["approved", "rejected"]
+        && request.resource.data.approving_admin_uid == request.auth.uid
+        && request.resource.data.approval_timestamp == request.time
+        && request.resource.data.rights_reviewed_by == request.auth.uid
+        && request.resource.data.rights_reviewed_at == request.time
+        && request.resource.data.rights_review_status == (request.resource.data.approval_status == "approved" ? "accepted" : "rejected")
+        && request.resource.data.rights_review_notes is string
+        && request.resource.data.rights_review_notes.size() > 0
+        && request.resource.data.rights_review_notes.size() <= 1000
+        && request.resource.data.rights_review_history_id is string
+        && request.resource.data.rights_review_history_id.size() > 0
+        && existsAfter(/databases/$(database)/documents/photoRightsReviewHistory/$(request.resource.data.rights_review_history_id))
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(["approval_status", "approving_admin_uid", "approval_timestamp", "rejection_reason"]);
+             .hasOnly(["approval_status", "approving_admin_uid", "approval_timestamp", "rejection_reason",
+               "rights_review_status", "rights_reviewed_by", "rights_reviewed_at", "rights_review_notes", "rights_review_history_id"]);
 
       allow delete: if isAdmin()
         || (isSignedIn() && resource.data.submitter_uid == request.auth.uid && resource.data.approval_status == "pending");
+    }
+
+    match /photoRightsReviewHistory/{reviewId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasAll(["photo_id", "decision", "reviewer_uid", "reviewed_at", "rights_evidence_snapshot"])
+        && request.resource.data.keys().hasOnly(["photo_id", "decision", "reviewer_uid", "reviewed_at", "rights_evidence_snapshot"])
+        && request.resource.data.photo_id is string
+        && request.resource.data.decision in ["approved", "rejected"]
+        && request.resource.data.reviewer_uid == request.auth.uid
+        && request.resource.data.reviewed_at == request.time
+        && request.resource.data.rights_evidence_snapshot is map
+        && request.resource.data.rights_evidence_snapshot.keys().hasOnly([
+          "creator_name", "rights_holder", "permission_basis", "permission_evidence_ref",
+          "licence", "attribution_required", "attribution_text"
+        ])
+        && existsAfter(/databases/$(database)/documents/placePhotos/$(request.resource.data.photo_id))
+        && getAfter(/databases/$(database)/documents/placePhotos/$(request.resource.data.photo_id)).data.approval_status == request.resource.data.decision
+        && getAfter(/databases/$(database)/documents/placePhotos/$(request.resource.data.photo_id)).data.rights_review_history_id == reviewId;
+      allow update, delete: if false;
     }
 
     // ---------------- verificationHistory (Audit trail for verification decisions) ----------------
@@ -314,9 +344,9 @@ service cloud.firestore {
 
     // ---------------- businessClaims (disabled until identity-proof and status schemas are approved) ----------------
     match /businessClaims/{claimId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      // A claim is not business ownership proof; disable writes until reviewed controls exist.
-      allow create, update, delete: if false;
+      // A claim is not business ownership proof; disable all client access until
+      // identity proof, privacy and status-transition schemas are approved.
+      allow read, create, update, delete: if false;
     }
 
     // Deny anything not explicitly matched above.

@@ -17,6 +17,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { validatePhotoApproval } from "../frontend/js/photo-rights.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -340,45 +341,27 @@ it("vegan-classification: rejects fully_vegan with empty or trivial notes", () =
 // 5. Photo Rights Validation Tests
 // ---------------------------------------------------------------------------
 
-function validatePhotoSubmission(sub) {
-  if (!sub.place_id || typeof sub.place_id !== "string") {
-    return { valid: false, error: "missing_place_id" };
-  }
-  if (!["storefront", "interior", "food", "menu", "logo"].includes(sub.photo_category)) {
-    return { valid: false, error: "invalid_photo_category" };
-  }
-  if (!sub.is_original_work && !sub.has_permission_to_publish) {
-    return { valid: false, error: "no_rights_declaration" };
-  }
-  if (!sub.photographer_name && !sub.rights_holder) {
-    return { valid: false, error: "missing_rights_holder_attribution" };
-  }
-  return { valid: true };
-}
-
 it("photo-rights: accepts valid community photo with rights declaration", () => {
   const sub = {
-    place_id: "place_123",
-    photo_category: "storefront",
+    approval_status: "pending", place_id: "place_123",
     is_original_work: true,
-    photographer_name: "Rahul Patil",
-    submission_type: "community_member",
+    creator_name: "Rahul Patil", rights_holder: "Rahul Patil",
+    permission_basis: "original_work", permission_evidence_ref: "evidence-record:photo-001",
+    licence: "original-work", attribution_required: false, attribution_text: ""
   };
-  const res = validatePhotoSubmission(sub);
-  assert.equal(res.valid, true);
+  assert.equal(validatePhotoApproval(sub, { status: "published" }), true);
 });
 
 it("photo-rights: rejects photo submission without rights declaration", () => {
   const sub = {
-    place_id: "place_123",
-    photo_category: "food",
+    approval_status: "pending", place_id: "place_123",
     is_original_work: false,
     has_permission_to_publish: false,
-    submission_type: "community_member",
+    creator_name: "Creator", rights_holder: "Rights holder",
+    permission_basis: "original_work", permission_evidence_ref: "evidence-record:photo-001",
+    licence: "original-work", attribution_required: false, attribution_text: ""
   };
-  const res = validatePhotoSubmission(sub);
-  assert.equal(res.valid, false);
-  assert.equal(res.error, "no_rights_declaration");
+  assert.throws(() => validatePhotoApproval(sub, { status: "published" }), /original-work declaration/);
 });
 
 // ---------------------------------------------------------------------------

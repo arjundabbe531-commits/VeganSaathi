@@ -5,11 +5,9 @@ reasoning behind it. Read this before changing the rules file — the goal is th
 is a deliberate decision, not an accident.
 
 **This project does not use Firebase Storage.** There is no `firebase/storage.rules` file
-and no `storage` section in `firebase.json`. Media uploads (place photos, etc.) are handled
-via Cloudinary using an unsigned upload preset with strict client-side pre-flight checks
-and domain validation (see `docs/CLOUDINARY_INTEGRATION.md` and `frontend/js/cloudinary-service.js`).
-If Firebase Storage is ever introduced in the future, this document and a new `storage.rules`
-file would need to be written together, following the same reasoning as the Firestore rules below.
+and no `storage` section in `firebase.json`. Cloudinary upload is disabled in the app
+configuration, and Firestore photo creation is denied until a trusted rights-evidence intake
+flow exists. Do not infer upload capability from helper code or documentation.
 
 ## The three roles
 
@@ -115,34 +113,29 @@ just so their *name* can show up on a review. Instead, `places.submittedByName` 
 creation. This keeps `users/{uid}` readable only by its owner and by admins, full stop —
 the tightest rule that still supports the actual UI.
 
-## Media uploads (Cloudinary, not Firebase Storage)
+## Media and photo-rights moderation
 
-Place photos are handled by Cloudinary, not by Firebase Storage — this project is
-intentionally kept on Firebase's free Spark plan, which does not include meaningful Storage usage.
-The upload mechanism enforces client pre-flight checks (real image MIME, 5 MB size cap, whitelist
-of JPG/PNG/WebP, sanitizing dangerous extensions and MIME spoofing), unsigned upload presets without exposing
-secrets, and HTTPS transformation URL generation with strict scheme rejection (`javascript:`, `data:`).
-See `docs/CLOUDINARY_INTEGRATION.md` and `frontend/js/cloudinary-service.js` for architectural details.
+Photo creation is denied in `firebase/firestore.rules` while the application has no trusted
+intake path for rights evidence. An administrator can approve an existing pending photo only
+when creator, rights holder, permission basis, traceable HTTPS/evidence-record reference,
+licence and attribution requirements are present. Approval/rejection writes an immutable
+`photoRightsReviewHistory` snapshot in the same transaction; rules bind the history record to
+the status transition and prohibit later changes or deletion. The public uploader remains
+disabled while Cloudinary is unconfigured. These controls do not verify the contents of a
+rights document: a human admin must inspect the referenced evidence before accepting it.
 
-## Known gaps — proposed, not yet applied
+`editSuggestions` and `businessClaims` deny all client reads and writes until strict privacy,
+ownership, state-transition and evidence schemas are designed and tested.
 
-Three specific hardening changes have been written out in full but are **not** part of the
-active `firebase/firestore.rules`, because they have not been run against the Firestore
-Emulator in the environment that wrote them (no Firebase CLI / no network there). Applying
-an unverified rules change is a worse risk than leaving the gap open and documented.
+## Rules verification state
 
-| # | Gap in the CURRENT rules | Proposed fix |
-|---|---|---|
-| R1 | A review `comment` or report `description` has no length limit in the rules (the client caps both at 500 characters, which is not a security boundary) | Cap both at 500 characters server-side |
-| R2 | A review can be created for a `placeId` that is pending, rejected, or does not exist | Require the target place to exist and have `status == "published"` |
-| R3 | A signed-in user's profile update can write any field, not just the ones the UI exposes | Restrict updates to known fields via `diff().affectedKeys().hasOnly([...])`, and re-validate `dietPreference` on every update |
-
-The full proposed rules file is `firebase/firestore.rules.proposed` (a complete drop-in
-variant, not just the snippets above). The test suites that must pass before it replaces
-the active file are `tests/rules/firestore.rules.test.mjs` (current behaviour — must still
-pass unchanged) and `tests/rules/firestore.rules.proposed.test.mjs` (the three fixes above —
-expected to fail until the proposed file is in place). See `tests/rules/README.md` for the
-exact commands. Until both have actually been run and recorded, do not treat R1–R3 as done.
+The active candidate rules include the R1–R3 checks for bounded review/report text, reviews
+only on existing published places, and allowlisted user-profile changes. The active test file
+explicitly loads `firebase/firestore.rules`; the proposed reference suite explicitly loads
+`firebase/firestore.rules.proposed`. On 6 November 2026, the active suite passed 63/63 and the
+proposed reference suite passed 17/17 in separate Firestore Emulator runs. Emulator success
+is not evidence that production rules match these files. No production rule deployment is
+authorized by this project work.
 
 ## What these rules do NOT protect against
 
@@ -150,7 +143,7 @@ exact commands. Until both have actually been run and recorded, do not treat R1�
   design — the same trust model as any small team-run community platform. Keep the number
   of admin accounts small and known.
 - **Data quality.** Rules validate *shape* (a rating is 1–5, a diet tag is one of four
-  known values, a place type is one of six known values) but can't verify that a submitted
+  known values, a place type is one of the canonical types) but can't verify that a submitted
   place is *real* — that's what the human admin-review step in the pending → published flow
   is for.
 - **Abuse via volume** (e.g. someone scripting thousands of fake reviews from one account).

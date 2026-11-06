@@ -150,7 +150,7 @@ Document ID = `{uid}_{placeId}` (composite key, avoids duplicate saves without a
 | placeId | string | yes | |
 | createdAt | timestamp | yes | |
 
-## Collection: `editSuggestions` (Should-Have, not MVP-blocking)
+## Collection: `editSuggestions` (disabled; not a supported workflow)
 
 | Field | Type | Required | Purpose |
 |---|---|---|---|
@@ -159,6 +159,42 @@ Document ID = `{uid}_{placeId}` (composite key, avoids duplicate saves without a
 | changes | map | yes | Field → proposed new value |
 | status | string (enum) | yes | pending / applied / dismissed |
 | createdAt | timestamp | yes | |
+
+The table above describes a future proposal only. The active rules deny all client reads and
+writes to `editSuggestions`; no client workflow should depend on these fields.
+
+## Collection: `businessClaims` (disabled; no approved schema)
+
+No client reads or writes are allowed. Do not create claim documents until identity-proof,
+privacy, ownership and state-transition requirements have a reviewed schema and workflow.
+
+## Collections: `placePhotos` and `photoRightsReviewHistory`
+
+Photo creation is disabled while the application lacks a trusted evidence intake path. A
+pending photo may be approved only when the existing record contains traceable rights evidence
+and the admin approval transaction creates an immutable review-history record. Reviewed
+evidence is copied into the history snapshot so later edits cannot rewrite the basis for the
+decision.
+
+| Photo field | Type | Required for approval | Purpose |
+|---|---|---:|---|
+| `creator_name` | string | yes | Identifies the person who created the image. |
+| `rights_holder` | string | yes | Identifies the person/entity holding publication rights. |
+| `permission_basis` | enum | yes | `original_work`, `written_permission`, or `open_license`. |
+| `permission_evidence_ref` | HTTPS URL or `evidence-record:<id>` | yes | Traceable permission/licence evidence for human review. |
+| `licence` | string | yes | Licence or recorded rights basis. |
+| `attribution_required` | boolean | yes | Whether visible attribution is required. |
+| `attribution_text` | string | conditionally | Required attribution wording when the licence requires it. |
+| `rights_review_status` | enum | yes | `accepted` or `rejected`, written by the reviewing admin. |
+| `rights_reviewed_by`, `rights_reviewed_at` | uid, timestamp | yes | Reviewer identity and server time. |
+| `rights_review_notes` | string | yes | Human note describing the evidence checked or rejection reason. |
+| `rights_review_history_id` | string | yes | Links the moderation change to its immutable history record. |
+
+`photoRightsReviewHistory/{reviewId}` is admin-readable, create-only, and immutable. Each
+record stores `photo_id`, `decision`, `reviewer_uid`, `reviewed_at` and a snapshot of creator,
+rights holder, permission basis/reference, licence and attribution fields. These rules do not
+establish that the referenced evidence is genuine; the admin must inspect it. No photo rights
+or upload workflow has been enabled by these schema notes.
 
 ---
 

@@ -30,7 +30,7 @@ import {
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { isAdmin } from "./admin-service.js";
 import { approveCandidateRecord, assertCandidateCanStage } from "./candidate-approval.js";
-import { validatePhotoApproval } from "./photo-rights.js";
+import { photoRightsEvidenceSnapshot, validatePhotoApproval } from "./photo-rights.js";
 
 /* ---------- State ---------- */
 let _currentAdmin = null;
@@ -843,9 +843,12 @@ function renderPhotoCard(item, filter) {
           </div>
         </div>
         <div class="mb-2" style="font-size:0.78rem;">
-          <span class="text-muted-vs">Rights:</span>
-          ${item.is_original_work ? `<span class="text-success">Original work</span>` : `<span class="text-warning">Permission claimed</span>`}
-          ${item.rights_holder ? ` · ${escHtml(item.rights_holder)}` : ""}
+          <div><span class="text-muted-vs">Creator:</span> ${escHtml(item.creator_name || "Not recorded")}</div>
+          <div><span class="text-muted-vs">Rights holder:</span> ${escHtml(item.rights_holder || "Not recorded")}</div>
+          <div><span class="text-muted-vs">Permission basis:</span> ${escHtml(item.permission_basis || "Not recorded")}</div>
+          <div><span class="text-muted-vs">Evidence reference:</span> ${escHtml(item.permission_evidence_ref || "Not recorded")}</div>
+          <div><span class="text-muted-vs">Licence:</span> ${escHtml(item.licence || "Not recorded")}</div>
+          <div><span class="text-muted-vs">Attribution:</span> ${item.attribution_required ? escHtml(item.attribution_text || "Required; missing") : "Not required (review this basis)"}</div>
         </div>
         ${filter === "pending" ? `
           <div class="d-flex gap-2">
@@ -859,18 +862,36 @@ function renderPhotoCard(item, filter) {
 window.approvePhoto = async function(photoId) {
   if (!_currentAdmin) return;
   const db = getFirebaseDb();
+  const reviewNotes = prompt("Rights review note (identify the evidence checked):");
+  if (!reviewNotes?.trim()) return;
   try {
     const photoRef = doc(db, "placePhotos", photoId);
-    const photoSnap = await getDoc(photoRef);
-    if (!photoSnap.exists()) throw new Error("Photo submission no longer exists.");
-    const photo = photoSnap.data();
-    const placeSnap = await getDoc(doc(db, "places", photo.place_id));
-    if (!placeSnap.exists()) throw new Error("Associated place no longer exists.");
-    validatePhotoApproval(photo, placeSnap.data());
-    await updateDoc(doc(db, "placePhotos", photoId), {
-      approval_status: "approved",
-      approving_admin_uid: _currentAdmin.uid,
-      approval_timestamp: serverTimestamp(),
+    const historyRef = doc(collection(db, "photoRightsReviewHistory"));
+    await runTransaction(db, async (transaction) => {
+      const photoSnap = await transaction.get(photoRef);
+      if (!photoSnap.exists()) throw new Error("Photo submission no longer exists.");
+      const photo = photoSnap.data();
+      const placeSnap = await transaction.get(doc(db, "places", photo.place_id));
+      if (!placeSnap.exists()) throw new Error("Associated place no longer exists.");
+      validatePhotoApproval(photo, placeSnap.data());
+      const reviewedAt = serverTimestamp();
+      transaction.update(photoRef, {
+        approval_status: "approved",
+        approving_admin_uid: _currentAdmin.uid,
+        approval_timestamp: reviewedAt,
+        rights_review_status: "accepted",
+        rights_reviewed_by: _currentAdmin.uid,
+        rights_reviewed_at: reviewedAt,
+        rights_review_notes: reviewNotes.trim(),
+        rights_review_history_id: historyRef.id,
+      });
+      transaction.set(historyRef, {
+        photo_id: photoId,
+        decision: "approved",
+        reviewer_uid: _currentAdmin.uid,
+        reviewed_at: reviewedAt,
+        rights_evidence_snapshot: photoRightsEvidenceSnapshot(photo),
+      });
     });
     showAlert("Photo approved.", "success");
     loadPhotos("pending");
@@ -880,15 +901,38 @@ window.approvePhoto = async function(photoId) {
 };
 
 window.rejectPhoto = async function(photoId) {
+  if (!_currentAdmin) return;
   const reason = prompt("Rejection reason:");
   if (!reason) return;
   const db = getFirebaseDb();
   try {
-    await updateDoc(doc(db, "placePhotos", photoId), {
-      approval_status: "rejected",
-      rejection_reason: reason,
-      approving_admin_uid: _currentAdmin?.uid,
-      approval_timestamp: serverTimestamp(),
+    const photoRef = doc(db, "placePhotos", photoId);
+    const historyRef = doc(collection(db, "photoRightsReviewHistory"));
+    await runTransaction(db, async (transaction) => {
+      const photoSnap = await transaction.get(photoRef);
+      if (!photoSnap.exists() || photoSnap.data().approval_status !== "pending") {
+        throw new Error("Photo is no longer pending review.");
+      }
+      const photo = photoSnap.data();
+      const reviewedAt = serverTimestamp();
+      transaction.update(photoRef, {
+        approval_status: "rejected",
+        rejection_reason: reason.trim(),
+        approving_admin_uid: _currentAdmin.uid,
+        approval_timestamp: reviewedAt,
+        rights_review_status: "rejected",
+        rights_reviewed_by: _currentAdmin.uid,
+        rights_reviewed_at: reviewedAt,
+        rights_review_notes: reason.trim(),
+        rights_review_history_id: historyRef.id,
+      });
+      transaction.set(historyRef, {
+        photo_id: photoId,
+        decision: "rejected",
+        reviewer_uid: _currentAdmin.uid,
+        reviewed_at: reviewedAt,
+        rights_evidence_snapshot: photoRightsEvidenceSnapshot(photo),
+      });
     });
     showAlert("Photo rejected.", "secondary");
     loadPhotos("pending");
