@@ -119,7 +119,11 @@ proposed suite exercises `firebase/firestore.rules.proposed`; its results do not
 active rules file. Current exact counts and commands are in `docs/TEST_RESULTS.md`.
 
 The historical Maharashtra lead CSV is absent, and the research template contains only its
-header. No real place data has been acquired or imported by the candidate pipeline.
+header. One official Geofabrik Western Zone OSM PBF (221,972,848 bytes) was downloaded to
+ignored local storage on 2026-11-06 after verifying its free download and ODbL terms. Its
+extraction was interrupted after more than 20 minutes: **0 normalized candidates, 0 staged
+records, and 0 published places**. The raw archive and checksum record remain under ignored
+`data/raw/osm/`; no candidate data was imported into Firestore.
 The Place Intelligence registry is served as a generated allowlisted projection in
 `frontend/data/source_registry.json`; regenerate it from the internal registry with
 `node scripts/build-public-source-registry.mjs`. Internal source notes and acquisition details

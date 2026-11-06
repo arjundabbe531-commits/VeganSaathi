@@ -13,7 +13,7 @@ picking the project back up.*
   - Cloudinary Dual-Input Photo Pipeline: Local device upload + camera + drag-and-drop (Option A) and direct image web address validation & remote upload mirroring (Option B) with live pre-flight checks and unified preview card.
   - Community Member Access Gating: Dynamic navbar configuration hiding contribution links for logged-out visitors; polite authentication gate card on `submit-place.html` with context and login/register redirect buttons.
   - Indian Vegan Alternatives Reference Guide: 10 Indian food categories (dairy milk, paneer, dahi, ghee, butter, chai/coffee, sweets, cheese, malai, egg swaps) with real-world cost comparisons, preparation time, allergen filters, and culinary tips (`alternatives/index.html`, `alternatives-data.js`, `alternatives-page.js`).
-  - Maharashtra research status: no reproducible lead dataset is present. See `docs/MAHARASHTRA_EXPANSION_REPORT.md`; no real-world place data was acquired or imported.
+  - Maharashtra research status: no reproducible lead dataset is present. One free Geofabrik Western Zone OSM PBF was downloaded to ignored local storage on 2026-11-06 and checksummed. Extraction was interrupted after >20 minutes and produced 0 normalized candidates, 0 staged records and 0 published places. See `data/raw/osm/acquisition_manifest.json` (local-only) and `docs/MAHARASHTRA_EXPANSION_REPORT.md`.
   - Firebase Performance Optimization: 5-minute in-memory & `sessionStorage` caching for `fetchPublishedPlaces` (repeat loads <1ms), profile caching for `fetchUserProfile`, and animated skeleton cards on `explore.html`.
   - Earlier phase test counts are historical. Current candidate results are maintained only in `docs/TEST_RESULTS.md`.
 - Phase 0 -- Environment audit
