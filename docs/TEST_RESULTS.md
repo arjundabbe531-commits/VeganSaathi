@@ -13,7 +13,7 @@ Run locally in the isolated candidate worktree. These results are for source cod
 
 The normal PowerShell runner includes the Python data-pipeline suite, but summarizes it as one successful subprocess rather than counting its individual cases. The standalone Python command above provides the actual 28-test count. The two rules suites run separately and load different rules files. The browser suite includes five checks for accessible labels and a 320px admin layout, plus `tests/browser/test_responsive_smoke.py` covering 18 pages at 6 widths (108 page/viewports) and browser page errors. Its focused run passed 109/109. The smoke check identified and helped fix a wrong admin guard import in `place-intelligence.js`; it also identified missing exports in the offline Firestore test stub, now supplied there. The Awareness integration test waits for its asynchronously rendered navbar/footer links; its standalone rerun passed 66/66. Across distinct assertions from the normal runner plus both rules suites: **751 passed, 0 failed** (221 Node, 28 Python, 370 browser, 2 static, 50 syntax, 63 active rules, 17 proposed rules). `git diff --check` is recorded after the final changes.
 
-GitHub Actions CI run [42202625220](https://github.com/arjundabbe531-commits/VeganSaathi/actions/runs/42202625220) completed successfully for the preceding candidate head `c8ffb2285eb55465a7278b77e9aa506ba5b11e33`. It predates the UI and test changes recorded here; a new candidate CI run is required before treating this revision as CI-verified.
+GitHub Actions CI run [42207857846](https://github.com/arjundabbe531-commits/VeganSaathi/actions/runs/42207857846) completed successfully for this exact candidate HEAD `94bf17d1db18335077df33cb389d54a774115955` on 6 November 2026. The Windows CI job ran the full PowerShell application suite, standalone Python pipeline suite, active Firestore rules emulator suite and proposed rules reference suite; all workflow steps completed successfully.
 
 ### Emulator commands and isolation
 
@@ -51,7 +51,7 @@ The registry fix suggestion would downgrade Firebase to 9.14.0, a major-version 
 - Firestore emulator tests prove only the checked-in rules files behave as tested; production rules were not inspected or deployed.
 - One Geofabrik Western Zone OSM PBF was downloaded locally after confirming its official free-download status; its ODbL licence requires attribution and may require share-alike for a derivative database. The extraction was interrupted after more than 20 minutes. It produced **0 normalized candidates**, 0 staged records, and 0 published places. The raw file is ignored by Git and recorded in `data/raw/osm/acquisition_manifest.json` (local only). Foursquare live access remains blocked pending account-level licence and zero-cost confirmation.
 - Cloudinary upload remains disabled; no production credential or service configuration was changed.
-- GitHub Actions passed for the previous candidate head; this current local run passed. The 109-check responsive smoke uses local pages and offline service stubs; it is not a complete WCAG 2.2 AA or production-browser audit.
+- GitHub Actions passed for exact candidate HEAD `94bf17d1db18335077df33cb389d54a774115955` (run [42207857846](https://github.com/arjundabbe531-commits/VeganSaathi/actions/runs/42207857846)). The 109-check responsive smoke uses local pages and offline service stubs; it is not a complete WCAG 2.2 AA or production-browser audit.
 
 ## Historical results
 
