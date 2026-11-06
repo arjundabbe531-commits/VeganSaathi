@@ -33,8 +33,8 @@ from typing import List, Optional
 # Add parent directories to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from adapters.base_adapter import CandidateRecord, ImportManifest
-from adapters.overture_adapter import OvertureAdapter, MAHARASHTRA_BBOX as OV_BBOX
+from adapters.base_adapter import CandidateRecord, ImportManifest, sha256_file
+from adapters.overture_adapter import OvertureAdapter, OVERTURE_PINNED_RELEASE, OVERTURE_SCHEMA_VERSION, MAHARASHTRA_BBOX as OV_BBOX
 from adapters.osm_adapter import OSMAdapter, MAHARASHTRA_BBOX as OSM_BBOX
 from adapters.foursquare_adapter import FoursquareAdapter, FoursquareFixtureAdapter, MAHARASHTRA_BBOX as FSQ_BBOX
 from processing.deduplication import detect_duplicates, generate_dedup_report
@@ -69,13 +69,14 @@ def run_overture(args):
     manifest = ImportManifest(
         batch_id=batch_id,
         source_id="overture-maps-places",
-        dataset_version="latest",
+        dataset_version=f"{OVERTURE_PINNED_RELEASE}-schema-{OVERTURE_SCHEMA_VERSION}",
         geographic_scope="Maharashtra, India",
         bounding_box=OV_BBOX,
         extraction_date=datetime.now(timezone.utc).date().isoformat(),
         processing_start=datetime.now(timezone.utc).isoformat(),
         licence="CDLA Permissive 2.0",
         licence_url="https://cdla.dev/permissive-2-0/",
+        checksum_scope="Remote Overture source checksum is not supplied by this adapter; output_checksum_sha256 covers the exact exported candidate NDJSON bytes.",
         notes=f"dry_run={args.dry_run}",
     )
 
@@ -110,21 +111,27 @@ def run_osm(args):
             "  https://download.geofabrik.de/asia/india-latest.osm.pbf"
         )
         return [], None
+    if not os.path.isfile(pbf_path):
+        logger.error("OSM source PBF was not found; no extraction was attempted.")
+        return [], None
 
     batch_id = make_batch_id("osm")
     output = args.output or f"data/processed/osm_{datetime.now().strftime('%Y%m%d')}.ndjson"
     manifest_path = f"data/manifests/{batch_id}_manifest.json"
 
+    source_checksum = sha256_file(pbf_path)
     manifest = ImportManifest(
         batch_id=batch_id,
         source_id="openstreetmap-geofabrik",
-        dataset_version="osm-daily",
+        dataset_version=f"osm-pbf-sha256:{source_checksum}",
         geographic_scope="Maharashtra, India (from Western India / India extract)",
         bounding_box=OSM_BBOX,
         extraction_date=datetime.now(timezone.utc).date().isoformat(),
         processing_start=datetime.now(timezone.utc).isoformat(),
         licence="ODbL 1.0",
         licence_url="https://www.openstreetmap.org/copyright",
+        source_checksum_sha256=source_checksum,
+        checksum_scope="source_checksum_sha256 covers the exact local Geofabrik PBF bytes; output_checksum_sha256 covers the exported candidate NDJSON bytes.",
         notes=f"pbf_path={pbf_path}, dry_run={args.dry_run}",
     )
 

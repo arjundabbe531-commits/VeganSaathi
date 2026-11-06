@@ -115,6 +115,10 @@ To verify the validator without using unverified real places, a synthetic test f
 
 The data-pipeline fixtures under `scripts/data-pipeline/fixtures/` are also explicitly marked with `is_synthetic_fixture`, a unique `synthetic_fixture_id`, and a versioned `synthetic_dataset_version`. The normal `python scripts/data-pipeline/pipeline.py all` path excludes Foursquare fixtures. Include them only for local pipeline testing with `--include-test-fixtures`; fixture candidates are refused by both Firestore staging and production approval. Fixture identity is part of the candidate document ID and cannot be edited through the candidate workflow. The dedicated `run_maharashtra_pilot.py` script writes only clearly named synthetic artifacts and no longer removes older output files.
 
+### Reproducible extraction manifests
+
+Every batch records its pinned dataset release (or an explicit source-file fingerprint), extraction date, geographic scope and bounding box. The manifest stores a streaming SHA-256 checksum of the exact exported NDJSON file. OSM batches additionally identify the input PBF by SHA-256; the raw PBF remains local and is not copied into public GitHub. Overture's public remote object checksum is not currently exposed by the adapter, so its manifest labels the output checksum and does not claim a source checksum. No live dataset acquisition is implied by these local test guarantees.
+
 ---
 
 ## 6. Pre-Import Checklist (for Future Uploads)

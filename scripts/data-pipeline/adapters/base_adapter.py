@@ -12,6 +12,7 @@ import abc
 import json
 import logging
 import hashlib
+import os
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Iterator
@@ -159,6 +160,9 @@ class ImportManifest:
     candidate_count: int = 0
     error_count: int = 0
     output_path: str = ""
+    source_checksum_sha256: str = ""       # SHA-256 of a local source artifact, when available
+    output_checksum_sha256: str = ""       # SHA-256 of the exact exported candidate file
+    checksum_scope: str = ""                # Describes which artifact each checksum covers
     licence: str = ""
     licence_url: str = ""
     config_hash: str = ""
@@ -176,6 +180,15 @@ class ImportManifest:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2, default=str)
         logger.info(f"Manifest saved: {path}")
+
+
+def sha256_file(path: str, chunk_size: int = 1024 * 1024) -> str:
+    """Hash a file in bounded memory; return lowercase SHA-256 hex."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for chunk in iter(lambda: stream.read(chunk_size), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -343,6 +356,8 @@ class BaseSourceAdapter(abc.ABC):
                             manifest.rejected_count += 1
                             continue
                         candidate.batch_id = manifest.batch_id
+                        if candidate.source_dataset_version in ("", "osm-daily"):
+                            candidate.source_dataset_version = manifest.dataset_version
                         if raw.get("is_synthetic_fixture") is True:
                             fixture_id = str(raw.get("synthetic_fixture_id", "")).strip()
                             fixture_version = str(raw.get("synthetic_dataset_version", "")).strip()
@@ -372,6 +387,10 @@ class BaseSourceAdapter(abc.ABC):
             return candidates
 
         manifest.processing_end = datetime.now(timezone.utc).isoformat()
+        manifest.output_path = output_path
+        manifest.checksum_scope = "output_checksum_sha256 covers the exact NDJSON bytes; source checksum is populated only when the source is a local file."
+        if os.path.isfile(output_path):
+            manifest.output_checksum_sha256 = sha256_file(output_path)
         manifest.import_status = "complete" if import_errors == 0 else "complete_with_errors"
         self.logger.info(
             f"Batch complete: {manifest.candidate_count} candidates, "

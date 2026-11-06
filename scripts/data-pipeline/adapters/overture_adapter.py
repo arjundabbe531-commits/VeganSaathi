@@ -331,13 +331,14 @@ def run_maharashtra_pilot(
     manifest = ImportManifest(
         batch_id=batch_id,
         source_id="overture-maps-places",
-        dataset_version="latest",
+        dataset_version=f"{OVERTURE_PINNED_RELEASE}-schema-{OVERTURE_SCHEMA_VERSION}",
         geographic_scope="Maharashtra, India",
         bounding_box=MAHARASHTRA_BBOX,
         extraction_date=now_iso[:10],
         processing_start=now_iso,
         licence="CDLA Permissive 2.0",
         licence_url="https://cdla.dev/permissive-2-0/",
+        checksum_scope="Remote Overture source checksum is not supplied by this adapter; output_checksum_sha256 covers the exact exported candidate NDJSON bytes.",
         notes=f"dry_run={dry_run}" + (f", limit={limit}" if limit else ""),
     )
 

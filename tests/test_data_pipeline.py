@@ -14,11 +14,12 @@ import json
 import os
 import sys
 import tempfile
+from datetime import datetime, timezone
 
 # Add scripts directory
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "data-pipeline"))
 
-from adapters.base_adapter import CandidateRecord, ImportManifest
+from adapters.base_adapter import CandidateRecord, ImportManifest, sha256_file
 from adapters.overture_adapter import OvertureAdapter, OVERTURE_CATEGORY_MAP, OVERTURE_PINNED_RELEASE, OVERTURE_SCHEMA_VERSION
 from adapters.foursquare_adapter import FoursquareFixtureAdapter
 from adapters.osm_adapter import OSMAdapter
@@ -185,12 +186,46 @@ class TestDataPipeline(unittest.TestCase):
             candidates = adapter.run_batch(manifest, output, dry_run=False)
             with open(output, "r", encoding="utf-8") as stream:
                 serialized = [json.loads(line) for line in stream]
+            output_checksum = sha256_file(output)
         self.assertEqual(len(candidates), 3)
         self.assertTrue(manifest.is_synthetic_fixture)
         self.assertEqual(manifest.synthetic_dataset_version, adapter.FIXTURE_DATASET_VERSION)
         self.assertEqual(set(manifest.synthetic_fixture_ids), {c.synthetic_fixture_id for c in candidates})
         self.assertTrue(all(row["is_synthetic_fixture"] for row in serialized))
         self.assertEqual({row["synthetic_dataset_version"] for row in serialized}, {adapter.FIXTURE_DATASET_VERSION})
+        self.assertEqual(manifest.output_path, output)
+        self.assertEqual(manifest.output_checksum_sha256, output_checksum)
+        self.assertEqual(len(manifest.output_checksum_sha256), 64)
+
+    def test_overture_runner_manifest_records_pinned_release_scope_and_checksum(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import pipeline as pipeline_module
+        from adapters.overture_adapter import OvertureAdapter
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_cwd = os.getcwd()
+            os.makedirs(os.path.join(temp_dir, "data", "manifests"))
+            os.makedirs(os.path.join(temp_dir, "data", "processed"))
+            output = os.path.join(temp_dir, "data", "processed", "overture.ndjson")
+            try:
+                os.chdir(temp_dir)
+                with patch.object(pipeline_module, "ensure_dirs"), \
+                     patch.object(OvertureAdapter, "validate_config", return_value=True), \
+                     patch.object(OvertureAdapter, "fetch_records", return_value=iter([])):
+                    _, manifest = pipeline_module.run_overture(SimpleNamespace(output=output, dry_run=False, limit=None))
+                with open(os.path.join(temp_dir, "data", "manifests", f"{manifest.batch_id}_manifest.json"), encoding="utf-8") as f:
+                    saved = json.load(f)
+                output_checksum = sha256_file(output)
+            finally:
+                os.chdir(old_cwd)
+
+        self.assertIn(OVERTURE_PINNED_RELEASE, manifest.dataset_version)
+        self.assertNotEqual(manifest.dataset_version, "latest")
+        self.assertEqual(manifest.geographic_scope, "Maharashtra, India")
+        self.assertEqual(manifest.extraction_date, datetime.now(timezone.utc).date().isoformat())
+        self.assertEqual(saved["output_checksum_sha256"], output_checksum)
+        self.assertIn("output_checksum_sha256", saved["checksum_scope"])
 
     def test_default_all_pipeline_excludes_synthetic_foursquare_fixtures(self):
         from unittest.mock import patch
