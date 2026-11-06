@@ -114,6 +114,28 @@ export function where(field, op, value) {
   return { _stub: "where", field: field, op: op, value: value };
 }
 
+export function limit(count) {
+  return { _stub: "limit", count: count };
+}
+
+export function writeBatch(db) {
+  return {
+    set() { return this; },
+    update() { return this; },
+    delete() { return this; },
+    commit: async function () { return Promise.resolve(); }
+  };
+}
+
+export async function runTransaction(db, updateFunction) {
+  return updateFunction({
+    get: getDoc,
+    set: setDoc,
+    update: updateDoc,
+    delete: deleteDoc
+  });
+}
+
 export async function getDocs(q) {
   if (typeof window !== "undefined" && window.__STUB_PLACES_DELAY_MS__) {
     await new Promise(function (resolve) { setTimeout(resolve, window.__STUB_PLACES_DELAY_MS__); });

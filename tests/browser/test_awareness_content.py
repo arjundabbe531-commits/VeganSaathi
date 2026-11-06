@@ -193,6 +193,10 @@ def test_awareness_module():
 
         # Check from home page (index.html)
         page.goto(f"{BASE_URL}/index.html", wait_until="networkidle")
+        # The app renders shared navigation asynchronously after its modules load.
+        # Wait for the rendered links instead of racing the component initialization.
+        page.locator("#navbar-placeholder a[href*='awareness/what-is-veganism.html']").wait_for(state="visible")
+        page.locator("#footer-placeholder a[href*='awareness/']").nth(5).wait_for(state="attached")
         nav_awareness = page.locator("#navbar-placeholder a[href*='awareness/what-is-veganism.html']")
         log("Home page navbar contains Awareness link", nav_awareness.first.is_visible())
 

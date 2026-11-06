@@ -28,7 +28,7 @@ import {
   limit as firestoreLimit,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { isAdmin } from "./admin-service.js";
+import { checkIsAdmin } from "./admin-service.js";
 import { approveCandidateRecord, assertCandidateCanStage } from "./candidate-approval.js";
 import { photoRightsEvidenceSnapshot, validatePhotoApproval } from "./photo-rights.js";
 
@@ -56,7 +56,7 @@ onAuthStateChanged(getFirebaseAuth(), async (user) => {
     showScreen("adminUnauthorizedScreen");
     return;
   }
-  const adminOk = await isAdmin(user);
+  const adminOk = await checkIsAdmin(user);
   if (!adminOk) {
     showScreen("adminUnauthorizedScreen");
     return;

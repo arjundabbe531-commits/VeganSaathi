@@ -6,14 +6,14 @@ Run locally in the isolated candidate worktree. These results are for source cod
 
 | Command / suite | Result | Checks |
 |---|---:|---:|
-| `powershell -ExecutionPolicy Bypass -File tests/run_all.ps1` (6 Nov 2026, after OSM registry update) | PASS, exit 0 | 221 Node assertions, 256 Playwright browser assertions, 2 static gates, 50 JavaScript syntax files |
-| `python -m unittest tests.test_data_pipeline -v` | PASS, exit 0 | 28 Python tests |
+| `powershell -ExecutionPolicy Bypass -File tests/run_all.ps1` (6 Nov 2026, after responsive/accessibility fixes) | PASS, exit 0 | 221 Node assertions, 370 Playwright browser assertions, 2 static gates, 50 JavaScript syntax files |
+| `python -m unittest tests.test_data_pipeline -v` | PASS, exit 0 | 28 Python tests; also included by the normal runner as one successful subprocess |
 | Active rules emulator, `firebase/firestore.rules` | PASS, exit 0 | 63 tests |
 | Proposed rules emulator, `firebase/firestore.rules.proposed` | PASS, exit 0 (rerun on a second free temporary port after first startup failed) | 17 tests |
 
-The normal PowerShell runner includes the Python data-pipeline suite, but summarizes it as one successful subprocess rather than counting its individual cases. The standalone Python command above provides the actual 28-test count. The two rules suites run separately and load different rules files. Across the distinct checks above: **637 passed, 0 failed**. The full runner passed after the source registry update; the later changes only refined source notes and documentation. `git diff --check` also passed (Git emitted only line-ending normalization warnings).
+The normal PowerShell runner includes the Python data-pipeline suite, but summarizes it as one successful subprocess rather than counting its individual cases. The standalone Python command above provides the actual 28-test count. The two rules suites run separately and load different rules files. The browser suite includes five checks for accessible labels and a 320px admin layout, plus `tests/browser/test_responsive_smoke.py` covering 18 pages at 6 widths (108 page/viewports) and browser page errors. Its focused run passed 109/109. The smoke check identified and helped fix a wrong admin guard import in `place-intelligence.js`; it also identified missing exports in the offline Firestore test stub, now supplied there. The Awareness integration test waits for its asynchronously rendered navbar/footer links; its standalone rerun passed 66/66. Across distinct assertions from the normal runner plus both rules suites: **751 passed, 0 failed** (221 Node, 28 Python, 370 browser, 2 static, 50 syntax, 63 active rules, 17 proposed rules). `git diff --check` is recorded after the final changes.
 
-GitHub Actions CI run [42194114803](https://github.com/arjundabbe531-commits/VeganSaathi/actions/runs/42194114803) completed successfully for PR head `bb8b45d83bb4ac1624a2439e2cfe8eff08939831`. The `pull_request` job checked out GitHub's generated merge ref `57873d175c075ac853cf2d4418a681478ecdb3cb`, combining that candidate with `main` at `aedac7196ee48a45f06cdc3442effc4a05fd094c`. The full local runner above passed on candidate HEAD itself.
+GitHub Actions CI run [42202625220](https://github.com/arjundabbe531-commits/VeganSaathi/actions/runs/42202625220) completed successfully for the preceding candidate head `c8ffb2285eb55465a7278b77e9aa506ba5b11e33`. It predates the UI and test changes recorded here; a new candidate CI run is required before treating this revision as CI-verified.
 
 ### Emulator commands and isolation
 
@@ -51,8 +51,8 @@ The registry fix suggestion would downgrade Firebase to 9.14.0, a major-version 
 - Firestore emulator tests prove only the checked-in rules files behave as tested; production rules were not inspected or deployed.
 - One Geofabrik Western Zone OSM PBF was downloaded locally after confirming its official free-download status; its ODbL licence requires attribution and may require share-alike for a derivative database. The extraction was interrupted after more than 20 minutes. It produced **0 normalized candidates**, 0 staged records, and 0 published places. The raw file is ignored by Git and recorded in `data/raw/osm/acquisition_manifest.json` (local only). Foursquare live access remains blocked pending account-level licence and zero-cost confirmation.
 - Cloudinary upload remains disabled; no production credential or service configuration was changed.
-- GitHub Actions passed for the PR merge ref associated with the candidate head; the local runner passed on the exact candidate HEAD. The CI run does not test production configuration.
+- GitHub Actions passed for the previous candidate head; this current local run passed. The 109-check responsive smoke uses local pages and offline service stubs; it is not a complete WCAG 2.2 AA or production-browser audit.
 
 ## Historical results
 
-Older counts and project-state summaries in this file were removed because they described earlier commits and conflicted with current suites. Consult Git history for those historical records; the table above is the only current test count.
+Older counts and project-state summaries in this file were removed because they described earlier commits and conflicted with current suites. Consult Git history for those historical records; the table above is the current local test count. The CI statement is explicitly tied to its earlier commit until a new run completes.
