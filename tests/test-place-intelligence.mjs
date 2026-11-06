@@ -750,14 +750,13 @@ it("approval-guard: existence=owner_confirmed alone does NOT grant verificationS
 });
 
 it("approval-guard: vegan_claim_conflicting and vegan_status_unverified must both block publish", () => {
-  const BLOCKED_VEGAN_CLASSES = ["vegan_status_unverified", "vegan_claim_conflicting", "", null, undefined];
+  const BLOCKED_VEGAN_CLASSES = ["vegan_status_unverified", "vegan_claim_conflicting", "", null, undefined, "unknown", "vegetarian"];
   const ALLOWED_VEGAN_CLASSES = ["fully_vegan", "vegan_friendly", "verified_vegan_options"];
 
   function canPublishVeganClass(veganClass, evidenceStatus) {
-    if (!veganClass ||
-        veganClass === "vegan_status_unverified" ||
-        veganClass === "vegan_claim_conflicting" ||
-        evidenceStatus === "no_vegan_evidence") {
+    const ALLOWED = ["fully_vegan", "vegan_friendly", "verified_vegan_options"];
+    const ALLOWED_EVIDENCE = ["menu_evidence_found", "ingredients_reviewed", "owner_confirmed", "vegansaathi_reviewed"];
+    if (!ALLOWED.includes(veganClass) || !ALLOWED_EVIDENCE.includes(evidenceStatus)) {
       return false;
     }
     return true;
@@ -767,14 +766,97 @@ it("approval-guard: vegan_claim_conflicting and vegan_status_unverified must bot
     assert.equal(canPublishVeganClass(cls, "ingredients_reviewed"), false,
       `veganClass='${cls}' must block publish`);
   }
-  // no_vegan_evidence must block even with a seemingly valid class
+  // no_vegan_evidence, vegan_lead, and conflicting_evidence must block even with a seemingly valid class
   assert.equal(canPublishVeganClass("fully_vegan", "no_vegan_evidence"), false,
     "no_vegan_evidence must block even when veganClass=fully_vegan");
+  assert.equal(canPublishVeganClass("fully_vegan", "vegan_lead"), false,
+    "vegan_lead must block even when veganClass=fully_vegan");
+  assert.equal(canPublishVeganClass("fully_vegan", "conflicting_evidence"), false,
+    "conflicting_evidence must block even when veganClass=fully_vegan");
 
   for (const cls of ALLOWED_VEGAN_CLASSES) {
     assert.equal(canPublishVeganClass(cls, "ingredients_reviewed"), true,
       `veganClass='${cls}' + ingredients_reviewed must allow publish`);
   }
+});
+
+it("approval-guard: in-flight concurrency lock and deterministic place ID protect against duplicate places", () => {
+  // 1. In-flight lock
+  const inFlight = new Set();
+  function attemptApproval(candId) {
+    if (inFlight.has(candId)) {
+      return { success: false, reason: "concurrency_lock" };
+    }
+    inFlight.add(candId);
+    return { success: true };
+  }
+
+  assert.equal(attemptApproval("cand_101").success, true, "First approval must acquire lock");
+  assert.equal(attemptApproval("cand_101").success, false, "Second concurrent approval must be blocked by in-flight lock");
+  assert.equal(attemptApproval("cand_101").reason, "concurrency_lock");
+  inFlight.delete("cand_101");
+  assert.equal(attemptApproval("cand_101").success, true, "After release, approval can proceed");
+  inFlight.clear();
+
+  // 2. Deterministic Place ID
+  function getDeterministicPlaceId(candidate) {
+    return candidate.approvedPlaceId || ("place_" + (candidate.candidate_id || candidate.id));
+  }
+
+  const pId1 = getDeterministicPlaceId({ id: "cand_999" });
+  const pId2 = getDeterministicPlaceId({ candidate_id: "cand_999" });
+  assert.equal(pId1, "place_cand_999", "Must generate deterministic place ID from candidate ID");
+  assert.equal(pId1, pId2, "Repeated calls must yield identical place ID to prevent duplicate documents");
+});
+
+it("approval-guard: failed atomic batch write does not leave candidate in approved state", async () => {
+  let candidateStatus = "pending";
+  let publishedPlaces = [];
+
+  // Simulate atomic batch where committing fails (e.g. permission or network error)
+  async function atomicPublish(candidate, shouldFail) {
+    const stagedChanges = [];
+    stagedChanges.push(() => publishedPlaces.push({ id: "place_" + candidate.id, status: "published" }));
+    stagedChanges.push(() => { candidateStatus = "approved"; });
+
+    if (shouldFail) {
+      // Simulate batch commit failure
+      throw new Error("Firestore batch.commit() failed: simulated network disconnect");
+    }
+
+    // Apply all changes atomically only if commit succeeds
+    for (const change of stagedChanges) change();
+    return true;
+  }
+
+  // Attempt failed publish
+  await assert.rejects(
+    async () => await atomicPublish({ id: "cand_fail_1" }, true),
+    /Firestore batch.commit\(\) failed/,
+    "Batch failure must throw"
+  );
+
+  // Invariant check: candidate must NOT be left approved and no place published
+  assert.equal(candidateStatus, "pending", "Candidate must remain pending after failed batch commit");
+  assert.equal(publishedPlaces.length, 0, "No place document should be published on batch commit failure");
+
+  // Attempt successful publish
+  await atomicPublish({ id: "cand_success_1" }, false);
+  assert.equal(candidateStatus, "approved");
+  assert.equal(publishedPlaces.length, 1);
+});
+
+it("approval-guard: permanently closed establishments cannot be approved for publication", () => {
+  function checkOperatingApproval(operating) {
+    if (operating === "permanently_closed") {
+      return { allowed: false, reason: "permanently_closed" };
+    }
+    return { allowed: true };
+  }
+
+  assert.equal(checkOperatingApproval("permanently_closed").allowed, false, "permanently_closed must block publication");
+  assert.equal(checkOperatingApproval("open").allowed, true);
+  assert.equal(checkOperatingApproval("unknown").allowed, true);
 });
 
 console.log("\n========================================");

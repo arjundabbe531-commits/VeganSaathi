@@ -138,8 +138,8 @@ class TestDataPipeline(unittest.TestCase):
                             "OVERTURE_PINNED_RELEASE must NOT be 'latest' — pin a specific release")
         self.assertRegex(OVERTURE_PINNED_RELEASE, r"^\d{4}-\d{2}-\d{2}\.\d+$",
                          "OVERTURE_PINNED_RELEASE must match YYYY-MM-DD.N format")
-        self.assertEqual(OVERTURE_SCHEMA_VERSION, "v2.0",
-                         "OVERTURE_SCHEMA_VERSION must be 'v2.0'")
+        self.assertEqual(OVERTURE_SCHEMA_VERSION, "v2.0.0",
+                         "OVERTURE_SCHEMA_VERSION must be 'v2.0.0'")
 
     def test_overture_s3_path_uses_pinned_release(self):
         """The constructed S3 path must contain the pinned release, not 'latest'."""

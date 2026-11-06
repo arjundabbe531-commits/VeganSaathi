@@ -7,16 +7,16 @@ Places dataset using DuckDB querying the public S3 GeoParquet files.
 Licence: CDLA Permissive 2.0 — free use, attribution required.
 Source: s3://overturemaps-us-west-2/release/<PINNED_RELEASE>/theme=places/type=place/*
 
-Schema: Overture Places Schema v2.0 (released 2024-09-18.0 and later).
+Schema: Overture Places Schema v2.0.0 (released 2026-09-23.0; latest published release 2026-10-21.0).
   Breaking changes from v1:
     - top-level `categories` struct removed.
     - Replaced by: `basic_category` (string), `taxonomy.primary` (string),
       `taxonomy.hierarchy` (list<string>), `taxonomy.alternates` (list<string>).
   Reference: https://docs.overturemaps.org/schema/reference/places/place/
 
-PINNED_RELEASE: 2024-09-18.0
-  Reason: This is the first stable release containing the v2.0 schema changes.
-  Any release >= 2024-09-18.0 uses the same taxonomy structure.
+PINNED_RELEASE: 2026-10-21.0
+  Reason: Latest verified published release as of November 2026 operating on Schema v2.0.0.
+  (Introduced in 2026-09-23.0; 2026-10-21.0 expands places coverage with schema stability).
   Update OVERTURE_PINNED_RELEASE when re-acquiring to use a newer verified release.
   Do NOT use "latest" in production — it may silently change schema.
 
@@ -80,11 +80,11 @@ FOOD_RELEVANT_PRIMARY = {
     "pizza_restaurant", "diner", "buffet_restaurant", "dhaba", "canteen", "mess",
 }
 
-# Pinned Overture release (v2.0 schema — 2024-09-18.0 is first stable v2.0 release).
+# Pinned Overture release (v2.0.0 schema — introduced 2026-09-23.0; latest published 2026-10-21.0).
 # Update this constant (and re-run tests) whenever a new release is verified.
 # Do NOT use "latest" in the S3 path — it may silently change schema between runs.
-OVERTURE_PINNED_RELEASE = "2024-09-18.0"
-OVERTURE_SCHEMA_VERSION = "v2.0"  # Places schema version — breaking change from v1
+OVERTURE_PINNED_RELEASE = "2026-10-21.0"
+OVERTURE_SCHEMA_VERSION = "v2.0.0"  # Places schema version — breaking change from v1
 
 # Food-relevant Overture basic_category / taxonomy.primary values (v2.0 schema).
 # In v2.0: `basic_category` is a simple string (replaces categories.primary).
