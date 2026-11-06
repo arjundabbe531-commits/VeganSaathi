@@ -13,6 +13,8 @@ Run locally in the isolated candidate worktree. These results are for source cod
 
 The normal PowerShell runner includes the Python data-pipeline suite, but summarizes it as one successful subprocess rather than counting its individual cases. The standalone Python command above provides the actual 28-test count. The two rules suites run separately and load different rules files. Across the distinct checks above: **637 passed, 0 failed**. The full runner was run after the final code and test changes; documentation-only changes followed.
 
+GitHub Actions CI run [42194114803](https://github.com/arjundabbe531-commits/VeganSaathi/actions/runs/42194114803) completed successfully for PR head `bb8b45d83bb4ac1624a2439e2cfe8eff08939831`. The `pull_request` job checked out GitHub's generated merge ref `57873d175c075ac853cf2d4418a681478ecdb3cb`, combining that candidate with `main` at `aedac7196ee48a45f06cdc3442effc4a05fd094c`. The full local runner above passed on candidate HEAD itself.
+
 ### Emulator commands and isolation
 
 Both emulator suites used Firebase CLI 14.27.0, Node 25.2.1 and Java 23.0.1. Because local emulator ports 8080 and 8181 were occupied, each run used a temporary copy of `firebase.json` with a free Firestore port. The checked-in Firebase configuration was not changed. The active run loaded `firebase/firestore.rules`; the reference run loaded `firebase/firestore.rules.proposed`. Neither run contacted or modified production Firebase.
@@ -42,7 +44,7 @@ The registry fix suggestion would downgrade Firebase to 9.14.0, a major-version 
 - Firestore emulator tests prove only the checked-in rules files behave as tested; production rules were not inspected or deployed.
 - No real place data was acquired or imported. The Foursquare live access path remains blocked pending account-level licence and zero-cost confirmation.
 - Cloudinary upload remains disabled; no production credential or service configuration was changed.
-- No GitHub Actions run exists yet; the workflow was added in this candidate and awaits a PR-triggered run.
+- GitHub Actions passed for the PR merge ref associated with the candidate head; the local runner passed on the exact candidate HEAD. The CI run does not test production configuration.
 
 ## Historical results
 
