@@ -41,17 +41,6 @@ def main():
     manifest_path = os.path.join(base_dir, "../../data/manifests/synthetic_pilot_manifest.json")
     report_path = os.path.join(base_dir, "../../data/manifests/synthetic_pilot_report.json")
 
-    # Clean up older misleading manifests if present
-    old_manifest = os.path.join(base_dir, "../../data/manifests/maharashtra_pilot_manifest.json")
-    old_report = os.path.join(base_dir, "../../data/manifests/maharashtra_pilot_report.json")
-    old_ndjson = os.path.join(base_dir, "../../data/processed/maharashtra_pilot_candidates.ndjson")
-    for old_file in [old_manifest, old_report, old_ndjson]:
-        if os.path.exists(old_file):
-            try:
-                os.remove(old_file)
-            except OSError:
-                pass
-
     print(f"Loading synthetic demonstration fixtures from {fixture_path}...")
     with open(fixture_path, "r", encoding="utf-8") as f:
         raw_places = json.load(f)
@@ -73,16 +62,21 @@ def main():
             "No genuine upstream Overture, OSM, or fieldwork extraction occurred in this run. "
             "These records must NEVER be published or imported as verified real-world businesses."
         ),
+        is_synthetic_fixture=True,
+        synthetic_dataset_version="vegansaathi-maharashtra-fixtures-2026.1",
     )
 
     candidates = []
     with open(output_ndjson, "w", encoding="utf-8") as out_f:
         for p in raw_places:
             cand = CandidateRecord(
-                candidate_id=f"cand_synthetic_{p['source_record_id']}",
+                candidate_id=f"cand_synthetic_fixture_{p['synthetic_fixture_id']}",
                 source_id="synthetic-demonstration-fixture",
                 source_record_id=p["source_record_id"],
                 source_dataset_version="synthetic-test-fixture",
+                is_synthetic_fixture=True,
+                synthetic_fixture_id=p["synthetic_fixture_id"],
+                synthetic_dataset_version=p["synthetic_dataset_version"],
                 batch_id=batch_id,
                 name=p["name"],
                 name_alt=p.get("name_alt", []),
@@ -119,6 +113,7 @@ def main():
             cand.normalised_website = cand.website.lower().replace("https://", "").replace("http://", "").replace("www.", "").rstrip("/") if cand.website else ""
 
             candidates.append(cand)
+            manifest.synthetic_fixture_ids.append(p["synthetic_fixture_id"])
             manifest.input_count += 1
             manifest.candidate_count += 1
             out_f.write(cand.to_json() + "\n")

@@ -4,9 +4,7 @@ const PLACEHOLDER_ADDRESSES = new Set(["", "address pending verification", "addr
 
 function validateApproval(candidate, decision) {
   if (!candidate || typeof candidate !== "object") throw new Error("Candidate data is missing.");
-  if (candidate.is_synthetic_fixture || candidate.dataset_origin === "synthetic_test_fixture" ||
-      String(candidate.source_id || "").toLowerCase().includes("synthetic") ||
-      String(candidate.name || "").startsWith("[TEST FIXTURE]")) {
+  if (isSyntheticCandidate(candidate)) {
     throw new Error("Synthetic test fixtures cannot be published.");
   }
   if (!ALLOWED_VEGAN_CLASSES.has(decision.veganClass)) throw new Error("A positive, non-conflicting vegan classification is required.");
@@ -26,9 +24,31 @@ function validateApproval(candidate, decision) {
   return { lat, lon, address };
 }
 
+export function isSyntheticCandidate(candidate, candidateId = "") {
+  const id = String(candidateId || candidate?.candidate_id || candidate?.id || "");
+  return id.startsWith("cand_synthetic_fixture_") ||
+    candidate?.is_synthetic_fixture === true ||
+    Boolean(String(candidate?.synthetic_fixture_id || "").trim()) ||
+    Boolean(String(candidate?.synthetic_dataset_version || "").trim()) ||
+    candidate?.dataset_origin === "synthetic_test_fixture" ||
+    String(candidate?.source_id || "").toLowerCase().includes("synthetic") ||
+    String(candidate?.name || "").startsWith("[TEST FIXTURE]");
+}
+
+export function assertCandidateCanStage(candidate) {
+  if (!candidate || typeof candidate !== "object" || !candidate.candidate_id) {
+    throw new Error("A candidate with a stable ID is required for staging.");
+  }
+  if (isSyntheticCandidate(candidate, candidate.candidate_id)) {
+    throw new Error("Synthetic test fixtures cannot be staged.");
+  }
+  return true;
+}
+
 /** Publish a candidate atomically, using the real Firestore transaction API. */
 export async function approveCandidateRecord({ db, candidateId, candidate, decision, admin, firestore }) {
   if (!candidateId || !admin?.uid) throw new Error("Candidate ID and authenticated administrator are required.");
+  if (isSyntheticCandidate(candidate, candidateId)) throw new Error("Synthetic test fixtures cannot be published.");
   const { lat, lon, address } = validateApproval(candidate, decision);
   const { doc, collection, runTransaction, serverTimestamp } = firestore;
   const candidateRef = doc(db, "placeCandidates", candidateId);
@@ -67,9 +87,10 @@ export async function approveCandidateRecord({ db, candidateId, candidate, decis
     const candidateSnap = await transaction.get(candidateRef);
     if (!candidateSnap.exists()) throw new Error("Candidate no longer exists; refresh the queue.");
     const fresh = candidateSnap.data();
+    if (isSyntheticCandidate(fresh, candidateId)) throw new Error("Synthetic test fixtures cannot be published.");
     if (fresh.import_status !== "staged" || fresh.approvedPlaceId) throw new Error("Candidate is no longer staged; duplicate or stale approval blocked.");
     validateApproval(fresh, decision);
-    for (const key of ["name", "address", "latitude", "longitude", "mapped_place_type", "imageUrl", "photo_rights_cleared", "source_id", "licence", "source_attribution", "upstream_source_ids", "dietTags", "area", "city", "district", "state", "country", "postal_code", "priceRange", "description", "website", "phone", "batch_id", "is_synthetic_fixture", "dataset_origin"]) {
+    for (const key of ["name", "address", "latitude", "longitude", "mapped_place_type", "imageUrl", "photo_rights_cleared", "source_id", "licence", "source_attribution", "upstream_source_ids", "dietTags", "area", "city", "district", "state", "country", "postal_code", "priceRange", "description", "website", "phone", "batch_id", "is_synthetic_fixture", "synthetic_fixture_id", "synthetic_dataset_version", "dataset_origin"]) {
       if (JSON.stringify(fresh[key] ?? null) !== JSON.stringify(candidate[key] ?? null)) throw new Error("Candidate changed after review; reload it before approval.");
     }
     const placeSnap = await transaction.get(placeRef);

@@ -293,6 +293,40 @@ describe("Active Rules Hardening Enforcement (Batch 6 & Post-Correction Closure)
   });
 });
 
+describe("Synthetic fixture staging isolation", () => {
+  const candidate = (id, extra = {}) => ({
+    candidate_id: id,
+    source_id: "overture-maps-places",
+    source_dataset_version: "overture-2026-10-21.0-schema-v2.0.0",
+    import_status: "staged",
+    name: "Candidate",
+    ...extra
+  });
+
+  it("admin cannot stage marked or fixture-ID candidates", async () => {
+    await seedUsers();
+    await assertFails(setDoc(doc(as("admin1"), "placeCandidates", "cand_synthetic_fixture_fsq_001"),
+      candidate("cand_synthetic_fixture_fsq_001")));
+    await assertFails(setDoc(doc(as("admin1"), "placeCandidates", "cand_fixture_marked"),
+      candidate("cand_fixture_marked", { is_synthetic_fixture: true })));
+    await assertFails(setDoc(doc(as("admin1"), "placeCandidates", "cand_fixture_metadata"),
+      candidate("cand_fixture_metadata", { synthetic_fixture_id: "fsq_001", synthetic_dataset_version: "test-v1" })));
+    await assertSucceeds(setDoc(doc(as("admin1"), "placeCandidates", "cand_real_001"), candidate("cand_real_001")));
+  });
+
+  it("candidate provenance fields cannot be edited after staging", async () => {
+    await seedUsers();
+    await seed(env, async (db) => setDoc(doc(db, "placeCandidates", "cand_real_002"), candidate("cand_real_002")));
+    await assertFails(updateDoc(doc(as("admin1"), "placeCandidates", "cand_real_002"), {
+      source_id: "synthetic-demonstration-fixture",
+      is_synthetic_fixture: true
+    }));
+    await assertSucceeds(updateDoc(doc(as("admin1"), "placeCandidates", "cand_real_002"), {
+      import_status: "rejected", rejectionNotes: "Unsupported source record.", rejectedBy: "admin1", rejectedAt: serverTimestamp()
+    }));
+  });
+});
+
 describe("Photo rights declaration enforcement", () => {
   const validPhoto = () => ({
     place_id: "pub1", submitter_uid: "u1", submitter_name: "Student One",

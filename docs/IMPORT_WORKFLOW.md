@@ -113,6 +113,8 @@ To verify the validator without using unverified real places, a synthetic test f
   - Global coordinate acceptance across multiple continents.
   - Safe conversion into a clean import CSV (`research/sample_app_import.csv`).
 
+The data-pipeline fixtures under `scripts/data-pipeline/fixtures/` are also explicitly marked with `is_synthetic_fixture`, a unique `synthetic_fixture_id`, and a versioned `synthetic_dataset_version`. The normal `python scripts/data-pipeline/pipeline.py all` path excludes Foursquare fixtures. Include them only for local pipeline testing with `--include-test-fixtures`; fixture candidates are refused by both Firestore staging and production approval. Fixture identity is part of the candidate document ID and cannot be edited through the candidate workflow. The dedicated `run_maharashtra_pilot.py` script writes only clearly named synthetic artifacts and no longer removes older output files.
+
 ---
 
 ## 6. Pre-Import Checklist (for Future Uploads)

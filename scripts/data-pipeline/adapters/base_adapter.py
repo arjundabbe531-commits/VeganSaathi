@@ -40,6 +40,9 @@ class CandidateRecord:
     source_record_id: str = ""                # original ID from upstream (GERS ID, FSQ ID, OSM ID, etc.)
     source_dataset_version: str = ""          # dataset release string
     batch_id: str = ""                        # import batch ID
+    is_synthetic_fixture: bool = False
+    synthetic_fixture_id: str = ""
+    synthetic_dataset_version: str = ""
 
     # --- Name ---
     name: str = ""
@@ -128,7 +131,8 @@ class CandidateRecord:
         return asdict(self)
 
     def to_json(self) -> str:
-        return json.dumps(self.to_dict(), default=str, ensure_ascii=False, indent=2)
+        # One compact JSON object per line is required by the documented NDJSON outputs.
+        return json.dumps(self.to_dict(), default=str, ensure_ascii=False, separators=(",", ":"))
 
 
 # ---------------------------------------------------------------------------
@@ -161,6 +165,9 @@ class ImportManifest:
     import_status: str = "running"           # "running"|"complete"|"failed"|"rolled_back"
     errors: List[str] = field(default_factory=list)
     notes: str = ""
+    is_synthetic_fixture: bool = False
+    synthetic_dataset_version: str = ""
+    synthetic_fixture_ids: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -336,6 +343,19 @@ class BaseSourceAdapter(abc.ABC):
                             manifest.rejected_count += 1
                             continue
                         candidate.batch_id = manifest.batch_id
+                        if raw.get("is_synthetic_fixture") is True:
+                            fixture_id = str(raw.get("synthetic_fixture_id", "")).strip()
+                            fixture_version = str(raw.get("synthetic_dataset_version", "")).strip()
+                            if not fixture_id or not fixture_version:
+                                raise ValueError("Synthetic source rows require fixture ID and dataset version provenance")
+                            candidate.is_synthetic_fixture = True
+                            candidate.synthetic_fixture_id = fixture_id
+                            candidate.synthetic_dataset_version = fixture_version
+                            candidate.candidate_id = f"cand_synthetic_fixture_{fixture_id}"
+                            manifest.is_synthetic_fixture = True
+                            manifest.synthetic_dataset_version = fixture_version
+                            if fixture_id not in manifest.synthetic_fixture_ids:
+                                manifest.synthetic_fixture_ids.append(fixture_id)
                         candidate.compute_quality_flags()
                         candidates.append(candidate)
                         manifest.candidate_count += 1

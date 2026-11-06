@@ -29,7 +29,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { isAdmin } from "./admin-service.js";
-import { approveCandidateRecord } from "./candidate-approval.js";
+import { approveCandidateRecord, assertCandidateCanStage } from "./candidate-approval.js";
 import { validatePhotoApproval } from "./photo-rights.js";
 
 /* ---------- State ---------- */
@@ -414,6 +414,13 @@ async function stageCandidatesToFirestore() {
     const chunk = _stagedCandidates.slice(i, i + BATCH_SIZE);
     for (const c of chunk) {
       if (!c.candidate_id) { skipped++; continue; }
+      try {
+        assertCandidateCanStage(c);
+      } catch (err) {
+        console.warn("Synthetic fixture refused at staging boundary:", c.candidate_id);
+        skipped++;
+        continue;
+      }
       try {
         const candidateRef = doc(db, "placeCandidates", c.candidate_id);
         const existing = await getDoc(candidateRef);

@@ -314,12 +314,29 @@ class FoursquareFixtureAdapter(FoursquareAdapter):
             "category_id": "13070", "category_label": "Vegan Restaurant",
         },
     ]
+    FIXTURE_DATASET_VERSION = "vegansaathi-foursquare-fixtures-2026.1"
 
     def validate_config(self) -> bool:
         return True  # No credentials needed for fixtures
 
     def fetch_records(self, dry_run: bool = False) -> Iterator[Dict[str, Any]]:
-        self.logger.info("Foursquare FIXTURE adapter — using sample data")
-        for rec in self.FIXTURE_RECORDS:
-            yield rec
+        for row in self.FIXTURE_RECORDS:
+            record = dict(row)
+            fixture_id = record["fsq_place_id"]
+            record.update({
+                "is_synthetic_fixture": True,
+                "synthetic_fixture_id": fixture_id,
+                "synthetic_dataset_version": self.FIXTURE_DATASET_VERSION,
+            })
+            yield record
 
+    def map_record(self, raw: Dict[str, Any]) -> Optional[CandidateRecord]:
+        candidate = super().map_record(raw)
+        if candidate is None:
+            return None
+        fixture_id = str(raw["synthetic_fixture_id"])
+        candidate.is_synthetic_fixture = True
+        candidate.synthetic_fixture_id = fixture_id
+        candidate.synthetic_dataset_version = str(raw["synthetic_dataset_version"])
+        candidate.candidate_id = f"cand_synthetic_fixture_{fixture_id}"
+        return candidate

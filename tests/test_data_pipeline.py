@@ -13,6 +13,7 @@ import unittest
 import json
 import os
 import sys
+import tempfile
 
 # Add scripts directory
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "data-pipeline"))
@@ -59,12 +60,73 @@ class TestDataPipeline(unittest.TestCase):
         self.assertTrue(adapter.validate_config())
         records = list(adapter.fetch_records(dry_run=True))
         self.assertEqual(len(records), 3)
+        self.assertTrue(all(r["is_synthetic_fixture"] is True for r in records))
+        self.assertEqual(len({r["synthetic_fixture_id"] for r in records}), 3)
+        self.assertTrue(all(r["synthetic_dataset_version"] == adapter.FIXTURE_DATASET_VERSION for r in records))
         cands = [adapter.map_record(r) for r in records]
         self.assertEqual(len(cands), 3)
         self.assertTrue(all(c is not None for c in cands))
+        self.assertTrue(all(c.is_synthetic_fixture for c in cands))
+        self.assertTrue(all(c.candidate_id.startswith("cand_synthetic_fixture_") for c in cands))
         self.assertEqual(cands[0].city, "Nagpur")
         self.assertEqual(cands[1].city, "Pune")
         self.assertEqual(cands[2].city, "Mumbai")
+
+    def test_synthetic_provenance_propagates_to_batch_manifest_and_ndjson(self):
+        adapter = FoursquareFixtureAdapter(config={})
+        manifest = ImportManifest(
+            batch_id="fixture-test-batch",
+            source_id="foursquare-os-places",
+            dataset_version=adapter.FIXTURE_DATASET_VERSION,
+            geographic_scope="synthetic test only",
+            bounding_box={},
+            extraction_date="2026-11-06",
+            processing_start="2026-11-06T00:00:00Z",
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = os.path.join(temp_dir, "candidates.ndjson")
+            candidates = adapter.run_batch(manifest, output, dry_run=False)
+            with open(output, "r", encoding="utf-8") as stream:
+                serialized = [json.loads(line) for line in stream]
+        self.assertEqual(len(candidates), 3)
+        self.assertTrue(manifest.is_synthetic_fixture)
+        self.assertEqual(manifest.synthetic_dataset_version, adapter.FIXTURE_DATASET_VERSION)
+        self.assertEqual(set(manifest.synthetic_fixture_ids), {c.synthetic_fixture_id for c in candidates})
+        self.assertTrue(all(row["is_synthetic_fixture"] for row in serialized))
+        self.assertEqual({row["synthetic_dataset_version"] for row in serialized}, {adapter.FIXTURE_DATASET_VERSION})
+
+    def test_default_all_pipeline_excludes_synthetic_foursquare_fixtures(self):
+        from unittest.mock import patch
+        from types import SimpleNamespace
+        import pipeline as pipeline_module
+        args = SimpleNamespace(dry_run=True, pbf=None, limit=None, include_test_fixtures=False)
+        with patch.object(pipeline_module, "run_overture", return_value=([], None)), \
+             patch.object(pipeline_module, "run_foursquare") as fsq:
+            result = pipeline_module.run_all(args)
+        self.assertEqual(result, [])
+        fsq.assert_not_called()
+
+    def test_all_pipeline_includes_fixtures_only_with_explicit_test_option(self):
+        from unittest.mock import patch
+        from types import SimpleNamespace
+        import pipeline as pipeline_module
+        args = SimpleNamespace(dry_run=True, pbf=None, limit=None, include_test_fixtures=True)
+        with patch.object(pipeline_module, "run_overture", return_value=([], None)), \
+             patch.object(pipeline_module, "run_foursquare", return_value=([], None)) as fsq:
+            result = pipeline_module.run_all(args)
+        fsq.assert_called_once()
+        self.assertEqual(result, [])
+
+    def test_fixture_file_has_unique_immutable_provenance(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "scripts", "data-pipeline", "fixtures", "synthetic_maharashtra_pilot_fixtures.json")
+        with open(path, "r", encoding="utf-8") as f:
+            rows = json.load(f)
+        ids = [row.get("synthetic_fixture_id") for row in rows]
+        self.assertTrue(rows)
+        self.assertTrue(all(row.get("is_synthetic_fixture") is True for row in rows))
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertTrue(all(isinstance(value, str) and value for value in ids))
+        self.assertTrue(all(row.get("synthetic_dataset_version") == "vegansaathi-maharashtra-fixtures-2026.1" for row in rows))
 
     def test_haversine_distance(self):
         # Distance between Mumbai (19.0760, 72.8777) and Pune (18.5204, 73.8567) is ~120 km

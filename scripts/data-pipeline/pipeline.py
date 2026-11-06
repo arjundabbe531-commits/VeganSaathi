@@ -215,15 +215,19 @@ def run_all(args):
     else:
         logger.info("OSM: skipped (no --pbf provided)")
 
-    # Foursquare (fixtures by default in --all mode)
-    args_fsq = type("args", (), {
-        "dry_run": args.dry_run,
-        "output": None,
-        "limit": args.limit,
-        "fixtures": True,
-    })()
-    cands_fsq, _ = run_foursquare(args_fsq)
-    all_candidates.extend(cands_fsq)
+    # Fixtures never enter the normal all-source pipeline. Test data requires
+    # the deliberately explicit --include-test-fixtures option.
+    if getattr(args, "include_test_fixtures", False):
+        args_fsq = type("args", (), {
+            "dry_run": args.dry_run,
+            "output": None,
+            "limit": args.limit,
+            "fixtures": True,
+        })()
+        cands_fsq, _ = run_foursquare(args_fsq)
+        all_candidates.extend(cands_fsq)
+    else:
+        logger.info("Foursquare test fixtures: excluded (pass --include-test-fixtures for isolated test data)")
 
     # Deduplication
     if all_candidates:
@@ -280,6 +284,9 @@ Examples:
 
   # Run all sources and produce pilot report
   python pipeline.py all --dry-run
+
+  # Explicitly include synthetic fixtures for pipeline testing only
+  python pipeline.py all --dry-run --include-test-fixtures
         """,
     )
 
@@ -311,6 +318,8 @@ Examples:
     p_all.add_argument("--pbf", default=None, help="Optional OSM PBF path")
     p_all.add_argument("--limit", type=int, default=None)
     p_all.add_argument("--output", default=None)
+    p_all.add_argument("--include-test-fixtures", action="store_true",
+                       help="Include synthetic test fixtures; they cannot be staged or published")
 
     args = parser.parse_args()
 

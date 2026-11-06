@@ -1,12 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { approveCandidateRecord } from "../frontend/js/candidate-approval.js";
+import { approveCandidateRecord, assertCandidateCanStage } from "../frontend/js/candidate-approval.js";
 
 const baseCandidate = () => ({ candidate_id: "c-1", name: "Green Table", mapped_place_type: "cafe", address: "12 Market Road, Pune", latitude: 18.52, longitude: 73.85, dietTags: ["jain"], import_status: "staged" });
 const baseDecision = () => ({ veganClass: "verified_vegan_options", existence: "business_identity_supported", operating: "open", evidenceStatus: "ingredients_reviewed", notes: "Reviewed current ingredient list." });
 
-function harness({ candidate = baseCandidate(), existingPlace = false, readError = null } = {}) {
-  const store = new Map([["placeCandidates/c-1", structuredClone(candidate)]]);
+function harness({ candidate = baseCandidate(), candidateId = "c-1", existingPlace = false, readError = null } = {}) {
+  candidate.candidate_id = candidateId;
+  const store = new Map([[`placeCandidates/${candidateId}`, structuredClone(candidate)]]);
   if (existingPlace) store.set("places/place_c-1", {});
   let historySequence = 0;
   let transactionQueue = Promise.resolve();
@@ -38,7 +39,7 @@ function harness({ candidate = baseCandidate(), existingPlace = false, readError
       }
     }
   };
-  return { store, firestore, db: {}, candidateId: "c-1", candidate, decision: baseDecision(), admin: { uid: "admin-1" } };
+  return { store, firestore, db: {}, candidateId, candidate, decision: baseDecision(), admin: { uid: "admin-1" } };
 }
 
 test("production approval publishes verified record and atomically records candidate/history", async () => {
@@ -70,6 +71,17 @@ test("production approval blocks unreviewed, unsupported, synthetic, closed, and
     assert.equal(h.store.get("placeCandidates/c-1").import_status, "staged");
     assert.equal(h.store.has("places/place_c-1"), false);
   });
+});
+
+test("fixture provenance cannot be staged or published after editable markers are stripped", async (t) => {
+  const fixture = { candidate_id: "cand_synthetic_fixture_fsq_001", name: "Edited Fixture" };
+  assert.throws(() => assertCandidateCanStage(fixture), /cannot be staged/);
+  const h = harness({ candidate: { ...baseCandidate(), is_synthetic_fixture: true }, candidateId: "cand_synthetic_fixture_fsq_001" });
+  const edited = { ...h.candidate };
+  delete edited.is_synthetic_fixture;
+  delete h.store.get("placeCandidates/cand_synthetic_fixture_fsq_001").is_synthetic_fixture;
+  await assert.rejects(approveCandidateRecord({ ...h, candidate: edited }), /cannot be published/);
+  assert.equal(h.store.has("places/place_c-1"), false);
 });
 
 test("transaction fails closed for candidate read errors, missing candidate, stale candidate, and duplicate place", async (t) => {

@@ -237,7 +237,26 @@ service cloud.firestore {
 
     // ---------------- placeCandidates (Place Intelligence staging) ----------------
     match /placeCandidates/{candidateId} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && !candidateId.matches('^cand_synthetic_fixture_.*$')
+        && request.resource.data.candidate_id == candidateId
+        && request.resource.data.import_status == "staged"
+        && request.resource.data.source_id is string
+        && request.resource.data.source_id.size() > 0
+        && request.resource.data.source_dataset_version is string
+        && request.resource.data.source_dataset_version.size() > 0
+        && !request.resource.data.keys().hasAny([
+          "is_synthetic_fixture", "synthetic_fixture_id", "synthetic_dataset_version", "dataset_origin"
+        ]);
+      allow update: if isAdmin()
+        && resource.data.import_status == "staged"
+        && request.resource.data.import_status in ["approved", "rejected"]
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "import_status", "approvedPlaceId", "approvedBy", "approvedAt",
+          "rejectionNotes", "rejectedBy", "rejectedAt"
+        ]);
+      allow delete: if false;
     }
 
     // ---------------- importBatches (Audit manifest records) ----------------

@@ -38,7 +38,9 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_nagpur_001",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "openstreetmap-geofabrik",
@@ -72,12 +74,14 @@
     "upstream_source_ids": {
       "synthetic_fixture_id": "osm_n_nagpur_002"
     },
-    "source_attribution": "\u00a9 OpenStreetMap contributors (ODbL 1.0)",
+    "source_attribution": "© OpenStreetMap contributors (ODbL 1.0)",
     "licence": "ODbL 1.0",
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "osm_n_nagpur_002",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "overture-maps-places",
@@ -114,7 +118,9 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_nagpur_003",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "overture-maps-places",
@@ -156,7 +162,9 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_pune_001",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "openstreetmap-geofabrik",
@@ -189,12 +197,14 @@
     "upstream_source_ids": {
       "synthetic_fixture_id": "gers_ov_pune_001"
     },
-    "source_attribution": "\u00a9 OpenStreetMap contributors (ODbL 1.0)",
+    "source_attribution": "© OpenStreetMap contributors (ODbL 1.0)",
     "licence": "ODbL 1.0",
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "osm_n_pune_002",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "overture-maps-places",
@@ -236,7 +246,9 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_pune_003",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "overture-maps-places",
@@ -275,7 +287,9 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_pune_004",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "overture-maps-places",
@@ -317,7 +331,9 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_mumbai_001",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "overture-maps-places",
@@ -358,7 +374,9 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_mumbai_002",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "openstreetmap-geofabrik",
@@ -394,12 +412,14 @@
     "upstream_source_ids": {
       "synthetic_fixture_id": "osm_n_mumbai_003"
     },
-    "source_attribution": "\u00a9 OpenStreetMap contributors (ODbL 1.0)",
+    "source_attribution": "© OpenStreetMap contributors (ODbL 1.0)",
     "licence": "ODbL 1.0",
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "osm_n_mumbai_003",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "overture-maps-places",
@@ -440,7 +460,9 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_mumbai_004",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "overture-maps-places",
@@ -480,7 +502,9 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_shegaon_001",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "openstreetmap-geofabrik",
@@ -513,12 +537,14 @@
     "upstream_source_ids": {
       "synthetic_fixture_id": "osm_n_shegaon_002"
     },
-    "source_attribution": "\u00a9 OpenStreetMap contributors (ODbL 1.0)",
+    "source_attribution": "© OpenStreetMap contributors (ODbL 1.0)",
     "licence": "ODbL 1.0",
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "osm_n_shegaon_002",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "overture-maps-places",
@@ -556,7 +582,9 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_akola_001",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   },
   {
     "source_id": "overture-maps-places",
@@ -593,6 +621,8 @@
     "is_synthetic_fixture": true,
     "dataset_origin": "synthetic_test_fixture",
     "synthetic_purpose": "Pipeline test fixture only; NOT verified fieldwork or genuine bulk extraction",
-    "verification_status": "unverified_test_data"
+    "verification_status": "unverified_test_data",
+    "synthetic_fixture_id": "gers_ov_akola_002",
+    "synthetic_dataset_version": "vegansaathi-maharashtra-fixtures-2026.1"
   }
 ]
