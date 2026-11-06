@@ -321,10 +321,6 @@ function updateGuardUI(user) {
     note.classList.toggle("d-none", signedIn);
   }
 }
-  btn.title = signedIn ? "" : "Sign in to submit a place";
-  note.classList.toggle("d-none", signedIn);
-}
-
 let mapInstance = null;
 let markerInstance = null;
 

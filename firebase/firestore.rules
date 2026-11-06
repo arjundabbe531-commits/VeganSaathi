@@ -251,13 +251,34 @@ service cloud.firestore {
         || isAdmin()
         || (isSignedIn() && resource.data.submitter_uid == request.auth.uid);
 
+      // A rights claim and an attributable creator/rights holder are required
+      // before a photo can enter the moderation queue. Do not accept arbitrary
+      // metadata that could later be mistaken for verified permission.
       allow create: if isSignedIn()
         && request.resource.data.submitter_uid == request.auth.uid
         && request.resource.data.approval_status == "pending"
         && request.resource.data.place_id is string
-        && request.resource.data.photo_category in ["storefront", "interior", "food", "menu", "logo"];
+        && request.resource.data.place_id.size() > 0
+        && request.resource.data.photo_category in ["storefront", "interior", "food", "menu", "logo"]
+        && request.resource.data.keys().hasOnly([
+          "place_id", "submitter_uid", "submitter_name", "photo_category", "approval_status",
+          "submission_type", "is_original_work", "has_permission_to_publish", "rights_holder",
+          "photographer_name", "temp_url", "cloudinary_url", "cloudinary_asset_id",
+          "attribution_required", "attribution_text", "licence", "upload_timestamp", "public_alt_text"
+        ])
+        && ((request.resource.data.is_original_work == true)
+          || (request.resource.data.has_permission_to_publish == true))
+        && ((request.resource.data.rights_holder is string && request.resource.data.rights_holder.size() > 0)
+          || (request.resource.data.photographer_name is string && request.resource.data.photographer_name.size() > 0))
+        && (!("attribution_required" in request.resource.data)
+          || request.resource.data.attribution_required != true
+          || (request.resource.data.attribution_text is string && request.resource.data.attribution_text.size() > 0));
 
-      allow update: if isAdmin();
+      allow update: if isAdmin()
+        && resource.data.approval_status == "pending"
+        && request.resource.data.approval_status in ["approved", "rejected"]
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["approval_status", "approving_admin_uid", "approval_timestamp", "rejection_reason"]);
 
       allow delete: if isAdmin()
         || (isSignedIn() && resource.data.submitter_uid == request.auth.uid && resource.data.approval_status == "pending");

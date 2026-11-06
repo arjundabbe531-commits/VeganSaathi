@@ -292,3 +292,39 @@ describe("Active Rules Hardening Enforcement (Batch 6 & Post-Correction Closure)
     await assertFails(getDoc(doc(as("u1"), "importBatches", "batch1")));
   });
 });
+
+describe("Photo rights declaration enforcement", () => {
+  const validPhoto = () => ({
+    place_id: "pub1", submitter_uid: "u1", submitter_name: "Student One",
+    photo_category: "food", approval_status: "pending", submission_type: "community_member",
+    is_original_work: true, has_permission_to_publish: false, photographer_name: "Student One",
+    rights_holder: "Student One", attribution_required: false, attribution_text: "",
+    licence: "all_rights_reserved_explicit_permission", upload_timestamp: serverTimestamp()
+  });
+
+  it("accepts a pending community photo with an attributable rights declaration", async () => {
+    await assertSucceeds(setDoc(doc(as("u1"), "placePhotos", "photo1"), validPhoto()));
+  });
+
+  it("rejects photos without permission/original-work declaration, attribution, or with arbitrary fields", async () => {
+    const noRights = validPhoto();
+    noRights.is_original_work = false;
+    noRights.rights_holder = "";
+    noRights.photographer_name = "";
+    await assertFails(setDoc(doc(as("u1"), "placePhotos", "photo-no-rights"), noRights));
+    const missingAttribution = validPhoto();
+    missingAttribution.attribution_required = true;
+    await assertFails(setDoc(doc(as("u1"), "placePhotos", "photo-no-attribution"), missingAttribution));
+    const extra = { ...validPhoto(), internal_note: "private" };
+    await assertFails(setDoc(doc(as("u1"), "placePhotos", "photo-extra"), extra));
+  });
+
+  it("allows admin approval only as a pending to approved/rejected transition", async () => {
+    await seedUsers();
+    await seed(env, async (db) => setDoc(doc(db, "placePhotos", "photo1"), validPhoto()));
+    await assertSucceeds(updateDoc(doc(as("admin1"), "placePhotos", "photo1"), {
+      approval_status: "approved", approving_admin_uid: "admin1", approval_timestamp: serverTimestamp()
+    }));
+    await assertFails(updateDoc(doc(as("admin1"), "placePhotos", "photo1"), { approval_status: "rejected" }));
+  });
+});

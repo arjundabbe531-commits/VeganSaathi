@@ -2,61 +2,29 @@
 
 # TEST_RESULTS.md — VeganSaathi
 
-## Canonical Test & Verification Audit (November 6, 2026) — Read This First
+## Current Candidate Verification (November 6, 2026)
 
-In accordance with the Post-Correction Acceptance Audit, all verifications are strictly categorized by execution type, environment, and recency. Historical results, static syntax passes, and reference proposed suites are explicitly separated from freshly executed active tests.
+All commands below ran locally in the isolated candidate worktree. They do not prove production Firebase rules or hosting state.
 
-### A. Freshly Executed Active Automated Tests (November 6, 2026)
+### Active test runs
 
-| Category | Suite / Target | Result | Checks | Environment / Method |
-|---|---|---|---|---|
-| **Service Unit Tests** | `test-places-service.mjs` | ✅ PASS | 45 / 45 | Node ESM, stubbed Firestore/Auth, synthetic guard tests |
-| **Admin Service Tests** | `test-admin-service.mjs` | ✅ PASS | 30 / 30 | Node ESM, stubbed Firestore/Auth, RBAC & visit validation |
-| **Media Service Tests** | `test-cloudinary-service.mjs` | ✅ PASS | 32 / 32 | Node ESM, mock Cloudinary API, client pre-flight checks |
-| **Geolocation Tests** | `test-geolocation.mjs` | ✅ PASS | 14 / 14 | Node ESM, Haversine distance, navigator geolocation |
-| **Data Import Tests** | `test-import-validator.mjs` | ✅ PASS | 24 / 24 | Node ESM, CSV parser, synthetic fixture blocking |
-| **Integration Unit Tests** | `test-controlled-integration.mjs` | ✅ PASS | 14 / 14 | Node ESM, photo upload state machine, XSS escaping |
-| **Culinary Knowledge Tests** | `test-alternatives.mjs` | ✅ PASS | 6 / 6 | Node ESM, alternatives database schema & search engine |
-| **Place Intelligence Tests** | `test-place-intelligence.mjs` | ✅ PASS | 23 / 23 | Node ESM, multi-signal dedup, candidate cache, atomic batch |
-| **Data Pipeline Tests** | `test_data_pipeline.py` | ✅ PASS | 8 / 8 | Python unittest, synthetic fixtures, normalization |
-| **Active Firestore Rules** | `tests/rules/firestore.rules.test.mjs` | ✅ PASS | 54 / 54 | **Firestore Local Emulator**, tests `firebase/firestore.rules` (ACTIVE) |
-| **Subtotal Fresh Active Tests** | | ✅ **ALL PASS** | **250** | **100% PASS** on Windows local environment (0 failures) |
+| Suite | Result | Count | Command / target |
+|---|---:|---:|---|
+| Node unit suites, including production candidate-approval and photo-rights functions | PASS | 204 checks | `powershell -ExecutionPolicy Bypass -File tests/run_all.ps1 -SkipBrowser` |
+| Playwright browser suites | PASS | 245 checks | `powershell -ExecutionPolicy Bypass -File tests/run_all.ps1` |
+| Active Firestore rules | PASS | 57 checks | `firebase emulators:exec --only firestore --project vegansaathi-rules-test "node --test tests/rules/firestore.rules.test.mjs"`; loaded `firebase/firestore.rules` |
+| Static checks | PASS | 2 gates | Included in `tests/run_all.ps1` |
+| JavaScript syntax | PASS | 48 files | ESM parser via corrected `tests/run_all.ps1` syntax gate |
 
----
+The full `tests/run_all.ps1` run exited 0. Its two newly added `node:test` suites were verified directly and in the corrected `-SkipBrowser` summary: candidate approval 14/14 and photo rights 2/2. The full browser run passed the signed-out submission regression at 38/38.
 
-### B. Evaluated & Promoted Reference Rules Suite (November 6, 2026)
+### Proposed rules reference — separate from active rules
 
-| Category | Suite / Target | Result | Checks | Environment / Method |
-|---|---|---|---|---|
-| **Proposed Rules Reference** | `tests/rules/firestore.rules.proposed.test.mjs` | ✅ PASS | 17 / 17 | **Firestore Local Emulator**, tests `firebase/firestore.rules.proposed`. Evaluated, tested, and promoted into active rules. |
+| Suite | Result | Count | Command / target |
+|---|---:|---:|---|
+| Proposed rules reference | PASS | 17 checks | `firebase emulators:exec --only firestore --project vegansaathi-rules-test "node --test tests/rules/firestore.rules.proposed.test.mjs"`; loaded `firebase/firestore.rules.proposed` |
 
----
-
-### C. Static Quality & Syntax Gates (November 6, 2026)
-
-| Category | Gate | Result | Coverage | Method |
-|---|---|---|---|---|
-| **Global Scope Guard** | `check-duplicate-globals.js` | ✅ PASS | 18 HTML pages | AST token check for top-level `const`/`let` collisions |
-| **Fixture Static Check** | `check_fixture_static.py` | ✅ PASS | 1 fixture file | Static consistency check between fixture and place create rule |
-| **Syntax Validation** | `node --check` | ✅ PASS | 44 JS/MJS files | Node.js syntax compiler check (0 syntax errors) |
-
----
-
-### D. End-to-End Browser Test Baseline (Playwright / Edge)
-
-| Category | Suite | Historical Milestone Result | Fresh Audit Run | Checks |
-|---|---|---|---|---|
-| Browser Regression | `test_phase4_regression.py` | ✅ PASS (Milestone 5.5) | Historical | 38 / 38 |
-| Browser Hardening & XSS | `test_5_1b_hardening.py` | ✅ PASS (Milestone 5.5) | ✅ PASS (Re-verified 2026-11-06) | 17 / 17 |
-| Browser Explore & Filters | `test_explore_firestore.py` | ✅ PASS (Milestone 5.5) | Historical | 28 / 28 |
-| Browser Map Robustness | `test_5_4_map_robustness.py` | ✅ PASS (Milestone 5.5) | Historical | 16 / 16 |
-| Browser Place Details | `test_place_details_firestore.py` | ✅ PASS (Milestone 5.5) | Historical | 41 / 41 |
-| Browser Admin Dashboard | `test_admin_dashboard.py` | ✅ PASS (Milestone 5.5) | Historical | 21 / 21 |
-| Browser Awareness Content | `test_awareness_content.py` | ✅ PASS (Milestone 5.5) | Historical | 66 / 66 |
-| Browser Re-verification | `test_reverify_prompt.py` | ✅ PASS (Milestone 5.5) | Historical | 18 / 18 |
-| **Total Browser Checks** | | | | **245 / 245** |
-
-> **Audit Transparency Note:** The 245 browser checks were established and validated during Phase 4/5 milestones using Playwright and Microsoft Edge on the Windows host. A live spot-check (`test_5_1b_hardening.py`) was re-executed and passed (17/17). The remaining 228 browser checks reflect prior milestone baselines and are preserved separately rather than inflated into freshly executed unit counts.
+The proposed suite is a reference test target, not the active rules file. Active rules have additional photo-rights assertions (57 total). No Firebase production rules were read, modified or deployed.
 
 ---
 

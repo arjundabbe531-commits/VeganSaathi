@@ -26,6 +26,12 @@ function Record-Result {
 
     $passCount = ($OutputLines | Select-String -Pattern '^PASS' | Measure-Object).Count
     $failCount = ($OutputLines | Select-String -Pattern '^FAIL' | Measure-Object).Count
+    $tapSummary = $OutputLines | Select-String -Pattern 'tests (\d+)' | Select-Object -Last 1
+    if ($tapSummary) {
+        $tapFailureSummary = $OutputLines | Select-String -Pattern 'fail (\d+)' | Select-Object -Last 1
+        $failCount = if ($tapFailureSummary) { [int]$tapFailureSummary.Matches[0].Groups[1].Value } else { 0 }
+        $passCount = [int]$tapSummary.Matches[0].Groups[1].Value - $failCount
+    }
 
     $status = "PASS"
     if ($ExitCode -ne 0 -or $failCount -gt 0) {
@@ -81,9 +87,12 @@ if (-not $SkipBrowser) {
 $jsFiles = Get-ChildItem -Path $Root -Recurse -Include *.js, *.mjs | Where-Object { $_.FullName -notmatch '\\(node_modules|\.git)\\' }
 $syntaxFail = 0
 foreach ($f in $jsFiles) {
-    & node --check $f.FullName 2>$null
+    # Force ESM parsing for browser modules too; node --check on a filename
+    # silently treats .js as CommonJS when the root package is not type=module.
+    $syntaxOutput = Get-Content -Raw $f.FullName | & node --input-type=module --check 2>&1
     if ($LASTEXITCODE -ne 0) {
         Write-Host "SYNTAX FAIL: $($f.FullName)" -ForegroundColor Red
+        Write-Host ($syntaxOutput -join "`n") -ForegroundColor DarkRed
         $syntaxFail++
     }
 }

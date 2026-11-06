@@ -22,12 +22,15 @@ import {
   addDoc,
   updateDoc,
   writeBatch,
+  runTransaction,
   serverTimestamp,
   orderBy,
   limit as firestoreLimit,
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { isAdmin } from "./admin-service.js";
+import { approveCandidateRecord } from "./candidate-approval.js";
+import { validatePhotoApproval } from "./photo-rights.js";
 
 /* ---------- State ---------- */
 let _currentAdmin = null;
@@ -634,289 +637,45 @@ window.openVerificationPanel = async function(candidateId) {
 const _approvalsInFlight = new Set();
 
 async function approveCandidate(candidate) {
-  const candDocId = candidate.candidate_id || candidate.id;
-  if (!candDocId) {
+  const candidateId = candidate.candidate_id || candidate.id;
+  if (!candidateId) {
     showResult("vd-action-result", "Invalid candidate ID.", "danger");
     return;
   }
-
-  // Concurrency Lock: Prevent multiple in-flight approval requests for the same candidate
-  if (_approvalsInFlight.has(candDocId)) {
+  if (_approvalsInFlight.has(candidateId)) {
     showResult("vd-action-result", "Approval is already in progress for this candidate. Please wait...", "warning");
     return;
   }
-  _approvalsInFlight.add(candDocId);
-
+  if (_selectedCandidateId && _selectedCandidateId !== candidateId) {
+    showResult("vd-action-result", "Candidate selection changed during operation. Action aborted.", "warning");
+    return;
+  }
+  if (!_currentAdmin) {
+    showResult("vd-action-result", "Not authenticated as administrator.", "danger");
+    return;
+  }
+  _approvalsInFlight.add(candidateId);
   try {
-    // 1. Synthetic Data Safeguard: Synthetic fixtures must NEVER enter public directory
-    if (
-      candidate.is_synthetic_fixture ||
-      candidate.dataset_origin === "synthetic_test_fixture" ||
-      (candidate.source_id && String(candidate.source_id).includes("synthetic")) ||
-      (candidate.name && String(candidate.name).startsWith("[TEST FIXTURE]"))
-    ) {
-      showResult("vd-action-result", "SAFEGUARD BLOCKED: Synthetic test fixtures cannot be published to the public directory.", "danger");
-      return;
-    }
-
-    // 2. Concurrency check: Ensure selected candidate did not change during async operations
-    if (_selectedCandidateId && _selectedCandidateId !== candDocId) {
-      showResult("vd-action-result", "Candidate selection changed during operation. Action aborted.", "warning");
-      return;
-    }
-
-    const veganClass = document.getElementById("vd-vegan-class")?.value || "vegan_status_unverified";
-    const existence = document.getElementById("vd-existence")?.value || "candidate";
-    const operating = document.getElementById("vd-operating")?.value || "unknown";
-    const evidenceStatus = document.getElementById("vd-evidence")?.value || "no_vegan_evidence";
-    const evidenceUrl = document.getElementById("vd-evidence-url")?.value?.trim() || "";
-    const notes = document.getElementById("vd-notes")?.value?.trim() || "";
-
-    if (!notes || notes.length < 10) {
-      showResult("vd-action-result", "Reviewer audit notes are required (minimum 10 characters).", "warning");
-      return;
-    }
-
-    // 3. Mandatory Vegan Integrity: Do not publish candidates without positive vegan classification
-    const ALLOWED_VEGAN_CLASSES = ["fully_vegan", "vegan_friendly", "verified_vegan_options"];
-    if (!ALLOWED_VEGAN_CLASSES.includes(veganClass)) {
-      showResult("vd-action-result", "Cannot publish candidate without positive vegan classification ('fully_vegan', 'vegan_friendly', or 'verified_vegan_options'). Unknown, unverified, or conflicting classifications cannot be published.", "warning");
-      return;
-    }
-
-    // 3b. Mandatory Evidence Integrity: Positive vegan menu or ingredient evidence required
-    const ALLOWED_EVIDENCE_STATUSES = ["menu_evidence_found", "ingredients_reviewed", "owner_confirmed", "vegansaathi_reviewed"];
-    if (!ALLOWED_EVIDENCE_STATUSES.includes(evidenceStatus)) {
-      showResult("vd-action-result", "Cannot publish candidate: Positive vegan menu or ingredient evidence ('menu_evidence_found', 'ingredients_reviewed', 'owner_confirmed', or 'vegansaathi_reviewed') is required. Leads, unverified records, or conflicting evidence cannot be published.", "warning");
-      return;
-    }
-
-    // 3c. Operating Status Check: Permanently closed establishments must not be published
-    if (operating === "permanently_closed") {
-      showResult("vd-action-result", "Cannot publish candidate: Establishment is permanently closed. Reject candidate instead.", "warning");
-      return;
-    }
-
-    // 3d. Geographic Integrity: Coordinates and address must be real and present.
-    // Missing, out-of-range, or (0,0) coordinates must block approval.
-    // A placeholder address is not an acceptable published value.
-    const rawLat = candidate.latitude;
-    const rawLon = candidate.longitude;
-    const lat = typeof rawLat === "number" ? rawLat : null;
-    const lon = typeof rawLon === "number" ? rawLon : null;
-    const candidateAddress = typeof candidate.address === "string" ? candidate.address.trim() : "";
-    const PLACEHOLDER_ADDRESSES = [
-      "address pending verification",
-      "address pending",
-      "pending verification",
-      "unknown",
-      "n/a",
-      "tbd",
-      "",
-    ];
-    if (lat === null || lon === null) {
-      showResult("vd-action-result", "Geographic coordinates are missing. A place cannot be published without valid latitude and longitude.", "danger");
-      return;
-    }
-    if (lat === 0 && lon === 0) {
-      showResult("vd-action-result", "Coordinates are (0, 0) — a known null/placeholder value. Update the actual coordinates before publishing.", "danger");
-      return;
-    }
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-      showResult("vd-action-result", `Coordinates (${lat}, ${lon}) are out of valid geographic range. Cannot publish.`, "danger");
-      return;
-    }
-    if (!candidateAddress || PLACEHOLDER_ADDRESSES.includes(candidateAddress.toLowerCase())) {
-      showResult("vd-action-result", "Address is missing or is a placeholder value. A real address is required before publishing.", "danger");
-      return;
-    }
-    if (candidateAddress.length < 5 || candidateAddress.length > 300) {
-      showResult("vd-action-result", `Address must be between 5 and 300 characters (got ${candidateAddress.length}). Cannot publish.`, "danger");
-      return;
-    }
-
-    if (!_currentAdmin) {
-      showResult("vd-action-result", "Not authenticated as administrator.", "danger");
-      return;
-    }
-    const db = getFirebaseDb();
-
-    // 4. Duplicate Approval Prevention: Check fresh database state
-    try {
-      const freshSnap = await getDoc(doc(db, "placeCandidates", candDocId));
-      if (freshSnap.exists()) {
-        const freshData = freshSnap.data();
-        if (freshData.import_status === "approved" || freshData.approvedPlaceId) {
-          showResult("vd-action-result", `Duplicate approval prevented: this candidate is already approved (Place ID: ${freshData.approvedPlaceId || "existing"}).`, "warning");
-          return;
-        }
-        if (freshData.import_status === "rejected") {
-          showResult("vd-action-result", "Candidate was already rejected in another session.", "warning");
-          return;
-        }
-      }
-    } catch (freshErr) {
-      console.warn("Could not check candidate fresh state:", freshErr);
-    }
-
-    // 4b. Deterministic Place ID: Guarantee that concurrent/duplicate approvals map to the same place ID
-    const targetPlaceId = candidate.approvedPlaceId || ("place_" + candDocId);
-    const newPlaceRef = doc(db, "places", targetPlaceId);
-
-    // Pre-check: Ensure target place document does not already exist
-    try {
-      const existingPlaceSnap = await getDoc(newPlaceRef);
-      if (existingPlaceSnap.exists()) {
-        showResult("vd-action-result", `Duplicate approval prevented: Place document '${targetPlaceId}' already exists in database.`, "warning");
-        return;
-      }
-    } catch (checkErr) {
-      console.warn("Could not check target place existence:", checkErr);
-    }
-
-    // 5. Strict Dietary Tags Determination:
-    // VeganSaathi is a vegan-first directory. Every listing MUST carry "vegan".
-    // Never default an unverified candidate to "vegetarian" alone!
-    let dietTags = [];
-    if (veganClass === "fully_vegan") {
-      dietTags = ["vegan"];
-    } else if (veganClass === "vegan_friendly" || veganClass === "verified_vegan_options") {
-      const verifiedTags = Array.isArray(candidate.dietTags) ? candidate.dietTags : [];
-      dietTags = ["vegan", "vegetarian"];
-      if (verifiedTags.includes("jain")) dietTags.push("jain");
-    } else {
-      showResult("vd-action-result", "Unsupported vegan classification. Cannot determine diet tags.", "danger");
-      return;
-    }
-
-    if (!dietTags.includes("vegan")) {
-      showResult("vd-action-result", "Safety invariant violated: every published VeganSaathi listing must include the 'vegan' tag.", "danger");
-      return;
-    }
-
-    // 6. Distinct Verification Dimensions (Independent Claims)
-    // IMPORTANT SEMANTICS — these are four separate facts:
-    //   (a) business_exists: does the business exist?
-    //   (b) is_operating: is it currently open?
-    //   (c) vegan_diet_verified: has the vegan menu/ingredients been confirmed?
-    //   (d) ingredients_reviewed: were actual ingredients audited?
-    //
-    // existence === "owner_confirmed" means the OWNER confirmed the BUSINESS EXISTS.
-    // It does NOT mean the owner confirmed vegan ingredients or vegan menu items.
-    // Only evidenceStatus carries dietary evidence:
-    //   "ingredients_reviewed"  — physical audit of ingredients
-    //   "vegansaathi_reviewed"  — VeganSaathi team reviewed the menu
-    //   "owner_confirmed"       — owner specifically confirmed vegan menu items (evidenceStatus field)
-    //
-    // Therefore: verificationStatus: "verified" requires affirmative DIETARY review (evidenceStatus).
-    // Business existence (existenceStatus) alone does NOT grant verificationStatus "verified".
-    const isPhysicallyVisited = existence === "physically_verified";
-    const isOwnerExistenceConfirmed = existence === "owner_confirmed"; // existence only — does NOT grant dietary verification
-    const isDietaryOwnerConfirmed = evidenceStatus === "owner_confirmed"; // owner confirmed VEGAN items specifically
-    const isIngredientsReviewed = evidenceStatus === "ingredients_reviewed" || evidenceStatus === "vegansaathi_reviewed";
-    const hasVeganDietaryEvidence = isIngredientsReviewed || isDietaryOwnerConfirmed;
-
-    const verificationStatus = hasVeganDietaryEvidence ? "verified" : "unverified";
-    const lastVerifiedAt = hasVeganDietaryEvidence ? serverTimestamp() : null;
-
-    const verificationDimensions = {
-      business_exists: existence !== "candidate" && existence !== "unknown",
-      address_confirmed: isPhysicallyVisited || isOwnerExistenceConfirmed || isDietaryOwnerConfirmed,
-      is_operating: operating === "open",
-      physically_visited: isPhysicallyVisited,
-      online_reviewed: evidenceStatus === "menu_reviewed" || evidenceStatus === "vegansaathi_reviewed",
-      ingredients_reviewed: isIngredientsReviewed || isDietaryOwnerConfirmed,
-      vegan_options_verified: hasVeganDietaryEvidence,
-      photo_rights_cleared: Boolean(candidate.photo_rights_cleared)
+    const decision = {
+      veganClass: document.getElementById("vd-vegan-class")?.value || "vegan_status_unverified",
+      existence: document.getElementById("vd-existence")?.value || "candidate",
+      operating: document.getElementById("vd-operating")?.value || "unknown",
+      evidenceStatus: document.getElementById("vd-evidence")?.value || "no_vegan_evidence",
+      evidenceUrl: document.getElementById("vd-evidence-url")?.value?.trim() || "",
+      notes: document.getElementById("vd-notes")?.value?.trim() || ""
     };
-
-    const batch = writeBatch(db);
-
-    const placeData = {
-      name: candidate.name || "",
-      placeType: ["restaurant", "mess", "canteen", "cafe", "dhaba", "other"].includes(candidate.mapped_place_type)
-        ? candidate.mapped_place_type
-        : "restaurant",
-      address: candidateAddress,
-      area: candidate.area || "",
-      city: candidate.city || "",
-      district: candidate.district || "",
-      state: candidate.state || "Maharashtra",
-      country: candidate.country || "India",
-      postalCode: candidate.postal_code || "",
-      latitude: lat,
-      longitude: lon,
-      dietTags: dietTags,
-      priceRange: ["budget", "moderate", "premium"].includes(candidate.priceRange) ? candidate.priceRange : "Price not listed",
-      description: candidate.description || "",
-      website: candidate.website || "",
-      phone: candidate.phone || "",
-      imageUrl: candidate.imageUrl || "",
-      status: "published",
-      verificationStatus: verificationStatus,
-      lastVerifiedAt: lastVerifiedAt,
-      veganClassification: veganClass,
-      existenceStatus: existence,
-      operatingStatus: operating,
-      evidenceStatus: evidenceStatus,
-      evidenceUrl: evidenceUrl,
-      verificationDimensions: verificationDimensions,
-      verificationNote: notes,
-      source: candidate.source_id && candidate.source_id.includes("community") ? "community" : "import",
-      sourceId: candidate.source_id || "",
-      sourceLicence: candidate.licence || "",
-      sourceAttribution: candidate.source_attribution || "",
-      upstreamSourceIds: candidate.upstream_source_ids || {},
-      candidateId: candDocId || "",
-      batchId: candidate.batch_id || "",
-      submittedBy: _currentAdmin.uid,
-      submittedByName: _currentAdmin.displayName || "Admin",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-    batch.set(newPlaceRef, placeData);
-
-    const historyRef = doc(collection(db, "verificationHistory"));
-    batch.set(historyRef, {
-      placeId: newPlaceRef.id,
-      candidateId: candDocId || "",
-      veganClassification: veganClass,
-      existenceStatus: existence,
-      operatingStatus: operating,
-      evidenceStatus: evidenceStatus,
-      evidenceUrl: evidenceUrl,
-      dietTags: dietTags,
-      verificationStatus: verificationStatus,
-      verificationDimensions: verificationDimensions,
-      notes: notes,
-      reviewerUid: _currentAdmin.uid,
-      reviewerName: _currentAdmin.displayName || "Admin",
-      decision: "approved",
-      timestamp: serverTimestamp(),
+    const result = await approveCandidateRecord({
+      db: getFirebaseDb(), candidateId, candidate, decision, admin: _currentAdmin,
+      firestore: { doc, collection, runTransaction, serverTimestamp }
     });
-
-    if (candDocId) {
-      const candRef = doc(db, "placeCandidates", candDocId);
-      batch.update(candRef, {
-        import_status: "approved",
-        approvedPlaceId: newPlaceRef.id,
-        approvedBy: _currentAdmin.uid,
-        approvedAt: serverTimestamp(),
-      });
-    }
-
-    // Atomic execution: either all 3 documents commit or none do
-    await batch.commit();
-
-    showResult("vd-action-result", `✅ Place atomically published (Place ID: ${newPlaceRef.id}) with verificationStatus='${verificationStatus}'`, "success");
+    showResult("vd-action-result", `✅ Place published with verified dietary evidence (Place ID: ${result.placeId}).`, "success");
     loadKPIs();
   } catch (err) {
     showResult("vd-action-result", "Failed to publish: " + err.message, "danger");
   } finally {
-    _approvalsInFlight.delete(candDocId);
+    _approvalsInFlight.delete(candidateId);
   }
 }
-
 async function rejectCandidate(candidate) {
   const notes = document.getElementById("vd-notes")?.value?.trim();
   if (!notes || notes.length < 5) {
@@ -1084,6 +843,10 @@ window.approvePhoto = async function(photoId) {
   if (!_currentAdmin) return;
   const db = getFirebaseDb();
   try {
+    const photoRef = doc(db, "placePhotos", photoId);
+    const photoSnap = await getDoc(photoRef);
+    if (!photoSnap.exists()) throw new Error("Photo submission no longer exists.");
+    validatePhotoApproval(photoSnap.data());
     await updateDoc(doc(db, "placePhotos", photoId), {
       approval_status: "approved",
       approving_admin_uid: _currentAdmin.uid,
