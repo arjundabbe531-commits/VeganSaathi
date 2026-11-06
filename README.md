@@ -21,8 +21,8 @@ Existing food-discovery apps rely on crude "pure veg" or generic "veg/non-veg" f
 - Firebase Authentication (email/password + Google)
 - Dietary profile (vegan / vegetarian / eggetarian / Jain)
 - Place discovery — list + map (Leaflet/OpenStreetMap) with search and filters
-- Place Details with diet badges and "last verified" trust indicator
-- Community place submission → admin approval workflow
+- Place Details with evidence-gated vegan labels and a dated verification indicator
+- Community place submission → administrator review and evidence-based approval workflow
 - Reviews and "Report Incorrect Information"
 - Saved places
 - Admin dashboard (approve/reject places, resolve reports, moderate reviews, re-verify)
@@ -54,15 +54,13 @@ VeganSaathi/
 └── assets/      → images/icons
 ```
 
-## Local Development (once Phase 3 is complete)
+## Local Development
 
 1. Install the Firebase CLI: `npm install -g firebase-tools`
 2. `firebase login`
-3. `firebase init` (select Hosting, Firestore — use existing project config in
-   `firebase/`)
-4. Serve locally: `firebase emulators:start` or open `frontend/index.html` directly for
+3. Serve locally: `firebase emulators:start` or use a local static server for
    static-only testing.
-5. Deploy: `firebase deploy`
+4. Production changes require owner review. Hosting releases must use the explicitly authorized Hosting-only process after release gates pass. Never use an unrestricted `firebase deploy` command.
 
 **Never commit** `firebase/` secrets, `.env` files, or API keys that must remain private.
 The Firebase client config itself (project ID, public API key) is safe to include in
@@ -111,14 +109,21 @@ exercise the real rules engine, not a stub):
 ```powershell
 npm install -g firebase-tools
 cd tests\rules
-npm install
+npm ci
 cd ..\..
 firebase emulators:exec --only firestore --project vegansaathi-rules-test "node --test tests/rules/firestore.rules.test.mjs"
 ```
 
-See `tests/rules/README.md` for the full setup and for the separate "proposed changes" suite
-(`firestore.rules.proposed.test.mjs`), which is expected to fail until the hardening changes
-in `docs/FIREBASE_SECURITY.md` are actually applied.
+See `tests/rules/README.md` for the full setup and separate active and proposed suites. The
+proposed suite exercises `firebase/firestore.rules.proposed`; its results do not describe the
+active rules file. Current exact counts and commands are in `docs/TEST_RESULTS.md`.
+
+The historical Maharashtra lead CSV is absent, and the research template contains only its
+header. No real place data has been acquired or imported by the candidate pipeline.
+The Place Intelligence registry is served as a generated allowlisted projection in
+`frontend/data/source_registry.json`; regenerate it from the internal registry with
+`node scripts/build-public-source-registry.mjs`. Internal source notes and acquisition details
+remain outside the Hosting public directory.
 
 **What is and isn't verified by these tests:** `tests/run_all.sh` proves application logic
 and rendering against stubbed services. The emulator suite proves the rules file's actual

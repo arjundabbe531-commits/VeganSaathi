@@ -1,5 +1,9 @@
 # Firestore security-rules tests
 
+**Latest local emulator results (6 November 2026):** active rules 63/63 and proposed
+reference 17/17, both exit 0. The two commands load different rules files and are run
+separately. They do not establish production rules state; see `docs/TEST_RESULTS.md`.
+
 These tests run rules files inside the **Firestore emulator**. They never contact the live
 project and are not part of `tests/run_all.ps1`. The active suite loads
 `firebase/firestore.rules`; the separate reference suite loads
@@ -23,7 +27,7 @@ project and are not part of `tests/run_all.ps1`. The active suite loads
 3. Install the test libraries, pinned in `tests\rules\package.json`:
 
        cd tests\rules
-       npm install
+       npm ci
        cd ..\..
 
 4. Check the installed versions match. `@firebase/rules-unit-testing` declares which

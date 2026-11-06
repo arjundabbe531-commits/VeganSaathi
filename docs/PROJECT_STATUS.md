@@ -1,4 +1,6 @@
-> **Current test figures (Candidate Baseline 2026-11-05):** 513 total automated local checks passed (162 Node unit test checks + 245 Playwright browser checks + 2 static gates across 17 pages + 42 syntax checks + 62 Firestore emulator security rules tests). 0 failures across all suites. See canonical verification count in `docs/TEST_RESULTS.md`.
+> **Current candidate state (6 November 2026):** PR #1 remains open and unmerged. Candidate contains the evidence-based approval, fixture isolation, taxonomy, photo-rights and public trust changes. Latest local suites: 637 checks passed, 0 failed (221 Node, 28 Python, 256 browser, 2 static, 50 syntax, 63 active rules, 17 proposed rules). See `docs/TEST_RESULTS.md`. These local and emulator results do not establish production state. No production services were changed.
+
+> **Research status:** `research/maharashtra_research_leads.csv` is absent. Historical 22/23 lead counts and fieldwork/menu-verification statements are unsupported by row-level evidence and must not be treated as acquired or verified records. All three research CSV templates contain headers only; fabricated sample venue and fieldwork rows were removed to prevent accidental import.
 
 # PROJECT_STATUS.md — VeganSaathi
 
@@ -11,9 +13,9 @@ picking the project back up.*
   - Cloudinary Dual-Input Photo Pipeline: Local device upload + camera + drag-and-drop (Option A) and direct image web address validation & remote upload mirroring (Option B) with live pre-flight checks and unified preview card.
   - Community Member Access Gating: Dynamic navbar configuration hiding contribution links for logged-out visitors; polite authentication gate card on `submit-place.html` with context and login/register redirect buttons.
   - Indian Vegan Alternatives Reference Guide: 10 Indian food categories (dairy milk, paneer, dahi, ghee, butter, chai/coffee, sweets, cheese, malai, egg swaps) with real-world cost comparisons, preparation time, allergen filters, and culinary tips (`alternatives/index.html`, `alternatives-data.js`, `alternatives-page.js`).
-  - Maharashtra Regional Data Expansion: 22 curated research leads across Mumbai, Pune, Nagpur, Nashik, Thane, Navi Mumbai, Kolhapur, Chhatrapati Sambhajinagar, and Shegaon (`research/maharashtra_research_leads.csv`, `docs/MAHARASHTRA_EXPANSION_REPORT.md`).
+  - Maharashtra research status: no reproducible lead dataset is present. See `docs/MAHARASHTRA_EXPANSION_REPORT.md`; no real-world place data was acquired or imported.
   - Firebase Performance Optimization: 5-minute in-memory & `sessionStorage` caching for `fetchPublishedPlaces` (repeat loads <1ms), profile caching for `fetchUserProfile`, and animated skeleton cards on `explore.html`.
-  - Full local test coverage: 162 Node unit tests passing (0 failures).
+  - Earlier phase test counts are historical. Current candidate results are maintained only in `docs/TEST_RESULTS.md`.
 - Phase 0 -- Environment audit
 - Phase 1 -- Foundation docs
 - Phase 2 -- Static frontend shell (12 pages, mock data, components, Leaflet map). Verified
@@ -146,7 +148,7 @@ Documentation gaps closed in this session:
 - Full test re-run confirmed (historical): **278 passed, 0 failed** on 2026-10-13 (same as the original
   Phase 9 result — no regressions from the documentation changes).
 
-## Integration status — 2026-10-15
+## Historical integration snapshot — 2026-10-15 (superseded)
 
 Merged baseline in `VeganSaathi-Merged/` (see `docs/INTEGRATION_REPORT.md`).
 
@@ -164,7 +166,7 @@ Merged baseline in `VeganSaathi-Merged/` (see `docs/INTEGRATION_REPORT.md`).
 Next task: run `tests/rules/` on the user's machine with the emulator, then decide on proposals
 R1–R3 before any rules deployment.
 
-## Reconciliation and final verification — 2026-10-15
+## Historical reconciliation snapshot — 2026-10-15 (superseded by current candidate state above)
 
 This section supersedes the earlier integration section where the two disagree.
 
@@ -173,26 +175,16 @@ the re-verification browser test (`tests/browser/test_reverify_prompt.py`), appr
 on stored places, the awareness corrections, the rules-fixture check, the rules test split, the
 emulator configuration, and the matching schema and test-result text.
 
-**Firestore rules — status of each item, stated plainly:**
-- Current rule behaviour: tested in `tests/rules/firestore.rules.test.mjs` (50 cases, including
-  4 documented GAP cases that assert today's permissive behaviour). **NOT RUN** — needs the emulator.
-- Proposed rules R1 (length caps), R2 (reviews only on published places), R3 (restricted user
-  updates): **NOT APPLIED. NOT TESTED.** They live in `docs/proposals/` and in
-  `tests/rules/firestore.rules.proposed.test.mjs` (7 cases, expected to FAIL until applied).
-- A static check (`tests/rules/check_fixture_static.py`, run in `run_all.sh`) confirms the rules
-  test fixture matches the place-create rule. It does not execute the rules.
-
-**Test results on the merged working copy (sandbox, stubbed services):** 310 test checks
-pass (65 Node, 245 browser), plus 2 static gates. Runner sum 312. Zero failures. Firestore emulator: not run.
+The statements in this historical snapshot about emulator tests not being run, proposed rules
+not being applied, and earlier test counts no longer describe the candidate. Use the current
+test table at the top of this document and `docs/TEST_RESULTS.md` instead.
 
 **Content:** the awareness pages no longer contain the unverified campus-pharmacy price claim,
 the "gut bacteria" B12 statement, the "must obtain" directive, or the unverified NHS/ICMR protein
 attribution. Harvard and Vegan Society links that could not be checked are listed in
 `docs/INTEGRATION_REPORT.md` as unverified.
 
-**Next recommended task:** run the emulator rules suite on the user's machine (commands in
-`tests/rules/README.md`). Only if the current-behaviour suite passes should R1–R3 be applied,
-and then the proposed suite run to confirm each change.
+No current task should be inferred from this historical snapshot.
 
 ## Technovate Phase 1 — Global Discovery & Geographic Generalization (2026-10-23)
 

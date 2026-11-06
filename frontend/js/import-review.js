@@ -8,6 +8,9 @@
 
 // Embedded default sample datasets for instant zero-config exploration
 const GEMINI_SAMPLE_REPORT = {
+  is_synthetic_fixture: true,
+  dataset_origin: "synthetic_test_fixture",
+  synthetic_dataset_version: "offline-review-demo-v1",
   inputFile: "research/master_package/places_app_import.csv",
   timestamp: "2026-10-24T00:15:00.000Z",
   summary: {
@@ -133,6 +136,9 @@ const GEMINI_SAMPLE_REPORT = {
 };
 
 const SYNTHETIC_STAGING_REPORT = {
+  is_synthetic_fixture: true,
+  dataset_origin: "synthetic_test_fixture",
+  synthetic_dataset_version: "offline-review-demo-v1",
   inputFile: "research/sample_research_places.csv",
   timestamp: "2026-10-24T00:18:00.000Z",
   summary: {
@@ -241,9 +247,9 @@ function escapeHtml(str) {
 
 function updateStats(records) {
   const total = records.length;
-  const eligible = records.filter(r => r.classification === "IMPORT_ELIGIBLE").length;
-  const advisories = records.filter(r => r.classification === "IMPORT_ELIGIBLE_WITH_ADVISORIES").length;
-  const blocked = records.filter(r => r.classification === "BLOCKED_PRELIMINARY_LEAD").length;
+  const eligible = records.filter(r => !r.is_synthetic_fixture && r.classification === "IMPORT_ELIGIBLE").length;
+  const advisories = records.filter(r => !r.is_synthetic_fixture && r.classification === "IMPORT_ELIGIBLE_WITH_ADVISORIES").length;
+  const blocked = records.filter(r => r.is_synthetic_fixture || r.classification === "BLOCKED_PRELIMINARY_LEAD").length;
 
   document.getElementById("statTotal").textContent = total;
   document.getElementById("statEligible").textContent = eligible;
@@ -255,9 +261,9 @@ function renderRecords(records) {
   const container = document.getElementById("recordsContainer");
   const filtered = records.filter(r => {
     if (currentFilter === "all") return true;
-    if (currentFilter === "eligible") return r.classification === "IMPORT_ELIGIBLE";
-    if (currentFilter === "advisories") return r.classification === "IMPORT_ELIGIBLE_WITH_ADVISORIES";
-    if (currentFilter === "blocked") return r.classification === "BLOCKED_PRELIMINARY_LEAD";
+    if (currentFilter === "eligible") return !r.is_synthetic_fixture && r.classification === "IMPORT_ELIGIBLE";
+    if (currentFilter === "advisories") return !r.is_synthetic_fixture && r.classification === "IMPORT_ELIGIBLE_WITH_ADVISORIES";
+    if (currentFilter === "blocked") return r.is_synthetic_fixture || r.classification === "BLOCKED_PRELIMINARY_LEAD";
     return true;
   });
 
@@ -274,7 +280,7 @@ function renderRecords(records) {
   }
 
   container.innerHTML = filtered.map(rec => {
-    const isBlocked = rec.classification === "BLOCKED_PRELIMINARY_LEAD";
+    const isBlocked = rec.is_synthetic_fixture || rec.classification === "BLOCKED_PRELIMINARY_LEAD";
     const hasAdvisories = rec.classification === "IMPORT_ELIGIBLE_WITH_ADVISORIES";
 
     let cardClass = "status-eligible";
@@ -284,7 +290,7 @@ function renderRecords(records) {
     if (isBlocked) {
       cardClass = "status-blocked";
       badgeClass = "badge-blocked";
-      statusText = "Blocked Preliminary Lead";
+      statusText = rec.is_synthetic_fixture ? "Synthetic test fixture — blocked" : "Blocked Preliminary Lead";
     } else if (hasAdvisories) {
       cardClass = "status-advisory";
       badgeClass = "badge-advisory";
@@ -401,9 +407,24 @@ function renderRecords(records) {
 }
 
 function loadReport(report) {
-  currentReport = report;
-  updateStats(report.records || []);
-  renderRecords(report.records || []);
+  const reportIsSynthetic = report?.is_synthetic_fixture === true || report?.dataset_origin === "synthetic_test_fixture";
+  const records = Array.isArray(report?.records) ? report.records.map((record) => {
+    const hasFixtureId = typeof record.sourceId === "string" && /^(?:RES-)?SYNTH(?:ETIC)?[-_]/i.test(record.sourceId);
+    if (!reportIsSynthetic && record.is_synthetic_fixture !== true && record.dataset_origin !== "synthetic_test_fixture" && !hasFixtureId) return record;
+    return {
+      ...record,
+      is_synthetic_fixture: true,
+      dataset_origin: "synthetic_test_fixture",
+      synthetic_dataset_version: record.synthetic_dataset_version || report.synthetic_dataset_version || "unknown-synthetic-fixture",
+      classification: "BLOCKED_PRELIMINARY_LEAD",
+      verificationStatus: "unverified",
+      lastVerifiedAt: "",
+      blockers: [...(Array.isArray(record.blockers) ? record.blockers : []), "Synthetic test fixture: never stage or publish this record."]
+    };
+  }) : [];
+  currentReport = { ...report, records };
+  updateStats(records);
+  renderRecords(records);
 }
 
 function setupEventListeners() {

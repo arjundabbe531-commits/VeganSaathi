@@ -1,0 +1,26 @@
+# Feature verification matrix — candidate local evidence
+
+Reviewed 6 November 2026. **PASS** below means the listed local automated behavior passed in its test environment; it does not imply Firebase production or Hosting has been exercised. A live review against production credentials would be required for those claims.
+
+| Feature | Expected behaviour | Actual result | Test evidence | Status |
+|---|---|---|---|---|
+| Email/password, Google sign-in, reset, logout and navbar | Auth actions and signed-in state transitions have clear outcomes | Browser regressions cover signed-out/in/admin UI with stubbed Firebase | `tests/browser/test_phase4_regression.py` (38) | PASS |
+| User profile | Auth-gated profile and user data rendering | Profile and auth guards are covered by browser regression tests; no live auth session verified | `tests/browser/test_phase4_regression.py` | PASS |
+| Explore/search/filter/map | Search, type/price filters, evidence-gated vegan filter, verified filter, map/list and errors | Current browser suite passes; vegan filter excludes records without qualifying evidence; public dietary filter exposes vegan only | `tests/browser/test_explore_firestore.py` (31), `test_5_4_map_robustness.py` (16) | PASS |
+| Place details | Correct record, safe rendering, dated verification and only evidence-qualified vegan badge | Browser suite passes; unverified listing does not show vegan badge | `tests/browser/test_place_details_firestore.py` (42) | PASS |
+| Community contributions | Auth required, submission remains pending/unverified | Auth-gating browser regressions and service tests pass; production Firestore not exercised | `test_phase4_regression.py` (38), `tests/test-places-service.mjs` (46) | PASS |
+| Photo submission/moderation | Rights evidence is traceable; unsupported intake is unavailable | Photo creation remains disabled; production rights validator and approval history have tests | `tests/test-photo-rights.mjs` (3), active rules suite (63) | DISABLED |
+| Saved places | Owner-bound save/unsave and saved page states | Service and signed-in UI paths covered locally; no live cross-device persistence check | `tests/test-places-service.mjs`, `test_phase4_regression.py` | PASS |
+| Reviews and reports | Validate input, enforce ownership, and expose moderation actions | Service, details-page and admin browser tests pass | `tests/test-places-service.mjs`, `test_place_details_firestore.py` (42), `test_admin_dashboard.py` (21) | PASS |
+| Admin dashboard | Admin gate, moderation queues and actions | Stubbed browser suite and production service tests pass; no live admin session exercised | `test_admin_dashboard.py` (21), `tests/test-admin-service.mjs` (30) | PASS |
+| Place Intelligence | Registry, staging, review, evidence-bound approval and re-verification | Approval and intelligence functions tested; source registry now loads via an allowlisted generated Hosting projection. Overture live acquisition fails closed because project-level zero-cost access is unverified | `tests/test-candidate-approval.mjs` (26), `tests/test-place-intelligence.mjs` (23), `tests/test-public-source-registry.mjs` (1), Python pipeline (28) | PASS |
+| Real-world dataset acquisition/expansion | Acquire only where access, licence, attribution and zero-cost status are verified | No external data acquired; Overture and Foursquare remain blocked pending verified zero-cost access and terms; research templates contain headers only | Python pipeline suite (28); source registry approval gate | BLOCKED |
+| Private master dietary research model | Store vegan, vegetarian, eggetarian and Jain claims separately by scope and evidence | Target model documented; full per-category claim storage and migration are not implemented. No data was acquired | `docs/RESEARCH_DATA_MODEL.md` | NEEDS OWNER ACTION |
+| Future claims/edit suggestions | Strict schemas and controlled transitions | Both collection paths deny all client reads/writes until a complete workflow is approved | Active emulator rules suite (63) | DISABLED |
+| Awareness and alternatives | Pages, links, search and category filters render and work locally | Existing awareness and alternatives suites pass; nutrition claims remain bounded to cited copy | `test_awareness_content.py` (66), `tests/test-alternatives.mjs` (6) | PASS |
+| Current responsive and accessibility review | Verify 320, 375/390, 768, 1024 and 1440 widths; keyboard, focus, contrast, reduced motion and dialogs | No complete viewport-by-viewport WCAG 2.2 AA audit or accessibility automation was run for this candidate | No qualifying test evidence | NEEDS OWNER ACTION |
+| Production Firebase and public deployment | Confirm live auth, reads, Hosting assets and source registry in deployed app | No production Firebase, Cloudinary or Hosting operation was run | Explicitly outside these local tests | BLOCKED |
+
+## Scope note
+
+This matrix is a behavior-level inventory of the existing test evidence, not a claim that every feature has been tested end-to-end against a live account. The UI copy was also corrected to remove unsupported claims of team fieldwork, vendor checks and an automatically queued 90-day audit. The public vegan identity remains evidence-first. A full visual redesign and accessibility audit remain outstanding.

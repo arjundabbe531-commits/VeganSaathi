@@ -162,7 +162,7 @@ async function loadSourceRegistry() {
   if (!container) return;
 
   try {
-    const resp = await fetch("../../scripts/data-pipeline/source_registry.json");
+    const resp = await fetch("../data/source_registry.json");
     if (!resp.ok) throw new Error("Not found");
     const data = await resp.json();
     renderSourceRegistry(data.sources || [], container);
@@ -220,16 +220,7 @@ function renderSourceRegistryFallback(container) {
         Source registry file not accessible from browser.
         View <code>scripts/data-pipeline/source_registry.json</code> for the full source inventory.
         <br><br>
-        <strong>Summary of approved sources:</strong>
-        <ul class="mb-0 mt-2">
-          <li>✅ <strong>Overture Maps</strong> — CDLA Permissive 2.0 — Free, no credentials needed</li>
-          <li>✅ <strong>OpenStreetMap (Geofabrik)</strong> — ODbL 1.0 — Free, download PBF locally</li>
-          <li>⚠️ <strong>Foursquare OS Places</strong> — Apache 2.0 — Free but requires owner registration at places.foursquare.com</li>
-          <li>⚠️ <strong>Openverse Images</strong> — Per-image CC licences — Free API, verify each image individually</li>
-          <li>⚠️ <strong>SHARAN India</strong> — Research leads only — no automated adapter</li>
-          <li>🚫 <strong>HappyCow</strong> — BLOCKED — Terms prohibit scraping or competing database creation</li>
-          <li>🚫 <strong>Google Places</strong> — BLOCKED — Terms prohibit bulk import and storage</li>
-        </ul>
+        <strong>Source details are unavailable.</strong> Acquisition remains blocked until the current source registry can be loaded and its access, licence, attribution and cost conditions are reviewed.
       </div>
     </div>`;
 }

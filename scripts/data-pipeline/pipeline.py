@@ -47,6 +47,7 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger("vegansaathi.pipeline")
+SOURCE_REGISTRY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "source_registry.json")
 
 
 def ensure_dirs():
@@ -59,8 +60,26 @@ def make_batch_id(source: str) -> str:
     return f"{source}-{ts}-{uuid.uuid4().hex[:6]}"
 
 
+def is_source_approved(source_id: str) -> bool:
+    """Fail closed unless the internal source registry explicitly approves acquisition."""
+    try:
+        with open(SOURCE_REGISTRY_PATH, "r", encoding="utf-8") as handle:
+            registry = json.load(handle)
+        source = next((item for item in registry.get("sources", []) if item.get("id") == source_id), None)
+    except (OSError, json.JSONDecodeError, AttributeError) as exc:
+        logger.error("Source registry is unavailable or invalid; acquisition blocked (%s).", type(exc).__name__)
+        return False
+    if not source or source.get("review_status") != "approved":
+        status = source.get("review_status", "missing") if source else "missing"
+        logger.error("Source %s is not approved for acquisition (review_status=%s).", source_id, status)
+        return False
+    return True
+
+
 def run_overture(args):
     """Run the Overture Maps Maharashtra extraction."""
+    if not is_source_approved("overture-maps-places"):
+        return [], None
     ensure_dirs()
     batch_id = make_batch_id("overture")
     output = args.output or f"data/processed/overture_{datetime.now().strftime('%Y%m%d')}.ndjson"
@@ -99,6 +118,8 @@ def run_overture(args):
 
 def run_osm(args):
     """Run the OSM PBF extraction."""
+    if not is_source_approved("openstreetmap-geofabrik"):
+        return [], None
     ensure_dirs()
     pbf_path = args.pbf
 

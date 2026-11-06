@@ -134,10 +134,15 @@ def main():
 
             # ---- 5. Filters update markers correctly ----
             ctx, pg, errs = new_page(browser)
+            import datetime
+            dietary_checked = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             goto_explore(pg, [
                 place("p1", dietTags=["vegan"], verificationStatus="verified",
                       veganClassification="verified_vegan_options", evidenceStatus="ingredients_reviewed",
-                      verificationDimensions={"vegan_options_verified": True}),
+                      verificationDimensions={"vegan_options_verified": True},
+                      evidenceRefs=[{"claim": "vegan_options", "url": "https://example.org/menu",
+                                     "lastCheckedAt": dietary_checked, "validity": "current",
+                                     "strength": "direct", "excerpt": "Vegan meals are prepared without animal ingredients."}]),
                 place("p2", dietTags=["vegetarian"])
             ])
             click_map(pg)

@@ -210,7 +210,8 @@ class TestDataPipeline(unittest.TestCase):
             output = os.path.join(temp_dir, "data", "processed", "overture.ndjson")
             try:
                 os.chdir(temp_dir)
-                with patch.object(pipeline_module, "ensure_dirs"), \
+                with patch.object(pipeline_module, "is_source_approved", return_value=True), \
+                     patch.object(pipeline_module, "ensure_dirs"), \
                      patch.object(OvertureAdapter, "validate_config", return_value=True), \
                      patch.object(OvertureAdapter, "fetch_records", return_value=iter([])):
                     _, manifest = pipeline_module.run_overture(SimpleNamespace(output=output, dry_run=False, limit=None))
@@ -226,6 +227,18 @@ class TestDataPipeline(unittest.TestCase):
         self.assertEqual(manifest.extraction_date, datetime.now(timezone.utc).date().isoformat())
         self.assertEqual(saved["output_checksum_sha256"], output_checksum)
         self.assertIn("output_checksum_sha256", saved["checksum_scope"])
+
+    def test_overture_acquisition_is_blocked_when_source_registry_does_not_approve_it(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import pipeline as pipeline_module
+        self.assertFalse(pipeline_module.is_source_approved("overture-maps-places"))
+        with patch.object(pipeline_module, "is_source_approved", return_value=False), \
+             patch.object(pipeline_module, "OvertureAdapter") as adapter:
+            candidates, manifest = pipeline_module.run_overture(SimpleNamespace(output=None, dry_run=False, limit=None))
+        self.assertEqual(candidates, [])
+        self.assertIsNone(manifest)
+        adapter.assert_not_called()
 
     def test_default_all_pipeline_excludes_synthetic_foursquare_fixtures(self):
         from unittest.mock import patch

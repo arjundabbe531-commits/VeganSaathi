@@ -57,6 +57,8 @@ Community submissions (Phase 6) use auto-generated IDs.
 | createdAt | timestamp | yes | Document creation timestamp |
 | updatedAt | timestamp | yes | Document last updated timestamp |
 
+Private research needs distinct, scope-specific vegan, vegetarian, eggetarian and Jain claims with separate evidence status and review history. The present Firestore schema is not yet a full implementation of that target. See `docs/RESEARCH_DATA_MODEL.md`; it records the target shape and implementation boundary without changing production data or rules.
+
 ### Three-Tier Data Separation Model
 
 To protect public performance, privacy, and schema simplicity while supporting deep research provenance, place data is strictly separated into three tiers:
