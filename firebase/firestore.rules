@@ -225,14 +225,11 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
-    // ---------------- editSuggestions (Should-Have — not built until a later phase) ----------------
+    // ---------------- editSuggestions (disabled until a strict schema and workflow are approved) ----------------
     match /editSuggestions/{suggestionId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.suggestedBy == request.auth.uid);
-      allow create: if isSignedIn()
-        && request.resource.data.suggestedBy == request.auth.uid
-        && request.resource.data.status == "pending";
-      allow update: if isAdmin();
-      allow delete: if false;
+      // No client writes are permitted while this future workflow is unimplemented.
+      allow create, update, delete: if false;
     }
 
     // ---------------- placeCandidates (Place Intelligence staging) ----------------
@@ -315,14 +312,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // ---------------- businessClaims (Business owner claim workflow) ----------------
+    // ---------------- businessClaims (disabled until identity-proof and status schemas are approved) ----------------
     match /businessClaims/{claimId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.status == "pending";
-      allow update: if isAdmin();
-      allow delete: if false;
+      // A claim is not business ownership proof; disable writes until reviewed controls exist.
+      allow create, update, delete: if false;
     }
 
     // Deny anything not explicitly matched above.

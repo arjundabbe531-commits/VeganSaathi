@@ -427,6 +427,59 @@ class TestDataPipeline(unittest.TestCase):
                       "schema_version must reference v2.0")
 
 
+
+class TestOSMGeometryAndOvertureStreaming(unittest.TestCase):
+    def test_closed_osm_way_uses_ring_centroid(self):
+        from adapters.osm_adapter import _representative_lon_lat_from_points
+        point = _representative_lon_lat_from_points([
+            (72.0, 18.0), (74.0, 18.0), (74.0, 20.0), (72.0, 20.0), (72.0, 18.0)
+        ])
+        self.assertIsNotNone(point)
+        self.assertAlmostEqual(point[0], 73.0, places=6)
+        self.assertAlmostEqual(point[1], 19.0, places=6)
+
+    def test_open_osm_way_uses_mean_of_valid_vertices(self):
+        from adapters.osm_adapter import _representative_lon_lat_from_points
+        point = _representative_lon_lat_from_points([(72.0, 18.0), (74.0, 20.0), (None, 19.0)])
+        self.assertIsNotNone(point)
+        self.assertAlmostEqual(point[0], 73.0, places=6)
+        self.assertAlmostEqual(point[1], 19.0, places=6)
+
+    def test_geojson_polygon_and_multipolygon_produce_representative_points(self):
+        from adapters.osm_adapter import _geojson_representative_lon_lat
+        polygon = {
+            "type": "Polygon",
+            "coordinates": [[[72.0, 18.0], [74.0, 18.0], [74.0, 20.0], [72.0, 20.0], [72.0, 18.0]]],
+        }
+        self.assertEqual(_geojson_representative_lon_lat(polygon), (73.0, 19.0))
+        multi = {
+            "type": "MultiPolygon",
+            "coordinates": [
+                [[[70.0, 10.0], [71.0, 10.0], [71.0, 11.0], [70.0, 11.0], [70.0, 10.0]]],
+                [[[72.0, 18.0], [74.0, 18.0], [74.0, 20.0], [72.0, 20.0], [72.0, 18.0]]],
+            ],
+        }
+        self.assertEqual(_geojson_representative_lon_lat(multi), (73.0, 19.0))
+
+    def test_overture_fetch_records_uses_bounded_fetchmany_and_closes_connection(self):
+        from unittest.mock import MagicMock, patch
+        result = MagicMock()
+        result.description = [("gers_id",), ("name",)]
+        result.fetchmany.side_effect = [[("g-1", "Test Cafe")], []]
+        connection = MagicMock()
+        connection.execute.return_value = result
+        duckdb = MagicMock()
+        duckdb.connect.return_value = connection
+
+        with patch.dict(sys.modules, {"duckdb": duckdb}):
+            rows = list(OvertureAdapter(config={}).fetch_records(dry_run=True))
+
+        self.assertEqual(rows, [{"gers_id": "g-1", "name": "Test Cafe"}])
+        self.assertEqual(result.fetchmany.call_args_list[0].args, (1000,))
+        result.fetchall.assert_not_called()
+        connection.close.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()
 

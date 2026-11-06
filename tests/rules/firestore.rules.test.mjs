@@ -387,3 +387,26 @@ describe("Photo rights declaration enforcement", () => {
     await assertFails(setDoc(doc(as("u1"), "placePhotos", "photo-missing-place"), missingPlacePhoto));
   });
 });
+
+
+describe("Unimplemented future workflows remain write-disabled", () => {
+  it("blocks editSuggestions writes by users and administrators", async () => {
+    await seedUsers();
+    const ownSuggestion = { suggestedBy: "u1", placeId: "pub1", status: "pending", note: "Correction" };
+    await assertFails(setDoc(doc(as("u1"), "editSuggestions", "suggestion-user"), ownSuggestion));
+    await assertFails(setDoc(doc(as("admin1"), "editSuggestions", "suggestion-admin"), ownSuggestion));
+    await seed(env, async (db) => setDoc(doc(db, "editSuggestions", "suggestion-existing"), ownSuggestion));
+    await assertFails(updateDoc(doc(as("admin1"), "editSuggestions", "suggestion-existing"), { status: "approved" }));
+    await assertFails(deleteDoc(doc(as("admin1"), "editSuggestions", "suggestion-existing")));
+  });
+
+  it("blocks businessClaims writes by users and administrators", async () => {
+    await seedUsers();
+    const ownClaim = { userId: "u1", placeId: "pub1", status: "pending" };
+    await assertFails(setDoc(doc(as("u1"), "businessClaims", "claim-user"), ownClaim));
+    await assertFails(setDoc(doc(as("admin1"), "businessClaims", "claim-admin"), ownClaim));
+    await seed(env, async (db) => setDoc(doc(db, "businessClaims", "claim-existing"), ownClaim));
+    await assertFails(updateDoc(doc(as("admin1"), "businessClaims", "claim-existing"), { status: "approved" }));
+    await assertFails(deleteDoc(doc(as("admin1"), "businessClaims", "claim-existing")));
+  });
+});

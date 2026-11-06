@@ -22,6 +22,7 @@ Zero-budget policy: Geofabrik is free. No commercial geocoding.
 from __future__ import annotations
 import logging
 import json
+import math
 import subprocess
 import os
 from datetime import datetime, timezone
@@ -47,6 +48,94 @@ FOOD_AMENITIES = set(OSM_AMENITY_MAP)
 
 # OSM shop tags that are food-relevant
 FOOD_SHOPS = set(OSM_SHOP_MAP)
+
+
+
+def _normalise_lon_lat_points(points):
+    """Return finite [lon, lat] pairs from a flat coordinate sequence."""
+    normalised = []
+    for point in points or []:
+        if not isinstance(point, (list, tuple)) or len(point) < 2:
+            continue
+        try:
+            lon, lat = float(point[0]), float(point[1])
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(lon) and math.isfinite(lat) and -180 <= lon <= 180 and -90 <= lat <= 90:
+            normalised.append((lon, lat))
+    return normalised
+
+
+def _ring_area_and_centroid(points):
+    """Return (absolute_area, centroid_lon_lat) for a closed or closeable ring."""
+    if len(points) < 3:
+        return 0.0, None
+    ring = list(points)
+    if ring[0] != ring[-1]:
+        ring.append(ring[0])
+    area_twice = cx_sum = cy_sum = 0.0
+    for (x1, y1), (x2, y2) in zip(ring, ring[1:]):
+        cross = x1 * y2 - x2 * y1
+        area_twice += cross
+        cx_sum += (x1 + x2) * cross
+        cy_sum += (y1 + y2) * cross
+    if abs(area_twice) < 1e-12:
+        return 0.0, None
+    centroid = (cx_sum / (3.0 * area_twice), cy_sum / (3.0 * area_twice))
+    if not all(math.isfinite(value) for value in centroid):
+        return 0.0, None
+    return abs(area_twice) / 2.0, centroid
+
+
+def _representative_lon_lat_from_points(points):
+    """Use polygon centroid for a closed ring, otherwise mean the way vertices."""
+    normalised = _normalise_lon_lat_points(points)
+    if not normalised:
+        return None
+    if len(normalised) >= 4 and normalised[0] == normalised[-1]:
+        _, centroid = _ring_area_and_centroid(normalised)
+        if centroid is not None:
+            return centroid
+    return (
+        sum(point[0] for point in normalised) / len(normalised),
+        sum(point[1] for point in normalised) / len(normalised),
+    )
+
+
+def _geojson_representative_lon_lat(geometry):
+    """Extract a representative coordinate from GeoJSON Point/Line/Polygon geometry."""
+    if not isinstance(geometry, dict):
+        return None
+    geometry_type = geometry.get("type")
+    coordinates = geometry.get("coordinates")
+    if geometry_type == "Point":
+        points = _normalise_lon_lat_points([coordinates])
+        return points[0] if points else None
+    if geometry_type in ("LineString", "MultiPoint"):
+        return _representative_lon_lat_from_points(coordinates)
+    if geometry_type == "MultiLineString":
+        flattened = [point for segment in (coordinates or []) for point in (segment or [])]
+        return _representative_lon_lat_from_points(flattened)
+    if geometry_type == "Polygon":
+        rings = coordinates or []
+        return _representative_lon_lat_from_points(rings[0]) if rings else None
+    if geometry_type == "MultiPolygon":
+        outer_rings = [polygon[0] for polygon in (coordinates or []) if polygon]
+        candidates = []
+        for ring in outer_rings:
+            points = _normalise_lon_lat_points(ring)
+            area, centroid = _ring_area_and_centroid(points)
+            if centroid is not None:
+                candidates.append((area, centroid))
+        if candidates:
+            return max(candidates, key=lambda item: item[0])[1]
+        return _representative_lon_lat_from_points(outer_rings[0]) if outer_rings else None
+    if geometry_type == "GeometryCollection":
+        for child in geometry.get("geometries", []):
+            point = _geojson_representative_lon_lat(child)
+            if point is not None:
+                return point
+    return None
 
 
 class OSMAdapter(BaseSourceAdapter):
@@ -126,18 +215,30 @@ class OSMAdapter(BaseSourceAdapter):
                 if amenity not in FOOD_AMENITIES and shop not in FOOD_SHOPS:
                     return
 
-                # Get coordinates
+                # Get node coordinates or a representative point for a way.
                 if is_way:
-                    if not obj.nodes:
+                    way_points = []
+                    for node_ref in obj.nodes:
+                        try:
+                            location = node_ref.location
+                            if not location.valid():
+                                continue
+                            way_points.append((float(location.lon), float(location.lat)))
+                        except (AttributeError, TypeError, ValueError, RuntimeError):
+                            continue
+                    representative = _representative_lon_lat_from_points(way_points)
+                    if representative is None:
                         return
-                    # For ways, use centroid approximation from first node
-                    lat = None
-                    lon = None
+                    lon, lat = representative
                 else:
                     try:
                         lat = float(obj.location.lat)
                         lon = float(obj.location.lon)
-                    except Exception:
+                    except (AttributeError, TypeError, ValueError, RuntimeError):
+                        lat = lon = None
+                    if lat is not None and lon is not None and (
+                        not math.isfinite(lat) or not math.isfinite(lon)
+                    ):
                         lat = lon = None
 
                 # Maharashtra bounding box filter (applied after tag filter for efficiency)
@@ -231,17 +332,16 @@ class OSMAdapter(BaseSourceAdapter):
         for feat in data.get("features", []):
             props = feat.get("properties", {})
             geom = feat.get("geometry", {})
-            if geom.get("type") != "Point":
+            geom_type = geom.get("type")
+            representative = _geojson_representative_lon_lat(geom)
+            if representative is None:
                 continue
-            coords = geom.get("coordinates", [])
-            if len(coords) < 2:
-                continue
-            lon, lat = coords[0], coords[1]
+            lon, lat = representative
             if not (15.5 <= lat <= 22.1 and 72.5 <= lon <= 81.0):
                 continue
             record = {
                 "osm_id": str(props.get("@id", "")),
-                "osm_type": str(props.get("@type", "node")),
+                "osm_type": str(props.get("@type") or ("way" if geom_type in ("LineString", "MultiLineString", "Polygon", "MultiPolygon") else "node")),
                 "name": props.get("name", ""),
                 "amenity": props.get("amenity", ""),
                 "shop": props.get("shop", ""),

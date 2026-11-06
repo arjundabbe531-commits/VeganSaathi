@@ -170,34 +170,35 @@ class OvertureAdapter(BaseSourceAdapter):
         query = self._build_query(dry_run=dry_run)
         self.logger.info(f"Overture: executing DuckDB query (dry_run={dry_run})")
 
+        conn = None
         try:
             conn = duckdb.connect(database=":memory:")
-            # Execute multi-statement setup + query
-            # Split on the final SELECT
+            # Execute multi-statement setup + query.
             setup_parts = query.strip().split("SELECT", 1)
             if len(setup_parts) == 2:
                 setup_sql = setup_parts[0].strip()
                 select_sql = "SELECT" + setup_parts[1]
-                # Run setup statements
                 for stmt in setup_sql.split(";"):
                     stmt = stmt.strip()
                     if stmt:
-                        try:
-                            conn.execute(stmt)
-                        except Exception:
-                            pass  # Extensions may already be loaded
+                        conn.execute(stmt)
                 result = conn.execute(select_sql)
             else:
                 result = conn.execute(query)
 
             columns = [desc[0] for desc in result.description]
-            for row in result.fetchall():
-                yield dict(zip(columns, row))
-
-            conn.close()
+            while True:
+                rows = result.fetchmany(1000)
+                if not rows:
+                    break
+                for row in rows:
+                    yield dict(zip(columns, row))
         except Exception as e:
-            self.logger.error(f"Overture fetch failed: {e}")
+            self.logger.error(f"Overture fetch failed: {type(e).__name__}")
             raise
+        finally:
+            if conn is not None:
+                conn.close()
 
     def map_record(self, raw: Dict[str, Any]) -> Optional[CandidateRecord]:
         """Map a raw Overture v2.0 record to a CandidateRecord.

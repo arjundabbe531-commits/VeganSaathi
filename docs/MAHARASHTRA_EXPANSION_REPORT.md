@@ -1,74 +1,80 @@
-# VeganSaathi — Maharashtra Statewide Research Expansion Report
+# VeganSaathi — Maharashtra Research Expansion Evidence Status
 
-**Project:** VeganSaathi (SSGMCE Community Engagement Project)  
-**Document:** Maharashtra Regional Expansion Report  
-**Dataset:** `research/maharashtra_research_leads.csv`  
-**Status:** Research Leads Curation & Verification Pipeline  
-**Date:** November 2026
+**Project:** VeganSaathi  
+**Document purpose:** Correct the evidence status of the earlier Maharashtra expansion narrative  
+**Review date:** 6 November 2026  
+**Status:** Historical lead counts and fieldwork claims are not independently substantiated
 
----
+## 1. Executive summary
 
-## 1. Executive Summary
+An earlier draft described 22 high-fidelity research leads across eight geographic zones. The same draft lists nine zones, and the city counts shown in its table sum to 23. It also references `research/maharashtra_research_leads.csv`, but that CSV is not present in the current GitHub candidate branch. The complete Dropbox `/VeganSaathi/` folder listing reviewed on 6 November 2026 did not contain that dataset either.
 
-VeganSaathi originated as a campus-focused Community Engagement Project (CEP) at Shri Sant Gajanan Maharaj College of Engineering (SSGMCE) in Shegaon, Buldhana District, Maharashtra. While the initial prototype mapped student messes, campus cafes, and local eateries in Shegaon, student mobility and community feedback underscored the critical need for reliable plant-based foodway intelligence across major educational and commercial centers in Maharashtra.
+Accordingly, the earlier 22/23 lead count, the claimed geographic coverage, and the named venue list are **not treated as an auditable dataset or verified place coverage**. They must not be imported into the public application or used as evidence of completed fieldwork.
 
-This expansion curates and classifies 22 high-fidelity research leads spanning **8 major urban and regional culinary zones** in Maharashtra:
-1. **Mumbai** (Khar West, Bandra West, Fort, Vile Parle)
-2. **Pune** (Koregaon Park, Viman Nagar, Deccan / FC Road)
-3. **Nagpur** (Pratap Nagar, Dharampeth, Sadar)
-4. **Nashik** (College Road, Gangapur Road)
-5. **Thane** (Ghodbunder Road, Hiranandani Estate)
-6. **Navi Mumbai** (Vashi)
-7. **Kolhapur** (Shahupuri, Rajarampuri)
-8. **Chhatrapati Sambhajinagar / Aurangabad** (CIDCO Connaught Place, Nirala Bazar)
-9. **Shegaon** (Baseline campus and temple foodways)
+## 2. What is actually established
 
----
+- The GitHub candidate contains a research expansion narrative, but not the CSV dataset it cites.
+- The earlier narrative lists Mumbai, Pune, Nagpur, Nashik, Thane, Navi Mumbai, Kolhapur, Chhatrapati Sambhajinagar and Shegaon as intended research geographies. This is a proposed scope list, not proof of source coverage or collected records.
+- The earlier narrative's headline lead count, stated number of zones and table counts conflict.
+- No row-level source register, current official-menu evidence, permission record, field visit log or signed verification note supporting those named leads was located in the reviewed repository/Dropbox project record.
+- The current public-data acquisition work has not downloaded or imported a real Overture, Foursquare or OSM Maharashtra dataset. Synthetic fixtures remain test-only and are not real businesses.
+- No production Firestore import or publication of these research leads has been established by this review.
 
-## 2. Methodology & Evidence Tiers
+These findings describe the evidence available in the reviewed project records. They do not assert that the businesses do not exist or that no work has ever happened outside the records inspected.
 
-To safeguard platform integrity, VeganSaathi enforces a strict separation between **unverified research leads** and **publicly verified listings**:
+## 3. Corrections to the earlier draft
 
-- **Strict Boundary**: Research leads in `research/maharashtra_research_leads.csv` are strictly marked with `verification_status="research_lead"`. They are **never** automatically promoted to `verified` or directly injected into the public production database without completing either physical field audit or primary verified source clearance.
-- **Evidence Sources**:
-  - **SHARAN India & Plant-Based Certified**: Venues adhering to whole-food plant-based nutritional guidelines (e.g., Aharveda, Sante Spa Cuisine).
-  - **Pioneering 100% Vegan Kitchens**: Venues with zero animal products on premises (e.g., Rare Earth The Vegan Cafe, The Real Green Cafe Pune, Earthlings Cafe).
-  - **In-Person Fieldwork**: Physical checks conducted by student researchers checking cooking oils, separate tawas, and dairy cross-contact (e.g., Green Leaf Bistro Pune, Veeraswami Nagpur, SSGMCE Campus Cafeteria).
-  - **Official Business Records & Menus**: Direct menu audits verifying almond/oat/soy milk options, tofu substitutions, and dairy-free regional specialties.
+| Earlier statement | Current evidence disposition |
+| --- | --- |
+| 22 high-fidelity research leads | Unsubstantiated; source CSV absent |
+| Eight geographic zones | Incorrect against the nine zones named in the same draft |
+| City table totals 22 | Incorrect; listed counts sum to 23 |
+| Direct menu audits and current ingredient checks | Not evidenced by row-level source records |
+| In-person kitchen/field checks | Not evidenced by visit logs or reviewer records |
+| Specific venues are fully vegan or verified vegan-friendly | Not established; do not reuse as public claims |
+| Traditional regional dishes are vegan by default | Not established as venue-specific menu evidence; ingredients and preparation must be checked per business and item |
 
----
+## 4. Data status and publication boundary
 
-## 3. Geographic Distribution & Highlights
+No reproducible row count can currently be reported for `research/maharashtra_research_leads.csv` because the referenced artifact is absent from the reviewed GitHub and Dropbox locations. No replacement count has been invented.
 
-| City | Lead Count | Focus Culinary Districts | Notable Lead Establishments |
-| :--- | :--- | :--- | :--- |
-| **Mumbai** | 5 | Bandra West, Khar West, Fort, Vile Parle | Rare Earth, Earth Cafe, Yogisattva, Burma Burma, Aharveda |
-| **Pune** | 4 | Koregaon Park, Viman Nagar, FC Road Deccan | The Real Green Cafe, Sante Spa Cuisine, Earthlings Cafe, Green Leaf Bistro |
-| **Nagpur** | 3 | Dharampeth, Sadar, Pratap Nagar | The Breakfast Story, Fuel Station Cafe, Veeraswami Pure Veg |
-| **Nashik** | 2 | College Road, Gangapur Road | The Vibe Cafe, Riverdine Pure Veg |
-| **Thane** | 1 | Ghodbunder Road / Hiranandani Estate | Sante Spa Cuisine Thane |
-| **Navi Mumbai**| 1 | Vashi Sector 17 | Little Italy Vashi |
-| **Kolhapur** | 2 | Shahupuri, Rajarampuri | Dehaati Pure Veg, Hotel Opal Kolhapur |
-| **Chh. Sambhajinagar** | 2 | Connaught Place, Nirala Bazar | That Baat Pure Veg, Yalla Yalla Mediterranean |
-| **Shegaon** | 3 | Station Road, Campus, Temple Road | Anand Pure Veg, SSGMCE Cafeteria, Gajanan Maharaj Mahaprasad |
+The project must keep these records separate:
+1. **Source discovery records** — raw, licensed source data with dataset version, provenance and attribution.
+2. **Research leads** — businesses or branches to investigate; no public vegan claim.
+3. **Evidence records** — claim-specific sources for identity, address, operating status, coordinates, menu items, ingredients and image rights.
+4. **Verified VeganSaathi records** — claims reviewed against current evidence and manually approved.
+5. **Synthetic fixtures** — test-only records that cannot be staged or published.
 
----
+A vegetarian, Jain or eggetarian classification is not evidence of vegan status. A single vegan item does not make an entire venue fully vegan. No venue may be represented as fully vegan without evidence covering the relevant current food offering.
 
-## 4. Cultural & Regional Nuances Captured
+## 5. Required recovery and research process
 
-1. **Maharashtrian Traditional Foods**:
-   - In Kolhapur, traditional *pithla-bhakri* and *bharli vangi* are cooked with local cold-pressed groundnut oil, rendering them naturally dairy-free unless ghee is requested.
-   - In Vidarbha / Nagpur, breakfast *poha* and *tarri poha* are traditionally oil-prepared, making them accessible vegan staples for students.
-2. **Student Accessibility**:
-   - Highlighting student-friendly budget spots near college hubs (e.g., Earthlings Cafe near Symbiosis in Pune, Fuel Station in Nagpur, FC Road eateries).
-3. **Cross-Contact & Special Requests**:
-   - Clear notes detailing specific communication needed by diners (e.g., requesting rotis without ghee/butter, or confirming oil tawa separation).
+If the missing CSV exists in an owner-held source, restore it only after checking its provenance and record structure. Do not infer or recreate its rows from the old narrative.
 
----
+For each real candidate branch, collect:
+- Stable internal candidate ID and original source/provider ID.
+- Source name, dataset release, retrieval date, licence, attribution and permitted-use notes.
+- Business name and branch identity, address, locality, city, district, postcode and coordinate source.
+- Official website or business-controlled public contact where available.
+- Operating-status evidence and date checked.
+- Exact vegan classification and the specific menu claim being assessed.
+- Evidence URL or permissioned source artifact, source owner, excerpt, collection date, review date and reviewer.
+- Image creator, rights holder, permission/licence basis and attribution, if applicable.
+- Duplicate review, conflicts, confidence and next re-check date.
 
-## 5. Verification Roadmap for Field Teams
+Use Overture, Foursquare Open Source Places, and OSM/Geofabrik only after their exact access route, applicable licence/attribution duties and project-level zero-cost terms are confirmed. Do not scrape restricted directories or copy protected venue photographs.
 
-To transition leads from `research_lead` to `verified`:
-1. **Stage 1 (Desk Audit)**: Verify current operational status, operating hours, and active menu items via phone or official digital channels.
-2. **Stage 2 (Field Visit / Volunteer Verification)**: Partner with local college student ambassadors in Pune, Mumbai, and Nagpur to conduct physical kitchen audits and photo verification.
-3. **Stage 3 (Admin Clearance)**: Ingestion via the VeganSaathi Admin Review Dashboard with signed volunteer verification notes and rights-cleared photography.
+## 6. Maharashtra research geography
+
+The nine names in the historical draft may be retained as a *proposed research-planning scope* only: Mumbai, Pune, Nagpur, Nashik, Thane, Navi Mumbai, Kolhapur, Chhatrapati Sambhajinagar and Shegaon. This list is not a coverage statement and does not assign a lead count to any city.
+
+The pilot should report actual records retrieved, unique branches, duplicate candidates, records with coordinates, official-source coverage, vegan-evidence coverage, records requiring manual review and records eligible for publication. Do not extrapolate sample results to statewide coverage.
+
+## 7. Current conclusion
+
+**Maharashtra master-dataset status: not yet established.**  
+**Auditable lead CSV: not present in reviewed project locations.**  
+**Verified public place count supported by this report: none demonstrated.**  
+**Production import/publication from this research narrative: not authorized.**
+
+This correction preserves the useful planning geography while withdrawing unsupported counts, menu-verification claims and fieldwork assertions. Update this document only when new source files and evidence are actually available.
