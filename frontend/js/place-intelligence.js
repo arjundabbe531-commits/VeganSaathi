@@ -631,6 +631,29 @@ window.openVerificationPanel = async function(candidateId) {
 };
 
 async function approveCandidate(candidate) {
+  const candDocId = candidate.candidate_id || candidate.id;
+  if (!candDocId) {
+    showResult("vd-action-result", "Invalid candidate ID.", "danger");
+    return;
+  }
+
+  // 1. Synthetic Data Safeguard: Synthetic fixtures must NEVER enter public directory
+  if (
+    candidate.is_synthetic_fixture ||
+    candidate.dataset_origin === "synthetic_test_fixture" ||
+    (candidate.source_id && String(candidate.source_id).includes("synthetic")) ||
+    (candidate.name && String(candidate.name).startsWith("[TEST FIXTURE]"))
+  ) {
+    showResult("vd-action-result", "SAFEGUARD BLOCKED: Synthetic test fixtures cannot be published to the public directory.", "danger");
+    return;
+  }
+
+  // 2. Concurrency check: Ensure selected candidate did not change during async operations
+  if (_selectedCandidateId && _selectedCandidateId !== candDocId) {
+    showResult("vd-action-result", "Candidate selection changed during operation. Action aborted.", "warning");
+    return;
+  }
+
   const veganClass = document.getElementById("vd-vegan-class")?.value || "vegan_status_unverified";
   const existence = document.getElementById("vd-existence")?.value || "candidate";
   const operating = document.getElementById("vd-operating")?.value || "unknown";
@@ -639,11 +662,14 @@ async function approveCandidate(candidate) {
   const notes = document.getElementById("vd-notes")?.value?.trim() || "";
 
   if (!notes || notes.length < 10) {
-    showResult("vd-action-result", "Reviewer notes are required (minimum 10 characters).", "warning");
+    showResult("vd-action-result", "Reviewer audit notes are required (minimum 10 characters).", "warning");
     return;
   }
-  if (!veganClass || veganClass === "vegan_status_unverified") {
-    if (!confirm("You are approving a place as 'Unverified'. Are you sure this should be published?")) return;
+
+  // 3. Mandatory Vegan Integrity: Do not publish candidates without positive vegan classification
+  if (!veganClass || veganClass === "vegan_status_unverified" || evidenceStatus === "no_vegan_evidence") {
+    showResult("vd-action-result", "Cannot publish candidate without positive vegan classification and supporting evidence. Please review evidence or mark candidate rejected/unverified.", "warning");
+    return;
   }
 
   if (!_currentAdmin) {
@@ -652,36 +678,60 @@ async function approveCandidate(candidate) {
   }
   const db = getFirebaseDb();
 
-  // Dietary tags determination:
-  // Do NOT blindly default every place to ["vegan"]!
-  // Map based on reviewed vegan classification and verified menu evidence:
+  // 4. Duplicate Approval Prevention: Check fresh database state
+  try {
+    const freshSnap = await getDoc(doc(db, "placeCandidates", candDocId));
+    if (freshSnap.exists()) {
+      const freshData = freshSnap.data();
+      if (freshData.import_status === "approved" || freshData.approvedPlaceId) {
+        showResult("vd-action-result", `Duplicate approval prevented: this candidate is already approved (Place ID: ${freshData.approvedPlaceId || "existing"}).`, "warning");
+        return;
+      }
+      if (freshData.import_status === "rejected") {
+        showResult("vd-action-result", "Candidate was already rejected in another session.", "warning");
+        return;
+      }
+    }
+  } catch (freshErr) {
+    console.warn("Could not check candidate fresh state:", freshErr);
+  }
+
+  // 5. Strict Dietary Tags Determination:
+  // VeganSaathi is a vegan-first directory. Every listing MUST carry "vegan".
+  // Never default an unverified candidate to "vegetarian" alone!
   let dietTags = [];
   if (veganClass === "fully_vegan") {
     dietTags = ["vegan"];
   } else if (veganClass === "vegan_friendly" || veganClass === "verified_vegan_options") {
+    const verifiedTags = Array.isArray(candidate.dietTags) ? candidate.dietTags : [];
     dietTags = ["vegan", "vegetarian"];
+    if (verifiedTags.includes("jain")) dietTags.push("jain");
   } else {
-    // For unverified or general vegetarian listings
-    dietTags = Array.isArray(candidate.dietTags) && candidate.dietTags.length > 0
-      ? candidate.dietTags.filter(t => ["vegan", "vegetarian", "eggetarian", "jain"].includes(t))
-      : ["vegetarian"];
-    if (dietTags.length === 0) dietTags = ["vegetarian"];
+    showResult("vd-action-result", "Unsupported vegan classification. Cannot determine diet tags.", "danger");
+    return;
   }
 
-  // Verification status determination:
-  // VerificationStatus="verified" requires genuine affirmative evidence (physical fieldwork or reviewed ingredients/owner confirmation)
-  // Per database schema: unverified places have verificationStatus="unverified" and lastVerifiedAt=null.
-  const isAffirmativelyVerified = (
-    evidenceStatus === "ingredients_reviewed" ||
-    evidenceStatus === "owner_confirmed" ||
-    evidenceStatus === "vegansaathi_reviewed" ||
-    existence === "owner_confirmed"
-  );
+  // 6. Distinct Verification Dimensions (Independent Claims)
+  const isPhysicallyVisited = existence === "physically_verified";
+  const isOwnerConfirmed = existence === "owner_confirmed" || evidenceStatus === "owner_confirmed";
+  const isIngredientsReviewed = evidenceStatus === "ingredients_reviewed" || evidenceStatus === "vegansaathi_reviewed";
+  const isAffirmativelyVerified = isPhysicallyVisited || isOwnerConfirmed || isIngredientsReviewed;
+
   const verificationStatus = isAffirmativelyVerified ? "verified" : "unverified";
   const lastVerifiedAt = isAffirmativelyVerified ? serverTimestamp() : null;
 
+  const verificationDimensions = {
+    business_exists: existence !== "candidate" && existence !== "unknown",
+    address_confirmed: isPhysicallyVisited || isOwnerConfirmed,
+    is_operating: operating === "open",
+    physically_visited: isPhysicallyVisited,
+    online_reviewed: evidenceStatus === "menu_reviewed" || evidenceStatus === "vegansaathi_reviewed",
+    ingredients_reviewed: isIngredientsReviewed || isOwnerConfirmed,
+    vegan_options_verified: true,
+    photo_rights_cleared: Boolean(candidate.photo_rights_cleared)
+  };
+
   try {
-    const candDocId = candidate.candidate_id || candidate.id;
     const batch = writeBatch(db);
 
     const newPlaceRef = doc(collection(db, "places"));
@@ -700,6 +750,7 @@ async function approveCandidate(candidate) {
       latitude: typeof candidate.latitude === "number" ? candidate.latitude : 0,
       longitude: typeof candidate.longitude === "number" ? candidate.longitude : 0,
       dietTags: dietTags,
+      priceRange: ["budget", "moderate", "premium"].includes(candidate.priceRange) ? candidate.priceRange : "Price not listed",
       description: candidate.description || "",
       website: candidate.website || "",
       phone: candidate.phone || "",
@@ -712,6 +763,7 @@ async function approveCandidate(candidate) {
       operatingStatus: operating,
       evidenceStatus: evidenceStatus,
       evidenceUrl: evidenceUrl,
+      verificationDimensions: verificationDimensions,
       verificationNote: notes,
       source: candidate.source_id && candidate.source_id.includes("community") ? "community" : "import",
       sourceId: candidate.source_id || "",
@@ -738,6 +790,7 @@ async function approveCandidate(candidate) {
       evidenceUrl: evidenceUrl,
       dietTags: dietTags,
       verificationStatus: verificationStatus,
+      verificationDimensions: verificationDimensions,
       notes: notes,
       reviewerUid: _currentAdmin.uid,
       reviewerName: _currentAdmin.displayName || "Admin",
@@ -758,7 +811,7 @@ async function approveCandidate(candidate) {
     // Atomic execution
     await batch.commit();
 
-    showResult("vd-action-result", `✅ Place atomically published (Place ID: ${newPlaceRef.id}) with status='${verificationStatus}'`, "success");
+    showResult("vd-action-result", `✅ Place atomically published (Place ID: ${newPlaceRef.id}) with verificationStatus='${verificationStatus}'`, "success");
     loadKPIs();
   } catch (err) {
     showResult("vd-action-result", "Failed to publish: " + err.message, "danger");

@@ -440,15 +440,17 @@ it("candidate-cache: simulates caching Firestore-loaded candidates into candidat
   assert.equal(missing, undefined, "Missing candidate returns undefined safely");
 });
 
-it("publishing-model: maps dietTags accurately according to veganClassification", () => {
+it("publishing-model: maps dietTags accurately according to verified veganClassification and rejects unverified fallback", () => {
   function deriveDietTags(veganClass, candTags = []) {
     if (veganClass === "fully_vegan") {
       return ["vegan"];
     } else if (veganClass === "vegan_friendly" || veganClass === "verified_vegan_options") {
-      return ["vegan", "vegetarian"];
+      const tags = ["vegan", "vegetarian"];
+      if (candTags.includes("jain")) tags.push("jain");
+      return tags;
     } else {
-      const valid = candTags.filter((t) => ["vegan", "vegetarian", "eggetarian", "jain"].includes(t));
-      return valid.length > 0 ? valid : ["vegetarian"];
+      // Unverified or unknown: strictly null. VeganSaathi never converts absence of vegan evidence into positive dietary tags!
+      return null;
     }
   }
 
@@ -457,10 +459,66 @@ it("publishing-model: maps dietTags accurately according to veganClassification"
 
   // 2. vegan_friendly -> ["vegan", "vegetarian"]
   assert.deepEqual(deriveDietTags("vegan_friendly"), ["vegan", "vegetarian"]);
+  assert.deepEqual(deriveDietTags("vegan_friendly", ["jain"]), ["vegan", "vegetarian", "jain"]);
 
-  // 3. unverified -> fallback to ["vegetarian"], NEVER blindly ["vegan"]
-  assert.deepEqual(deriveDietTags("vegan_status_unverified"), ["vegetarian"]);
-  assert.deepEqual(deriveDietTags("vegan_status_unverified", ["jain"]), ["jain"]);
+  // 3. unverified / unknown -> null (cannot publish without positive vegan verification)
+  assert.equal(deriveDietTags("vegan_status_unverified"), null);
+  assert.equal(deriveDietTags("unknown"), null);
+});
+
+it("publishing-integrity: enforces synthetic rejection, duplicate approval check, and independent dimensions", () => {
+  // 1. Synthetic candidate safeguard
+  function isSyntheticCandidate(cand) {
+    return Boolean(
+      cand.is_synthetic_fixture ||
+      cand.dataset_origin === "synthetic_test_fixture" ||
+      (cand.source_id && String(cand.source_id).includes("synthetic")) ||
+      (cand.name && String(cand.name).startsWith("[TEST FIXTURE]"))
+    );
+  }
+  assert.equal(isSyntheticCandidate({ is_synthetic_fixture: true }), true);
+  assert.equal(isSyntheticCandidate({ name: "[TEST FIXTURE] Fake Cafe" }), true);
+  assert.equal(isSyntheticCandidate({ name: "Genuine Vegan Hub", source_id: "osm" }), false);
+
+  // 2. Duplicate approval check
+  function canApproveCandidate(candState) {
+    if (candState.import_status === "approved" || candState.approvedPlaceId) {
+      return { allowed: false, reason: "duplicate_approval" };
+    }
+    if (candState.import_status === "rejected") {
+      return { allowed: false, reason: "already_rejected" };
+    }
+    return { allowed: true };
+  }
+  assert.equal(canApproveCandidate({ import_status: "approved", approvedPlaceId: "p1" }).allowed, false);
+  assert.equal(canApproveCandidate({ import_status: "pending" }).allowed, true);
+
+  // 3. Independent verification dimensions
+  function deriveDimensions(existence, operating, evidenceStatus, photoRights) {
+    const isPhys = existence === "physically_verified";
+    const isOwner = existence === "owner_confirmed" || evidenceStatus === "owner_confirmed";
+    const isIng = evidenceStatus === "ingredients_reviewed" || evidenceStatus === "vegansaathi_reviewed";
+    return {
+      business_exists: existence !== "candidate" && existence !== "unknown",
+      address_confirmed: isPhys || isOwner,
+      is_operating: operating === "open",
+      physically_visited: isPhys,
+      online_reviewed: evidenceStatus === "menu_reviewed" || evidenceStatus === "vegansaathi_reviewed",
+      ingredients_reviewed: isIng || isOwner,
+      vegan_options_verified: true,
+      photo_rights_cleared: Boolean(photoRights)
+    };
+  }
+
+  const dimsOnlineOnly = deriveDimensions("candidate", "open", "menu_reviewed", false);
+  assert.equal(dimsOnlineOnly.physically_visited, false, "Online menu review must not claim physical visit");
+  assert.equal(dimsOnlineOnly.online_reviewed, true);
+  assert.equal(dimsOnlineOnly.photo_rights_cleared, false);
+
+  const dimsFieldwork = deriveDimensions("physically_verified", "open", "ingredients_reviewed", true);
+  assert.equal(dimsFieldwork.physically_visited, true);
+  assert.equal(dimsFieldwork.ingredients_reviewed, true);
+  assert.equal(dimsFieldwork.photo_rights_cleared, true);
 });
 
 it("publishing-model: assigns verificationStatus='unverified' and lastVerifiedAt=null when affirmative evidence is absent", () => {

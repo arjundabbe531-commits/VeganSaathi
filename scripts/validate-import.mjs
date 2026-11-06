@@ -422,6 +422,21 @@ export function validateAndNormalizeRows(rawRows) {
       rowErrors.push({ row: rowNum, field: "name", message: `Place name must be between 2 and 100 characters (got ${name.length}).` });
     }
 
+    // Synthetic Safeguard: Reject synthetic test fixtures from production import
+    const isSynthetic = (
+      getVal("is_synthetic_fixture") === "true" ||
+      getVal("dataset_origin") === "synthetic_test_fixture" ||
+      sourceId.toLowerCase().includes("synthetic") ||
+      name.startsWith("[TEST FIXTURE]")
+    );
+    if (isSynthetic) {
+      rowErrors.push({
+        row: rowNum,
+        field: "is_synthetic_fixture",
+        message: "SAFEGUARD ENFORCED: Record is flagged as a synthetic test fixture and is strictly blocked from public application import."
+      });
+    }
+
     // 3. Place Type
     let placeType = getVal("placeType").toLowerCase();
     if (!placeType) {

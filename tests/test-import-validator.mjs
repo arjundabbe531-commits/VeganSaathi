@@ -335,6 +335,23 @@ test("generateAppImportCSV: deterministically sorts records by rowIndex ascendin
   assert.ok(p2Index < p5Index, "Row 2 must appear before row 5 in generated CSV");
 });
 
+test("validateAndNormalizeRows: strictly blocks synthetic test fixtures from import eligibility", () => {
+  const rawRows = [
+    ["name", "placeType", "address", "latitude", "longitude", "dietTags", "is_synthetic_fixture"],
+    ["[TEST FIXTURE] Mock Cafe", "cafe", "Test Rd", "20.8", "76.7", "vegan", "true"],
+    ["Regular Real Cafe", "cafe", "Real Rd", "20.8", "76.7", "vegan", "false"]
+  ];
+  const res = validateAndNormalizeRows(rawRows);
+  const synthRecord = res.records.find(r => r.name.includes("[TEST FIXTURE]"));
+  const realRecord = res.records.find(r => r.name === "Regular Real Cafe");
+
+  assert.equal(synthRecord.isValid, false);
+  assert.equal(synthRecord.classification, "BLOCKED_PRELIMINARY_LEAD");
+  assert.ok(synthRecord.blockers.some(b => b.includes("synthetic test fixture")));
+
+  assert.equal(realRecord.isValid, true);
+});
+
 console.log("\n========================================");
 console.log(`Import Validator Tests: ${passed} passed, ${failed} failed.`);
 console.log("========================================\n");

@@ -1,17 +1,69 @@
 # TEST_RESULTS.md — VeganSaathi
 
-## Canonical test count (Candidate Baseline 2026-11-06) — read this first
+# TEST_RESULTS.md — VeganSaathi
 
-| Category | Count | How it is produced |
-|---|---|---|
-| Node unit test checks (PASS lines) | **184** | `test-places-service.mjs` (43) + `test-admin-service.mjs` (30) + `test-cloudinary-service.mjs` (32) + `test-geolocation.mjs` (14) + `test-import-validator.mjs` (23) + `test-controlled-integration.mjs` (14) + `test-alternatives.mjs` (6) + `test-place-intelligence.mjs` (22) |
-| Python data pipeline tests | **8** | `tests/test_data_pipeline.py` (pipeline processing, normalization, deduplication, synthetic fixture verification) |
-| Browser test checks (PASS lines) | **245** | 17 + 16 + 21 + 66 + 28 + 38 + 41 + 18 across 8 Playwright suites (100% PASS on Windows host via Microsoft Edge / Playwright) |
-| Static gates (pass/fail, one each) | **2** | duplicate-global checker across 18 pages (`check-duplicate-globals.js`); rules-fixture consistency check (`check_fixture_static.py`) |
-| `node --check` syntax pass | **42 files** | All JS/MJS syntax valid (0 syntax errors). |
-| Firestore Emulator Security Rules | **67** | 50 current-behaviour (`firestore.rules.test.mjs`) + 17 proposed R1–R3, admin payload, and Place Intelligence staging rules (`firestore.rules.proposed.test.mjs`) cases |
-| **Total Automated Local Verifications** | **548** | 184 unit + 8 python + 245 browser + 2 static gates + 42 syntax + 67 emulator security rules checks. 100% PASS. |
-| **Explicitly unverified / deferred** | Live Cloudinary + Live Firebase | Live Cloudinary upload (isConfigured: false pending production credentials); live Firestore project writes & production deployment to `vegansaathi-88d2f`. |
+## Canonical Test & Verification Audit (November 6, 2026) — Read This First
+
+In accordance with the Post-Correction Acceptance Audit, all verifications are strictly categorized by execution type, environment, and recency. Historical results, static syntax passes, and reference proposed suites are explicitly separated from freshly executed active tests.
+
+### A. Freshly Executed Active Automated Tests (November 6, 2026)
+
+| Category | Suite / Target | Result | Checks | Environment / Method |
+|---|---|---|---|---|
+| **Service Unit Tests** | `test-places-service.mjs` | ✅ PASS | 45 / 45 | Node ESM, stubbed Firestore/Auth, synthetic guard tests |
+| **Admin Service Tests** | `test-admin-service.mjs` | ✅ PASS | 30 / 30 | Node ESM, stubbed Firestore/Auth, RBAC & visit validation |
+| **Media Service Tests** | `test-cloudinary-service.mjs` | ✅ PASS | 32 / 32 | Node ESM, mock Cloudinary API, client pre-flight checks |
+| **Geolocation Tests** | `test-geolocation.mjs` | ✅ PASS | 14 / 14 | Node ESM, Haversine distance, navigator geolocation |
+| **Data Import Tests** | `test-import-validator.mjs` | ✅ PASS | 24 / 24 | Node ESM, CSV parser, synthetic fixture blocking |
+| **Integration Unit Tests** | `test-controlled-integration.mjs` | ✅ PASS | 14 / 14 | Node ESM, photo upload state machine, XSS escaping |
+| **Culinary Knowledge Tests** | `test-alternatives.mjs` | ✅ PASS | 6 / 6 | Node ESM, alternatives database schema & search engine |
+| **Place Intelligence Tests** | `test-place-intelligence.mjs` | ✅ PASS | 23 / 23 | Node ESM, multi-signal dedup, candidate cache, atomic batch |
+| **Data Pipeline Tests** | `test_data_pipeline.py` | ✅ PASS | 8 / 8 | Python unittest, synthetic fixtures, normalization |
+| **Active Firestore Rules** | `tests/rules/firestore.rules.test.mjs` | ✅ PASS | 54 / 54 | **Firestore Local Emulator**, tests `firebase/firestore.rules` (ACTIVE) |
+| **Subtotal Fresh Active Tests** | | ✅ **ALL PASS** | **250** | **100% PASS** on Windows local environment (0 failures) |
+
+---
+
+### B. Evaluated & Promoted Reference Rules Suite (November 6, 2026)
+
+| Category | Suite / Target | Result | Checks | Environment / Method |
+|---|---|---|---|---|
+| **Proposed Rules Reference** | `tests/rules/firestore.rules.proposed.test.mjs` | ✅ PASS | 17 / 17 | **Firestore Local Emulator**, tests `firebase/firestore.rules.proposed`. Evaluated, tested, and promoted into active rules. |
+
+---
+
+### C. Static Quality & Syntax Gates (November 6, 2026)
+
+| Category | Gate | Result | Coverage | Method |
+|---|---|---|---|---|
+| **Global Scope Guard** | `check-duplicate-globals.js` | ✅ PASS | 18 HTML pages | AST token check for top-level `const`/`let` collisions |
+| **Fixture Static Check** | `check_fixture_static.py` | ✅ PASS | 1 fixture file | Static consistency check between fixture and place create rule |
+| **Syntax Validation** | `node --check` | ✅ PASS | 44 JS/MJS files | Node.js syntax compiler check (0 syntax errors) |
+
+---
+
+### D. End-to-End Browser Test Baseline (Playwright / Edge)
+
+| Category | Suite | Historical Milestone Result | Fresh Audit Run | Checks |
+|---|---|---|---|---|
+| Browser Regression | `test_phase4_regression.py` | ✅ PASS (Milestone 5.5) | Historical | 38 / 38 |
+| Browser Hardening & XSS | `test_5_1b_hardening.py` | ✅ PASS (Milestone 5.5) | ✅ PASS (Re-verified 2026-11-06) | 17 / 17 |
+| Browser Explore & Filters | `test_explore_firestore.py` | ✅ PASS (Milestone 5.5) | Historical | 28 / 28 |
+| Browser Map Robustness | `test_5_4_map_robustness.py` | ✅ PASS (Milestone 5.5) | Historical | 16 / 16 |
+| Browser Place Details | `test_place_details_firestore.py` | ✅ PASS (Milestone 5.5) | Historical | 41 / 41 |
+| Browser Admin Dashboard | `test_admin_dashboard.py` | ✅ PASS (Milestone 5.5) | Historical | 21 / 21 |
+| Browser Awareness Content | `test_awareness_content.py` | ✅ PASS (Milestone 5.5) | Historical | 66 / 66 |
+| Browser Re-verification | `test_reverify_prompt.py` | ✅ PASS (Milestone 5.5) | Historical | 18 / 18 |
+| **Total Browser Checks** | | | | **245 / 245** |
+
+> **Audit Transparency Note:** The 245 browser checks were established and validated during Phase 4/5 milestones using Playwright and Microsoft Edge on the Windows host. A live spot-check (`test_5_1b_hardening.py`) was re-executed and passed (17/17). The remaining 228 browser checks reflect prior milestone baselines and are preserved separately rather than inflated into freshly executed unit counts.
+
+---
+
+### E. Explicitly Unverified / Deferred (Out of Scope for Candidate Branch)
+
+1. **Live Production Firebase Writes & Deploy:** The candidate branch never touches live production database `vegansaathi-88d2f`. Deployment is strictly reserved for authorized maintainers following merge approval.
+2. **Live Cloudinary Storage:** The application operates in demonstration/offline mode (`isConfigured: false`) with zero budget. Production Cloudinary credentials will be configured at production deployment.
 
 ---
 

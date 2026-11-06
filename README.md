@@ -6,18 +6,15 @@ An independent, community-driven vegan discovery and awareness platform for Maha
 
 ## Problem Statement
 
-Existing food-discovery apps use a crude veg/non-veg binary and cover mainly restaurants in
-big cities, leaving local eateries, student messes, and the vegan/vegetarian/eggetarian/Jain
-distinction underserved. See `docs/PROJECT_SPEC.md` for the full problem statement and supporting research.
+Existing food-discovery apps rely on crude "pure veg" or generic "veg/non-veg" filters, making it difficult to find genuine vegan food. Hidden dairy (ghee, butter, paneer, milk solids, curd) is widespread in Indian dining, leaving plant-based eaters with few reliable resources to verify what is actually vegan. Most directories also overlook regional cities, towns, and everyday eateries, lacking credible, evidence-backed verification.
 
 ## Objectives
 
-1. Help users discover vegan-friendly and relevant food places across Maharashtra and India.
-2. Let the community contribute new places and information.
-3. Provide a "last verified" trust mechanism.
-4. Let users report outdated/incorrect information.
-5. Promote vegan awareness through credible, clearly-sourced content.
-6. Build a foundation that could expand later without a rebuild.
+1. **Vegan-First Discovery:** Help users discover 100% vegan dining spots and eateries with verified, distinct vegan options across Maharashtra and India.
+2. **Evidence-Based Verification:** Provide a transparent trust mechanism that distinguishes physical visits, menu audits, and owner confirmations from unverified claims.
+3. **Plant-Based Awareness:** Offer evidence-backed educational content on vegan nutrition, Indian plant-based swaps, and common misconceptions.
+4. **Community Contributions:** Empower community members to submit new vegan places, upload verified photos, and report inaccurate information.
+5. **Transparency & Open Data:** Build a trustworthy, rights-cleared discovery directory maintained under strict data hygiene.
 
 ## Features (v1 / MVP)
 

@@ -621,5 +621,33 @@ await asyncTest("submitReport accepts a 500-character description and refuses 50
   assert.equal(globalThis.__STUB_WRITES__.length, writesBefore, "an over-long report must not be written");
 });
 
+test("synthetic safeguard: normalizePlace rejects synthetic fixture documents", function () {
+  const fixture1 = basePlace({ is_synthetic_fixture: true });
+  assert.equal(normalizePlace(fixture1), null, "is_synthetic_fixture must be rejected");
+
+  const fixture2 = basePlace({ dataset_origin: "synthetic_test_fixture" });
+  assert.equal(normalizePlace(fixture2), null, "dataset_origin synthetic must be rejected");
+
+  const fixture3 = basePlace({ name: "[TEST FIXTURE] Mock Mess" });
+  assert.equal(normalizePlace(fixture3), null, "name with [TEST FIXTURE] prefix must be rejected");
+});
+
+await asyncTest("synthetic safeguard: submitCommunityPlace rejects synthetic test fixture submissions", async function () {
+  globalThis.__STUB_WRITES__ = [];
+  const user = { uid: "user-synth", displayName: "Tester" };
+  const synthSub = {
+    name: "[TEST FIXTURE] Fake Cafe",
+    placeType: "cafe",
+    address: "123 Test Road",
+    dietTags: ["vegan"],
+    latitude: 18.52,
+    longitude: 73.85,
+    is_synthetic_fixture: true
+  };
+  const res = await submitCommunityPlace(synthSub, user);
+  assert.equal(res.status, "validation-error");
+  assert.equal(globalThis.__STUB_WRITES__.length, 0, "synthetic fixture must not be written to database");
+});
+
 console.log("\n" + passed + " passed, " + failed + " failed");
 process.exit(failed > 0 ? 1 : 0);

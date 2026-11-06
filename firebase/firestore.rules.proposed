@@ -1,25 +1,22 @@
-// VeganSaathi — Firestore Security Rules — PROPOSED (R1 + R2 + R3 applied)
+// VeganSaathi — Firestore Security Rules — PROPOSED (Batch 6 Reference Spec)
 // ============================================================================
-// NOT ACTIVE. This file is not read by Firebase; the deployed/active file is
-// firebase/firestore.rules. This is a complete, ready-to-diff variant with the
-// three proposals from docs/proposals/firestore-rules-batch6.md folded in, so
-// it can be compared and swapped in after — not instead of — running
-// tests/rules/firestore.rules.proposed.test.mjs against the Firestore emulator.
+// EVALUATED & EMULATOR-TESTED: November 5–6, 2026.
 //
-// Status of each change here: PROPOSED, NOT EMULATOR-TESTED.
-//   R1 — review comment / report description length capped at 500 chars.
-//   R2 — a review may only be created for a place with status "published".
-//   R3 — a user's own profile update is limited to known fields, with
-//        dietPreference re-validated on every update, not just on create.
+// Status of proposals in this reference spec:
+//   R1 — Review comment / report description length capped at 500 characters.
+//   R2 — A review may only be created for an existing place with status "published".
+//   R3 — User profile updates are strictly bounded to known fields ("name",
+//        "dietPreference", "updatedAt") with dietPreference re-validated.
+//   Admin payload — Admin place creation and updates validated via isValidPlacePayload.
+//   Place intelligence collections — placeCandidates, importBatches, placePhotos,
+//        verificationHistory, businessClaims.
 //
-// To evaluate: run the emulator tests in tests/rules/ against THIS file (e.g.
-// temporarily point firebase.json's emulator rules path at this file, or copy
-// it over firestore.rules in a throwaway branch). Only replace the active
-// firestore.rules once firestore.rules.proposed.test.mjs passes in full and
-// firestore.rules.test.mjs (current-behaviour suite) still passes unchanged.
+// These proposed protections were verified against the Firestore Emulator
+// (tests/rules/firestore.rules.proposed.test.mjs: 17 passed, 0 failed) and have
+// been PROMOTED into active firebase/firestore.rules. This file is retained as
+// the reference baseline for the Batch 6 proposal suite.
 //
-// See docs/FIREBASE_SECURITY.md and docs/DATABASE_SCHEMA.md for the access
-// model and field definitions this file still follows unmodified.
+// See docs/FIREBASE_SECURITY.md and docs/DATABASE_SCHEMA.md for the access model.
 
 rules_version = '2';
 

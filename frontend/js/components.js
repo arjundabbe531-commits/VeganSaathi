@@ -76,7 +76,7 @@ function renderFooter() {
     '<div class="col-md-4">' +
     "<h5>VeganSaathi</h5>" +
     '<p class="text-muted-vs" style="color:#c8d3c0;">Connecting people. Promoting veganism. ' +
-    "Community-verified vegan, vegetarian, Jain and eggetarian food discovery \u2014 built for Maharashtra, open to all.</p>" +
+    "Community-verified vegan food discovery and plant-based awareness \u2014 built for Maharashtra and beyond, open to all.</p>" +
     "</div>" +
     '<div class="col-6 col-md-2">' +
     "<h5>Explore</h5><ul class=\"list-unstyled\">" +

@@ -161,6 +161,11 @@ export function normalizePlace(rawDoc) {
   }
 
   // ---- Required fields ----
+  if (data.is_synthetic_fixture || data.dataset_origin === "synthetic_test_fixture" || (typeof data.name === "string" && data.name.startsWith("[TEST FIXTURE]"))) {
+    warn(id, "document is flagged as a synthetic test fixture and cannot be normalized for public display");
+    return null;
+  }
+
   if (!isNonEmptyString(data.name) || data.name.trim().length < 2 || data.name.trim().length > 100) {
     warn(id, "name is missing, or not 2-100 characters");
     return null;
@@ -444,6 +449,10 @@ export async function submitCommunityPlace(submission, user) {
   const name = typeof submission.name === "string" ? submission.name.trim() : "";
   if (name.length < 2 || name.length > 100) {
     return { status: "validation-error", message: "Place name must be between 2 and 100 characters." };
+  }
+
+  if (submission.is_synthetic_fixture || submission.dataset_origin === "synthetic_test_fixture" || name.startsWith("[TEST FIXTURE]")) {
+    return { status: "validation-error", message: "Synthetic test fixtures cannot be submitted to the directory." };
   }
 
   if (!VALID_PLACE_TYPES.includes(submission.placeType)) {

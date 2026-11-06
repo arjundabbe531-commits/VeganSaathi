@@ -126,14 +126,17 @@ describe("Ordinary signed-in user (u1)", () => {
   });
 
   it("can review a published place under their own identity", async () => {
+    await seedPlace("pub1", publishedPlace);
     await assertSucceeds(setDoc(doc(as("u1"), "reviews", "r1"), { placeId: "pub1", userId: "u1", authorName: "Community member", rating: 4, comment: "Good thali", createdAt: serverTimestamp() }));
   });
   it("cannot give a rating of 0, 6, or a non-integer", async () => {
+    await seedPlace("pub1", publishedPlace);
     for (const [id, rating] of [["r2", 0], ["r3", 6], ["r4", 4.5]]) {
       await assertFails(setDoc(doc(as("u1"), "reviews", id), { placeId: "pub1", userId: "u1", authorName: "C", rating, createdAt: serverTimestamp() }));
     }
   });
   it("cannot review under another user's id", async () => {
+    await seedPlace("pub1", publishedPlace);
     await assertFails(setDoc(doc(as("u1"), "reviews", "r5"), { placeId: "pub1", userId: "u2", authorName: "C", rating: 4, createdAt: serverTimestamp() }));
   });
   it("cannot edit a review, even their own", async () => {
@@ -223,22 +226,69 @@ describe("Administrator (role admin in users/{uid})", () => {
   });
 });
 
-describe("GAP (current behaviour, documented) — rules do not yet enforce these", () => {
-  // These assert what the rules CURRENTLY allow. They pass today. When the proposal
-  // in docs/proposals/firestore-rules-batch6.md is applied, each of these must be
-  // inverted to assertFails and moved to firestore.rules.proposed.test.mjs.
-  it("GAP R1: accepts a 501-character review comment", async () => {
-    await assertSucceeds(setDoc(doc(as("u1"), "reviews", "gap-r1"), { placeId: "pub1", userId: "u1", authorName: "C", rating: 4, comment: "x".repeat(501), createdAt: serverTimestamp() }));
+describe("Active Rules Hardening Enforcement (Batch 6 & Post-Correction Closure)", () => {
+  it("enforces R1: refuses a 501-character review comment", async () => {
+    await seedPlace("pub1", publishedPlace);
+    await assertFails(setDoc(doc(as("u1"), "reviews", "gap-r1"), { placeId: "pub1", userId: "u1", authorName: "C", rating: 4, comment: "x".repeat(501), createdAt: serverTimestamp() }));
   });
-  it("GAP R1: accepts a 501-character report description", async () => {
-    await assertSucceeds(setDoc(doc(as("u1"), "reports", "gap-r1b"), { placeId: "pub1", reporterId: "u1", reason: "other", status: "pending", description: "x".repeat(501), createdAt: serverTimestamp() }));
+  it("enforces R1: refuses a 501-character report description", async () => {
+    await assertFails(setDoc(doc(as("u1"), "reports", "gap-r1b"), { placeId: "pub1", reporterId: "u1", reason: "other", status: "pending", description: "x".repeat(501), createdAt: serverTimestamp() }));
   });
-  it("GAP R2: accepts a review on a place that is still pending", async () => {
+  it("enforces R2: refuses a review on a place that is still pending or nonexistent", async () => {
     await seedPlace("gap-pending", {});
-    await assertSucceeds(setDoc(doc(as("u1"), "reviews", "gap-r2"), { placeId: "gap-pending", userId: "u1", authorName: "C", rating: 4, createdAt: serverTimestamp() }));
+    await assertFails(setDoc(doc(as("u1"), "reviews", "gap-r2"), { placeId: "gap-pending", userId: "u1", authorName: "C", rating: 4, createdAt: serverTimestamp() }));
+    await assertFails(setDoc(doc(as("u1"), "reviews", "gap-r2-none"), { placeId: "no-such-place", userId: "u1", authorName: "C", rating: 4, createdAt: serverTimestamp() }));
   });
-  it("GAP R3: accepts an unknown field written to a user's own profile", async () => {
+  it("enforces R3: refuses an unknown field written to a user's own profile", async () => {
     await seedUsers();
-    await assertSucceeds(updateDoc(doc(as("u1"), "users", "u1"), { isVerifiedFieldworker: true }));
+    await assertFails(updateDoc(doc(as("u1"), "users", "u1"), { isVerifiedFieldworker: true }));
+  });
+  it("refuses a review containing unauthorized private or extra fields", async () => {
+    await seedPlace("pub1", publishedPlace);
+    await assertFails(setDoc(doc(as("u1"), "reviews", "rev-extra"), {
+      placeId: "pub1",
+      userId: "u1",
+      authorName: "C",
+      rating: 4,
+      createdAt: serverTimestamp(),
+      userEmail: "private@ssgmce.ac.in"
+    }));
+  });
+  it("admin place creation requires valid coordinates and rejects out-of-range latitude", async () => {
+    await seedUsers();
+    const badPlace = {
+      name: "Bad Lat Mess",
+      placeType: "mess",
+      address: "Station Rd",
+      latitude: 250,
+      longitude: 76.69,
+      dietTags: ["vegan"],
+      priceRange: "budget",
+      status: "published",
+      verificationStatus: "unverified",
+      createdAt: serverTimestamp()
+    };
+    await assertFails(setDoc(doc(as("admin1"), "places", "adm-bad-lat"), badPlace));
+  });
+  it("admin cannot mark a place verified without a valid lastVerifiedAt timestamp", async () => {
+    await seedUsers();
+    const badVerified = {
+      name: "Unverified Claim Cafe",
+      placeType: "cafe",
+      address: "Station Rd",
+      latitude: 20.79,
+      longitude: 76.69,
+      dietTags: ["vegan"],
+      priceRange: "budget",
+      status: "published",
+      verificationStatus: "verified",
+      createdAt: serverTimestamp()
+    };
+    await assertFails(setDoc(doc(as("admin1"), "places", "adm-no-timestamp"), badVerified));
+  });
+  it("ordinary user cannot read or write placeCandidates or importBatches", async () => {
+    await assertFails(getDoc(doc(as("u1"), "placeCandidates", "cand1")));
+    await assertFails(setDoc(doc(as("u1"), "placeCandidates", "cand1"), { name: "Staged" }));
+    await assertFails(getDoc(doc(as("u1"), "importBatches", "batch1")));
   });
 });
