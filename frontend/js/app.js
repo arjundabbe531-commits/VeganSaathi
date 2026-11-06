@@ -14,24 +14,42 @@
    are already on `window` by the time this module runs.
    ========================================================================== */
 
-import { onAuthChange } from "./auth-state.js";
+import { onAuthChange, fetchUserProfile } from "./auth-state.js";
 import { logoutUser } from "./auth-ui.js";
 
-document.addEventListener("DOMContentLoaded", function () {
+function initApp() {
   const activePage = window.VS_ACTIVE_PAGE || "";
 
-  // Render once immediately in the logged-out shape so the page never shows
-  // a blank navbar while Firebase resolves the real state — then
-  // onAuthChange re-renders with the real state as soon as it's known, and
-  // again on every future sign-in/sign-out.
-  renderNavbar(activePage, null);
+  // Render immediately in logged-out shape
+  renderNavbar(activePage, null, false);
   renderFooter();
 
-  onAuthChange(function (user) {
-    renderNavbar(activePage, user);
+  if (typeof renderAwarenessNav === "function" && window.VS_AWARENESS_SUBPAGE) {
+    renderAwarenessNav(window.VS_AWARENESS_SUBPAGE);
+  }
+
+  onAuthChange(async function (user) {
+    let isAdmin = false;
+    if (user && user.uid) {
+      try {
+        const profile = await fetchUserProfile(user.uid);
+        if (profile && profile.role === "admin") {
+          isAdmin = true;
+        }
+      } catch (err) {
+        isAdmin = false;
+      }
+    }
+    renderNavbar(activePage, user, isAdmin);
     wireLogoutButton();
   });
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
 
 function wireLogoutButton() {
   const btn = document.getElementById("navLogoutBtn");

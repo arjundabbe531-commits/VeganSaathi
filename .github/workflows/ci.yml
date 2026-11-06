@@ -1,0 +1,44 @@
+name: VeganSaathi CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, candidate/zip-baseline-2026-11-05]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/rules/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install rule-test dependencies
+        run: npm ci
+        working-directory: tests/rules
+      - name: Install Firebase CLI and browser test runtime
+        run: |
+          npm install --global firebase-tools@14.27.0
+          python -m pip install playwright==1.64.1
+          python -m playwright install chromium
+      - name: Run unit, browser, static and syntax suites
+        run: powershell -ExecutionPolicy Bypass -File tests\run_all.ps1
+      - name: Run Python data-pipeline suite independently
+        run: python -m unittest tests.test_data_pipeline -v
+      - name: Run active Firestore rules emulator suite
+        run: firebase emulators:exec --only firestore --project vegansaathi-rules-test "node --test tests/rules/firestore.rules.test.mjs"
+      - name: Run proposed rules reference suite separately
+        run: firebase emulators:exec --only firestore --project vegansaathi-rules-test "node --test tests/rules/firestore.rules.proposed.test.mjs"

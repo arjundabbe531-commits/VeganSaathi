@@ -30,9 +30,8 @@ route_handler = make_route_handler()
 # Inside the pilot bounding box (places-service.js's PILOT_BOUNDS: lat
 # 20.70-20.90, lon 76.55-76.80).
 GOOD_LAT, GOOD_LON = 20.79, 76.69
-# Outside it — Mumbai, used the same way places-service.js's own tests use
-# it to represent an obviously-wrong/swapped coordinate.
-BAD_LAT, BAD_LON = 19.0760, 72.8777
+# Truly invalid coordinate out of global bounds (lat > 90)
+BAD_LAT, BAD_LON = 200.0, 72.8777
 
 
 def place(id, **overrides):
@@ -61,6 +60,7 @@ def init_script_for(docs):
         "window.__STUB_PLACES_DOCS__.forEach(function (d) {"
         "  d.data.createdAt = { toDate: function () { return new Date('2026-09-01T12:00:00Z'); } };"
         "  d.data.updatedAt = { toDate: function () { return new Date('2026-09-01T12:00:00Z'); } };"
+        "  if (d.data.verificationStatus === 'verified') d.data.lastVerifiedAt = { toDate: function () { return new Date('2026-10-01T12:00:00Z'); } };"
         "});"
     )
 
@@ -134,7 +134,17 @@ def main():
 
             # ---- 5. Filters update markers correctly ----
             ctx, pg, errs = new_page(browser)
-            goto_explore(pg, [place("p1", dietTags=["vegan"]), place("p2", dietTags=["vegetarian"])])
+            import datetime
+            dietary_checked = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            goto_explore(pg, [
+                place("p1", dietTags=["vegan"], verificationStatus="verified",
+                      veganClassification="verified_vegan_options", evidenceStatus="ingredients_reviewed",
+                      verificationDimensions={"vegan_options_verified": True},
+                      evidenceRefs=[{"claim": "vegan_options", "url": "https://example.org/menu",
+                                     "lastCheckedAt": dietary_checked, "validity": "current",
+                                     "strength": "direct", "excerpt": "Vegan meals are prepared without animal ingredients."}]),
+                place("p2", dietTags=["vegetarian"])
+            ])
             click_map(pg)
             before = stub_value(pg, "__STUB_LAYERGROUP_MARKER_COUNT__")
             pg.click('button.vs-filter-chip[data-diet="vegan"]')

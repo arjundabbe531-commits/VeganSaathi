@@ -1,0 +1,68 @@
+# Firestore security-rules tests
+
+**Latest local emulator results (6 November 2026):** active rules 63/63 and proposed
+reference 17/17, both exit 0. The two commands load different rules files and are run
+separately. They do not establish production rules state; see `docs/TEST_RESULTS.md`.
+
+These tests run rules files inside the **Firestore emulator**. They never contact the live
+project and are not part of `tests/run_all.ps1`. The active suite loads
+`firebase/firestore.rules`; the separate reference suite loads
+`firebase/firestore.rules.proposed`. Emulator results do not verify deployed production rules.
+
+## Files
+
+| File | What it asserts | Expected result on the current rules |
+|---|---|---|
+| `firestore.rules.test.mjs` | Active access control, R1–R3 hardening, payload validation, disabled photo intake, evidence-bound photo approval/history, and published-place photo linkage | **Active target** |
+| `firestore.rules.proposed.test.mjs` | Reference R1–R3 and admin payload tests against `firebase/firestore.rules.proposed` | **Reference target** |
+| `common.mjs` | Shared setup and a valid community place document | — |
+
+## One-time setup (Windows PowerShell, from the project root)
+
+1. Install **Java 11 or later** (the emulator needs it). Check with `java -version`.
+2. Install the Firebase CLI:
+
+       npm install -g firebase-tools
+
+3. Install the test libraries, pinned in `tests\rules\package.json`:
+
+       cd tests\rules
+       npm ci
+       cd ..\..
+
+4. Check the installed versions match. `@firebase/rules-unit-testing` declares which
+   `firebase` major version it supports. Run:
+
+       npm view @firebase/rules-unit-testing peerDependencies
+
+   If the `firebase` version in `tests\rules\package.json` does not satisfy that peer range,
+   change it to match and run `npm install` again.
+
+## Run
+
+From the project root, one command starts the emulator, runs the tests and stops it:
+
+    firebase emulators:exec --only firestore --project vegansaathi-rules-test "node --test tests/rules/firestore.rules.test.mjs"
+
+Then run the proposed reference file separately (it is not the active rules target):
+
+    firebase emulators:exec --only firestore --project vegansaathi-rules-test "node --test tests/rules/firestore.rules.proposed.test.mjs"
+
+The port is set to 8080 in `firebase.json` under `emulators`. If port 8080 is occupied, use
+a temporary copy of `firebase.json` with a free emulator port and pass it with `--config`;
+keep the checked-in project configuration unchanged for that local test.
+
+## How to read the result
+
+- A passing test means the rule behaved as the test states. A failing test means either the rule
+  is wrong or the test's expectation is wrong. Decide which by reading the rule and the schema.
+- Do not count a test as passing until you have seen it pass in the emulator run. Record the date,
+  the command, the exit code and the counts in `docs/TEST_RESULTS.md`.
+- Passing these tests does not prove that the DEPLOYED rules match this file. Check that
+  separately in the Firebase Console.
+
+## What these tests do and do not prove
+
+- Prove: the rules file, as written, refuses or allows the listed reads and writes in the emulator.
+- Do not prove: anything about the live project, its deployed rules, real browsers, or Firebase
+  Authentication behaviour beyond the `auth` identities the emulator simulates.

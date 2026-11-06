@@ -3,16 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <title>Register — VeganSaathi</title>
-
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
     rel="stylesheet"
   >
-
   <link href="css/styles.css" rel="stylesheet">
-
   <script>
     window.VS_BASE = "";
     window.VS_ACTIVE_PAGE = "";
@@ -24,124 +23,155 @@
   <div id="navbar-placeholder"></div>
 
   <section class="vs-section">
-    <div class="container" style="max-width:520px;">
+    <div class="container" style="max-width:540px;">
 
-      <div class="vs-card p-4">
+      <div class="text-center mb-3">
+        <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill bg-white border shadow-sm" style="font-size:0.75rem; font-weight:700; color:var(--vs-green-700);">
+          🌱 VEGANSAATHI • MAHARASHTRA
+        </span>
+      </div>
 
-        <h1 class="h4 mb-3">
-          Create your VeganSaathi account
-        </h1>
+      <div class="vs-auth-card" style="max-width:540px;">
+
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-2" style="width:48px; height:48px; background-color:var(--vs-green-100); font-size:1.5rem;">
+            👤
+          </div>
+          <h1 class="h4 mb-1" style="color:var(--vs-text);">
+            Create your VeganSaathi account
+          </h1>
+          <p class="text-muted-vs" style="font-size:0.9rem;">
+            Join our community exploring and verifying genuine plant-based and vegan dining across Maharashtra.
+          </p>
+        </div>
 
         <form id="registerForm" novalidate>
 
           <!-- Name -->
           <div class="mb-3">
-            <label for="registerName" class="form-label">
-              Name
+            <label for="registerName" class="form-label" style="font-weight:600; font-size:0.9rem;">
+              Full Name <span class="text-danger">*</span>
             </label>
-
-            <input
-              type="text"
-              class="form-control"
-              id="registerName"
-              autocomplete="name"
-              required
-            >
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0 text-muted-vs">🏷️</span>
+              <input
+                type="text"
+                class="form-control border-start-0 ps-1"
+                id="registerName"
+                placeholder="e.g. Arjun Dabbe"
+                autocomplete="name"
+                required
+              >
+            </div>
           </div>
 
           <!-- Email -->
           <div class="mb-3">
-            <label for="registerEmail" class="form-label">
-              Email
+            <label for="registerEmail" class="form-label" style="font-weight:600; font-size:0.9rem;">
+              Email address <span class="text-danger">*</span>
             </label>
-
-            <input
-              type="email"
-              class="form-control"
-              id="registerEmail"
-              autocomplete="email"
-              required
-            >
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0 text-muted-vs">✉️</span>
+              <input
+                type="email"
+                class="form-control border-start-0 ps-1"
+                id="registerEmail"
+                placeholder="e.g. arjundabbe531@gmail.com"
+                autocomplete="email"
+                required
+              >
+            </div>
           </div>
 
           <!-- Passwords -->
           <div class="row">
-
             <div class="col-sm-6 mb-3">
-
               <label
                 for="registerPassword"
                 class="form-label"
+                style="font-weight:600; font-size:0.9rem;"
               >
-                Password
+                Password <span class="text-danger">*</span>
               </label>
-
-              <input
-                type="password"
-                class="form-control"
-                id="registerPassword"
-                autocomplete="new-password"
-                minlength="6"
-                required
-              >
-
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted-vs">🔒</span>
+                <input
+                  type="password"
+                  class="form-control border-start-0 ps-1"
+                  id="registerPassword"
+                  placeholder="Min. 6 characters"
+                  autocomplete="new-password"
+                  minlength="6"
+                  required
+                >
+              </div>
             </div>
 
             <div class="col-sm-6 mb-3">
-
               <label
                 for="registerConfirm"
                 class="form-label"
+                style="font-weight:600; font-size:0.9rem;"
               >
-                Confirm password
+                Confirm password <span class="text-danger">*</span>
               </label>
-
-              <input
-                type="password"
-                class="form-control"
-                id="registerConfirm"
-                autocomplete="new-password"
-                minlength="6"
-                required
-              >
-
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted-vs">🔒</span>
+                <input
+                  type="password"
+                  class="form-control border-start-0 ps-1"
+                  id="registerConfirm"
+                  placeholder="Re-enter password"
+                  autocomplete="new-password"
+                  minlength="6"
+                  required
+                >
+              </div>
             </div>
-
           </div>
 
           <!-- Dietary preference -->
           <div class="mb-3">
-
-            <label
-              for="registerDiet"
-              class="form-label"
-            >
-              Dietary preference
-            </label>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label
+                for="registerDiet"
+                class="form-label mb-0"
+                style="font-weight:600; font-size:0.9rem;"
+              >
+                Dietary preference <span class="text-danger">*</span>
+              </label>
+              <span class="text-muted-vs" style="font-size:0.75rem; color:var(--vs-green-700);">Personalizes dining feeds</span>
+            </div>
 
             <select
               id="registerDiet"
               class="form-select"
               required
             >
-              <option value="">Select one</option>
-              <option value="vegan">Vegan</option>
-              <option value="vegetarian">Vegetarian</option>
-              <option value="eggetarian">Eggetarian</option>
-              <option value="jain">Jain</option>
-              <option value="unspecified">
-                Prefer not to specify
-              </option>
+              <option value="">Select your primary dietary preference</option>
+              <option value="vegan">🌱 Vegan (Strict plant-based, no dairy/ghee/honey)</option>
+              <option value="vegetarian">🥗 Pure Vegetarian (Lacto-vegetarian, dairy included)</option>
+              <option value="jain">🌿 Jain Friendly (No root vegetables, onion, or garlic)</option>
+              <option value="eggetarian">🥚 Eggetarian (Vegetarian with egg preparations)</option>
+              <option value="unspecified">Prefer not to specify</option>
             </select>
+            <p class="text-muted-vs mt-1 mb-0" style="font-size:0.8rem;">
+              Helps filter campus messes, Shegaon tiffin centers, and local dhabas according to your food ethics.
+            </p>
+          </div>
 
+          <!-- Civic Verification Note -->
+          <div class="p-3 mb-3 rounded-3" style="background-color:var(--vs-green-50); border:1px solid var(--vs-green-200); font-size:0.82rem; color:var(--vs-green-800);">
+            🤝 By joining, you contribute to community-maintained food transparency for students and local communities under the VeganSaathi community code of conduct.
           </div>
 
           <!-- Register -->
           <button
             type="submit"
-            class="btn btn-vs-primary w-100 mb-2"
+            class="btn btn-vs-primary w-100 py-2 mb-2"
+            style="font-size:0.95rem;"
           >
-            Create Account
+            Create Account →
           </button>
 
           <!-- Feedback -->
@@ -156,8 +186,8 @@
           class="text-center mt-3 mb-0"
           style="font-size:0.9rem;"
         >
-          Already have an account?
-          <a href="login.html">Log in</a>
+          <span class="text-muted-vs">Already have an account?</span>
+          <a href="login.html" style="font-weight:700;">Log in</a>
         </p>
 
       </div>
@@ -172,13 +202,9 @@
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
   ></script>
 
-  <!-- Existing VeganSaathi scripts -->
-  <script src="js/mock-data.js"></script>
+  <!-- VeganSaathi scripts -->
   <script src="js/components.js"></script>
   <script type="module" src="js/app.js"></script>
-
-  <!-- Phase 4 Firebase Authentication -->
-  <!-- IMPORTANT: load only once and as a module -->
   <script type="module" src="js/auth-ui.js"></script>
 
 </body>

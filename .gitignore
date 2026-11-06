@@ -21,10 +21,29 @@ Thumbs.db
 *.swp
 
 # Fieldwork ledgers contain visit logs and vendor consent notes — never commit them.
-# Only the header-only research/place_data_template.csv belongs in the repository.
+# Only the template CSVs belong in the repository.
 research/*
 !research/place_data_template.csv
+!research/fieldwork_log_template.csv
+!research/source_evidence_template.csv
 
-# Python temporary files
+# Python temporary files & virtual environments
 __pycache__/
 *.py[cod]
+.venv/
+venv/
+
+# Test-runner caches (generated locally, never shipped)
+.pytest_cache/
+
+# Binary archives — not source code
+*.zip
+
+# Oversized test fixtures (generated locally, not needed in repo)
+tests/fixtures/oversized_dummy.jpg
+
+# Large data acquisition / raw external datasets (never commit bulk licensed dumps)
+data/raw/
+*.pbf
+*.parquet
+*.ndjson

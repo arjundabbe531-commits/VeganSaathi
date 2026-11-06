@@ -48,7 +48,59 @@ service cloud.firestore {
     }
 
     function isValidPlaceType(value) {
-      return value in ["restaurant", "mess", "canteen", "cafe", "dhaba", "other"];
+      return value in ["restaurant", "mess", "canteen", "cafe", "dhaba", "bakery", "dessert", "shop", "other"];
+    }
+
+    function isValidPriceRange(value) {
+      return value in ["budget", "moderate", "premium", "Price not listed"];
+    }
+
+    // Global coordinate validation: accepts any well-formed lat/lon pair.
+    // VeganSaathi is not restricted to a single region; see COORD_BOUNDS in
+    // frontend/js/places-service.js for the matching client-side constant.
+    // Candidate rules are emulator-tested only; production deployment is not authorized.
+    function isValidCoordinates(lat, lon) {
+      return (lat is int || lat is float)
+        && (lon is int || lon is float)
+        && lat >= -90 && lat <= 90
+        && lon >= -180 && lon <= 180;
+    }
+
+    function isWithinOptionalLength(data, field, maxLen) {
+      return !(field in data) || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    function isValidPlacePayload(data) {
+      return isValidPlaceType(data.placeType)
+        && isValidDietTags(data.dietTags)
+        && isValidPriceRange(data.priceRange)
+        && isValidCoordinates(data.latitude, data.longitude)
+        && data.name is string
+        && data.name.size() >= 2
+        && data.name.size() <= 100
+        && data.address is string
+        && data.address.size() > 0
+        && data.address.size() <= 300
+        && (data.verificationStatus != "verified" || data.lastVerifiedAt is timestamp);
+    }
+
+    function hasTraceablePhotoRights(data) {
+      return data.keys().hasAll([
+          "creator_name", "rights_holder", "permission_basis", "permission_evidence_ref",
+          "licence", "attribution_required", "attribution_text"
+        ])
+        && data.creator_name is string && data.creator_name.size() > 0 && data.creator_name.size() <= 120
+        && data.rights_holder is string && data.rights_holder.size() > 0 && data.rights_holder.size() <= 120
+        && data.permission_basis in ["original_work", "written_permission", "open_license"]
+        && data.permission_evidence_ref is string && data.permission_evidence_ref.size() >= 5 && data.permission_evidence_ref.size() <= 500
+        && (data.permission_evidence_ref.matches('^https://.+$')
+          || data.permission_evidence_ref.matches('^evidence-record:[A-Za-z0-9_-]+$'))
+        && data.licence is string && data.licence.size() > 0 && data.licence.size() <= 200
+        && data.attribution_required is bool
+        && data.attribution_text is string && data.attribution_text.size() <= 500
+        && (data.attribution_required == false || data.attribution_text.size() > 0)
+        && (data.permission_basis != "original_work" || data.is_original_work == true)
+        && (data.permission_basis != "written_permission" || data.has_permission_to_publish == true);
     }
 
     // ---------------- users ----------------
@@ -60,11 +112,14 @@ service cloud.firestore {
         && request.resource.data.role == "user"
         && isValidDietPreference(request.resource.data.dietPreference);
 
-      // A user may update their own profile, but never their own role, and
-      // never in a way that stops matching their Firebase Auth email.
+      // A user may update their own profile, but only permitted fields (name, dietPreference, updatedAt),
+      // role and email remain immutable, and dietPreference is re-validated on every update.
       allow update: if isOwner(userId)
         && request.resource.data.role == resource.data.role
-        && request.resource.data.email == resource.data.email;
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["name", "dietPreference", "updatedAt"])
+        && isValidDietPreference(request.resource.data.dietPreference);
 
       // No client-side account deletion in the MVP — if this is ever needed,
       // it should go through a trusted server-side flow (e.g. a Cloud
@@ -81,27 +136,36 @@ service cloud.firestore {
         || isAdmin()
         || (isSignedIn() && resource.data.submittedBy == request.auth.uid);
 
-      // A new submission always starts pending/unverified — a user cannot
-      // publish or pre-verify their own listing.
-      allow create: if isSignedIn()
-        && request.resource.data.submittedBy == request.auth.uid
-        && request.resource.data.status == "pending"
-        && request.resource.data.verificationStatus == "unverified"
-        && isValidPlaceType(request.resource.data.placeType)
-        && isValidDietTags(request.resource.data.dietTags);
+      // Admins can create places directly (e.g. from approved import batches),
+      // subject to valid schema and verification payload requirements.
+      // A new community submission always starts pending/unverified and source="community".
+      // A user cannot publish, pre-verify, or spoof fieldwork attribution.
+      allow create: if (isAdmin() && isValidPlacePayload(request.resource.data))
+        || (
+          isSignedIn()
+          && request.resource.data.submittedBy == request.auth.uid
+          && request.resource.data.source == "community"
+          && request.resource.data.status == "pending"
+          && request.resource.data.verificationStatus == "unverified"
+          && isValidPlacePayload(request.resource.data)
+        );
 
-      // Admins can change anything (approve, reject, edit, re-verify).
+      // Admins can change anything (approve, reject, edit, re-verify),
+      // but payload must remain valid (cannot inject malformed data or fake verification).
       // The original submitter may still edit their OWN submission while it
-      // is still pending, but cannot use that edit to publish or verify it
-      // themselves — those transitions are admin-only.
-      allow update: if isAdmin()
+      // is still pending, but cannot use that edit to publish, verify,
+      // reassign ownership, change creation timestamp, or flip source to fieldwork.
+      allow update: if (isAdmin() && isValidPlacePayload(request.resource.data))
         || (
           isSignedIn()
           && resource.data.submittedBy == request.auth.uid
           && resource.data.status == "pending"
           && request.resource.data.status == "pending"
           && request.resource.data.verificationStatus == "unverified"
+          && request.resource.data.source == "community"
           && request.resource.data.submittedBy == resource.data.submittedBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && isValidPlacePayload(request.resource.data)
         );
 
       allow delete: if isAdmin();
@@ -109,18 +173,25 @@ service cloud.firestore {
 
     // ---------------- reviews ----------------
     match /reviews/{reviewId} {
-      // Reviews are public read (they only make sense attached to a place
-      // that's already public); kept simple for the MVP rather than joining
-      // against the parent place's status on every read.
+      // Reviews are public read. Public read is safe because the document schema
+      // strictly allows only public review fields (no private email or account data).
       allow read: if true;
 
+      // Review creation: strict allowlist, bounded comment, published place requirement.
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(["placeId", "userId", "authorName", "rating", "comment", "createdAt"])
+        && request.resource.data.placeId is string
+        && request.resource.data.placeId.size() > 0
         && request.resource.data.rating is int
         && request.resource.data.rating >= 1
         && request.resource.data.rating <= 5
         && request.resource.data.authorName is string
-        && request.resource.data.authorName.size() > 0;
+        && request.resource.data.authorName.size() > 0
+        && request.resource.data.authorName.size() <= 100
+        && isWithinOptionalLength(request.resource.data, "comment", 500)
+        && exists(/databases/$(database)/documents/places/$(request.resource.data.placeId))
+        && get(/databases/$(database)/documents/places/$(request.resource.data.placeId)).data.status == "published";
 
       // Reviews aren't editable in the MVP — remove and repost instead.
       allow update: if false;
@@ -134,16 +205,24 @@ service cloud.firestore {
       // contain candid detail about a real vendor, so this stays narrow.
       allow read: if isAdmin() || (isSignedIn() && resource.data.reporterId == request.auth.uid);
 
+      // Report creation: strict allowlist, bounded description, valid reason.
       allow create: if isSignedIn()
         && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.keys().hasOnly(["placeId", "reporterId", "reason", "status", "description", "createdAt"])
+        && request.resource.data.placeId is string
+        && request.resource.data.placeId.size() > 0
         && request.resource.data.status == "pending"
         && request.resource.data.reason in [
              "place-closed", "wrong-diet-info", "wrong-address",
              "temporarily-unavailable", "outdated", "other"
-           ];
+           ]
+        && isWithinOptionalLength(request.resource.data, "description", 500);
 
       // Only an admin resolves or dismisses a report.
-      allow update: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["status", "resolvedAt", "adminNote", "updatedAt"])
+        && request.resource.data.status in ["resolved", "dismissed"];
 
       allow delete: if false;
     }
@@ -155,6 +234,7 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(["userId", "placeId", "createdAt"])
         && saveId == (request.auth.uid + "_" + request.resource.data.placeId);
 
       // Saved-place docs are only ever created or removed, never edited.
@@ -163,14 +243,110 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
-    // ---------------- editSuggestions (Should-Have — not built until a later phase) ----------------
+    // ---------------- editSuggestions (disabled until a strict schema and workflow are approved) ----------------
     match /editSuggestions/{suggestionId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.suggestedBy == request.auth.uid);
-      allow create: if isSignedIn()
-        && request.resource.data.suggestedBy == request.auth.uid
-        && request.resource.data.status == "pending";
-      allow update: if isAdmin();
+      // No client access is permitted while this future workflow is unimplemented.
+      allow read, create, update, delete: if false;
+    }
+
+    // ---------------- placeCandidates (Place Intelligence staging) ----------------
+    match /placeCandidates/{candidateId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && !candidateId.matches('^cand_synthetic_fixture_.*$')
+        && request.resource.data.candidate_id == candidateId
+        && request.resource.data.import_status == "staged"
+        && request.resource.data.source_id is string
+        && request.resource.data.source_id.size() > 0
+        && request.resource.data.source_dataset_version is string
+        && request.resource.data.source_dataset_version.size() > 0
+        && !request.resource.data.keys().hasAny([
+          "is_synthetic_fixture", "synthetic_fixture_id", "synthetic_dataset_version", "dataset_origin"
+        ]);
+      allow update: if isAdmin()
+        && resource.data.import_status == "staged"
+        && request.resource.data.import_status in ["approved", "rejected"]
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "import_status", "approvedPlaceId", "approvedBy", "approvedAt",
+          "rejectionNotes", "rejectedBy", "rejectedAt"
+        ]);
       allow delete: if false;
+    }
+
+    // ---------------- importBatches (Audit manifest records) ----------------
+    match /importBatches/{batchId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---------------- placePhotos (submission disabled; auditable review only) ----------------
+    match /placePhotos/{photoId} {
+      allow read: if (resource.data.approval_status == "approved"
+          && exists(/databases/$(database)/documents/places/$(resource.data.place_id))
+          && get(/databases/$(database)/documents/places/$(resource.data.place_id)).data.status == "published")
+        || isAdmin()
+        || (isSignedIn() && resource.data.submitter_uid == request.auth.uid);
+
+      // Uploads remain disabled until the app can collect and retain reviewable
+      // rights evidence. Admin approval of a seeded pending record requires a
+      // traceable rights record and matching immutable review history.
+      allow create: if false;
+
+      allow update: if isAdmin()
+        && resource.data.approval_status == "pending"
+        && exists(/databases/$(database)/documents/places/$(resource.data.place_id))
+        && get(/databases/$(database)/documents/places/$(resource.data.place_id)).data.status == "published"
+        && (request.resource.data.approval_status != "approved" || hasTraceablePhotoRights(resource.data))
+        && request.resource.data.approval_status in ["approved", "rejected"]
+        && request.resource.data.approving_admin_uid == request.auth.uid
+        && request.resource.data.approval_timestamp == request.time
+        && request.resource.data.rights_reviewed_by == request.auth.uid
+        && request.resource.data.rights_reviewed_at == request.time
+        && request.resource.data.rights_review_status == (request.resource.data.approval_status == "approved" ? "accepted" : "rejected")
+        && request.resource.data.rights_review_notes is string
+        && request.resource.data.rights_review_notes.size() > 0
+        && request.resource.data.rights_review_notes.size() <= 1000
+        && request.resource.data.rights_review_history_id is string
+        && request.resource.data.rights_review_history_id.size() > 0
+        && existsAfter(/databases/$(database)/documents/photoRightsReviewHistory/$(request.resource.data.rights_review_history_id))
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["approval_status", "approving_admin_uid", "approval_timestamp", "rejection_reason",
+               "rights_review_status", "rights_reviewed_by", "rights_reviewed_at", "rights_review_notes", "rights_review_history_id"]);
+
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.submitter_uid == request.auth.uid && resource.data.approval_status == "pending");
+    }
+
+    match /photoRightsReviewHistory/{reviewId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasAll(["photo_id", "decision", "reviewer_uid", "reviewed_at", "rights_evidence_snapshot"])
+        && request.resource.data.keys().hasOnly(["photo_id", "decision", "reviewer_uid", "reviewed_at", "rights_evidence_snapshot"])
+        && request.resource.data.photo_id is string
+        && request.resource.data.decision in ["approved", "rejected"]
+        && request.resource.data.reviewer_uid == request.auth.uid
+        && request.resource.data.reviewed_at == request.time
+        && request.resource.data.rights_evidence_snapshot is map
+        && request.resource.data.rights_evidence_snapshot.keys().hasOnly([
+          "creator_name", "rights_holder", "permission_basis", "permission_evidence_ref",
+          "licence", "attribution_required", "attribution_text"
+        ])
+        && existsAfter(/databases/$(database)/documents/placePhotos/$(request.resource.data.photo_id))
+        && getAfter(/databases/$(database)/documents/placePhotos/$(request.resource.data.photo_id)).data.approval_status == request.resource.data.decision
+        && getAfter(/databases/$(database)/documents/placePhotos/$(request.resource.data.photo_id)).data.rights_review_history_id == reviewId;
+      allow update, delete: if false;
+    }
+
+    // ---------------- verificationHistory (Audit trail for verification decisions) ----------------
+    match /verificationHistory/{historyId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ---------------- businessClaims (disabled until identity-proof and status schemas are approved) ----------------
+    match /businessClaims/{claimId} {
+      // A claim is not business ownership proof; disable all client access until
+      // identity proof, privacy and status-transition schemas are approved.
+      allow read, create, update, delete: if false;
     }
 
     // Deny anything not explicitly matched above.

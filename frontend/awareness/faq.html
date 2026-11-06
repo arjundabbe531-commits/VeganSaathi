@@ -3,101 +3,191 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FAQ — VeganSaathi</title>
+<title>Student FAQ — VeganSaathi</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="../css/styles.css" rel="stylesheet">
-<script>window.VS_BASE = "../"; window.VS_ACTIVE_PAGE = "awareness";</script>
+<script>
+  window.VS_BASE = "../";
+  window.VS_ACTIVE_PAGE = "awareness";
+  window.VS_AWARENESS_SUBPAGE = "faq";
+</script>
 </head>
 <body>
 
 <div id="navbar-placeholder"></div>
 
 <section class="vs-section">
-  <div class="container" style="max-width:760px;">
-    <h1 class="h4 mb-4">Frequently Asked Questions</h1>
+  <div class="container" style="max-width:800px;">
+    
+    <!-- Sub-navigation across awareness topics -->
+    <div id="awareness-nav-placeholder"></div>
 
-    <div class="accordion" id="faqAccordion">
+    <header class="mb-4">
+      <h1 class="h3 mb-2">Student & Campus FAQ</h1>
+      <p class="text-muted-vs lead fs-6">
+        Practical questions about campus meals, communicating with local vendors, nutrition, and dining out in Shegaon.
+      </p>
+    </header>
 
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-            Myth: Vegetarians and vegans can't get enough protein.
-          </button>
-        </h2>
-        <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-          <div class="accordion-body">
-            <strong>Fact:</strong> Protein deficiency is rare in people eating adequate
-            calories from a varied diet. The body maintains an amino-acid pool, so
-            "combining" proteins at every single meal isn't necessary — pulses, soy, nuts,
-            and grains provide adequate protein across the day when total intake is
-            sufficient. India's ICMR–National Institute of Nutrition guidelines list
-            pulses, dairy, soy, nuts, and seeds as the main vegetarian protein sources.
+    <article>
+      <div class="accordion" id="studentFaqAccordion">
+
+        <!-- FAQ 1 -->
+        <div class="accordion-item mb-2 border rounded">
+          <h2 class="accordion-header" id="headingOne">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+              How do I politely ask local dhaba or canteen vendors about ingredients?
+            </button>
+          </h2>
+          <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#studentFaqAccordion">
+            <div class="accordion-body text-muted-vs" style="font-size:0.92rem;">
+              <p class="mb-2">
+                In smaller towns like Shegaon, the English word <em>"vegan"</em> may not be widely understood by roadside cooks. Instead of asking "Is this vegan?", ask directly about specific dairy ingredients using familiar local phrasing:
+              </p>
+              <ul>
+                <li><strong>Hindi:</strong> <em>"Bhaiya, isme ghee, butter ya dahi to nahi dala? Tel me banaya hai na? Roti pe ghee mat lagana."</em></li>
+                <li><strong>Marathi:</strong> <em>"Bhau, hyat tup kinva dahi ghatla ahe ka? He telat banavla ahe na? Chapati var tup nako lau."</em></li>
+              </ul>
+              <p class="mb-0">
+                Local cooks are generally very accommodating once they understand you simply want food cooked in plant oil (groundnut, sunflower, or soy oil) without butter or ghee.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-            Myth: Vegan food is just salads.
-          </button>
-        </h2>
-        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-          <div class="accordion-body">
-            <strong>Fact:</strong> Legumes, grains, and a wide range of regional Indian
-            dishes — many Maharashtrian staples included — are naturally plant-based, well
-            beyond salads.
+        <!-- FAQ 2 -->
+        <div class="accordion-item mb-2 border rounded">
+          <h2 class="accordion-header" id="headingTwo">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+              Is hostel mess food manageable for someone eating plant-based?
+            </button>
+          </h2>
+          <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#studentFaqAccordion">
+            <div class="accordion-body text-muted-vs" style="font-size:0.92rem;">
+              <p class="mb-2">
+                Yes! Most student messes operate on a staple rotation of dal, chapatis, seasonal sabzis, and rice. The main adjustments are:
+              </p>
+              <ol class="mb-2">
+                <li>Request dry (sukhi) rotis directly from the tawa without ghee or butter.</li>
+                <li>Ask if gravies use cream or curd. If so, choose dal and plain sabzis.</li>
+                <li>Keep nutritious hostel snacks (roasted peanuts, roasted chana, bananas, sattu) in your room for extra energy between classes.</li>
+              </ol>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-            Is all "pure veg" food automatically vegan?
-          </button>
-        </h2>
-        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-          <div class="accordion-body">
-            <strong>No.</strong> "Pure veg" in India typically means lacto-vegetarian, not
-            vegan — dairy (ghee, curd, paneer, khoya) is common in vegetarian cooking. See
-            <a href="vegetarian-vs-vegan.html">Vegetarian vs Vegan</a> for the full
-            explanation.
+        <!-- FAQ 3 -->
+        <div class="accordion-item mb-2 border rounded">
+          <h2 class="accordion-header" id="headingThree">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+              Where do I get Vitamin B12 as a college student?
+            </button>
+          </h2>
+          <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#studentFaqAccordion">
+            <div class="accordion-body text-muted-vs" style="font-size:0.92rem;">
+              <p class="mb-2">
+                <strong>Vitamin B12 is essential.</strong> It is made by micro-organisms, not by plants. The NHS advises that sources of B12 for vegans are limited, so fortified foods or a supplement are needed.
+              </p>
+              <p class="mb-0">
+                Vitamin B12 supplements (cyanocobalamin or methylcobalamin) are sold in many pharmacies; a pharmacist or doctor can advise on the form and dose. Fortified plant milks and cereals also contribute. Speak with a doctor or a physician to determine an appropriate dosage.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="accordion-item">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
-            What does "Verified" mean on a VeganSaathi listing?
-          </button>
-        </h2>
-        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-          <div class="accordion-body">
-            It means our team (or a trusted community contributor, subject to admin
-            approval) checked the listed information as of the "last verified" date shown.
-            It is not a permanent guarantee — always confirm specifics with the vendor,
-            especially for strict dietary needs like Jain or vegan requirements.
+        <!-- FAQ 4 -->
+        <div class="accordion-item mb-2 border rounded">
+          <h2 class="accordion-header" id="headingFour">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+              How do I get adequate calcium and iron without dairy or meat?
+            </button>
+          </h2>
+          <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#studentFaqAccordion">
+            <div class="accordion-body text-muted-vs" style="font-size:0.92rem;">
+              <p class="mb-2">
+                Traditional Indian plant foods provide abundant calcium and iron when planned intentionally:
+              </p>
+              <ul>
+                <li><strong>Calcium:</strong> Ragi (nachni / finger millet) is one of the richest sources of plant calcium in the world. Sesame seeds (til), dark green leafy vegetables (methi, moringa), and fortified soya drinks also supply bioavailable calcium.</li>
+                <li><strong>Iron:</strong> Soya chunks, black chana, lentils, and spinach are rich in plant iron. To maximize absorption, pair them with Vitamin C by squeezing fresh lemon juice over your meals.</li>
+              </ul>
+            </div>
           </div>
         </div>
+
+        <!-- FAQ 5 -->
+        <div class="accordion-item mb-2 border rounded">
+          <h2 class="accordion-header" id="headingFive">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+              Can I build muscle or stay athletic on campus without eggs or whey?
+            </button>
+          </h2>
+          <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#studentFaqAccordion">
+            <div class="accordion-body text-muted-vs" style="font-size:0.92rem;">
+              <p class="mb-0">
+                Yes. Muscle synthesis responds to progressive resistance training and adequate overall daily protein and calories. Soya chunks, chickpeas, peanut butter, lentils, and sprouted beans offer high-density plant protein. Many competitive athletes and powerlifters thrive on entirely plant-based diets.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAQ 6 -->
+        <div class="accordion-item mb-2 border rounded">
+          <h2 class="accordion-header" id="headingSix">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
+              What does "Verified" mean on a VeganSaathi place listing?
+            </button>
+          </h2>
+          <div id="collapseSix" class="accordion-collapse collapse" aria-labelledby="headingSix" data-bs-parent="#studentFaqAccordion">
+            <div class="accordion-body text-muted-vs" style="font-size:0.92rem;">
+              <p class="mb-0">
+                "Verified" means that a member of the VeganSaathi community team physically visited the establishment on the stated date, verified the cooking medium with the owner, and confirmed that plant-based items are prepared without dairy. Listings older than 90 days display a gentle "(re-check due)" cue to maintain transparency.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-    </div>
+      <!-- Explore Callout -->
+      <div class="vs-callout-card my-4">
+        <h3 class="h6 mb-1 text-success">Explore Food Places in Shegaon</h3>
+        <p class="mb-2" style="font-size:0.9rem;">
+          Ready to find verified food options? Browse our directory of canteens, dhabas, and restaurants reviewed by the student team.
+        </p>
+        <a href="../explore.html" class="btn btn-vs-primary btn-sm">Open Explore Map & Directory</a>
+      </div>
 
-    <div class="vs-mock-notice mt-4">
-      <strong>Sources:</strong> ICMR–National Institute of Nutrition Dietary Guidelines
-      for Indians (protein guidance); general nutrition myth-busting references. Review
-      and finalize sourcing before CEP submission. This is general education, not medical
-      or nutritional advice for any individual.
-    </div>
+      <!-- References & Sources -->
+      <section class="vs-reference-card my-4">
+        <h2 class="h6 mb-2">References & Credible Sources</h2>
+        <ul class="mb-0 ps-3">
+          <li>
+            <strong>The Vegan Society:</strong> <em>General FAQs on nutrition, practicalities, and social dining.</em> Available at: 
+            <a href="https://www.vegansociety.com/resources/general-faqs" target="_blank" rel="noopener noreferrer">vegansociety.com/general-faqs</a>.
+          </li>
+          <li>
+            <strong>National Health Service (NHS, UK):</strong> <em>The vegan diet.</em> Available at: 
+            <a href="https://www.nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/the-vegan-diet/" target="_blank" rel="noopener noreferrer">nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/the-vegan-diet</a>.
+          </li>
+          <li>
+            <strong>Harvard Health Publishing:</strong> <em>What is a plant-based diet and why should you try it?</em> Available at: 
+            <a href="https://www.health.harvard.edu/blog/what-is-a-plant-based-diet-and-why-should-you-try-it-201809261700" target="_blank" rel="noopener noreferrer">health.harvard.edu/blog</a>.
+          </li>
+        </ul>
+      </section>
+
+      <!-- Educational & Medical Disclaimer -->
+      <div class="vs-disclaimer-box my-4" role="note">
+        <strong>Educational Disclaimer:</strong> Answers provided in this FAQ are for student orientation and educational awareness only. They do not substitute for individual medical, nutritional, or diagnostic advice. Consult a healthcare professional regarding supplements or personal dietary changes.
+      </div>
+    </article>
   </div>
 </section>
 
 <div id="footer-placeholder"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/mock-data.js"></script>
 <script src="../js/components.js"></script>
 <script type="module" src="../js/app.js"></script>
 </body>

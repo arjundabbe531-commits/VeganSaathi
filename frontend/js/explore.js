@@ -21,7 +21,8 @@
    places-service.js.
    ========================================================================== */
 
-import { fetchPublishedPlaces, PILOT_BOUNDS } from "./places-service.js";
+import { fetchPublishedPlaces, COORD_BOUNDS } from "./places-service.js";
+import { requestUserLocation, sortByDistance, formatDistance, haversineKm } from "./geolocation.js";
 
 let vsAllPlaces = null; // null until the first successful load; [] is a valid "loaded, zero places" state
 let vsActiveDietFilters = [];
@@ -29,7 +30,8 @@ let vsActivePlaceType = "";
 let vsActivePriceRange = "";
 let vsVerifiedOnly = false;
 let vsMap = null;
-let vsMarkersLayer = null; // Leaflet layerGroup — all current markers live here, cleared as a group on every re-render
+let vsMarkersLayer = null; // Leaflet layerGroup -- all current markers live here
+let vsUserLocation = null; // { lat, lon } when the user has granted permission; null otherwise
 
 document.addEventListener("DOMContentLoaded", function () {
   // Pre-fill search box from ?q= if the person searched from Home — this
@@ -43,17 +45,36 @@ document.addEventListener("DOMContentLoaded", function () {
   wireFilterChips();
   wireSearchAndSelects();
   wireViewToggle();
-  setViewToggleEnabled(false); // nothing to show yet — re-enabled once data loads successfully
+  wireLocationButton();
+  wireRefreshButton();
+  setViewToggleEnabled(false); // nothing to show yet -- re-enabled once data loads successfully
 
-  loadPlaces();
+  loadPlaces(false);
 });
 
-async function loadPlaces() {
+function wireRefreshButton() {
+  const btn = document.getElementById("refreshPlacesBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", async function () {
+    btn.disabled = true;
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = "⏳ Refreshing…";
+    try {
+      await loadPlaces(true);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  });
+}
+
+async function loadPlaces(forceRefresh = false) {
   showOnly("loadingState");
 
   let result;
   try {
-    result = await fetchPublishedPlaces();
+    result = await fetchPublishedPlaces({ forceRefresh: forceRefresh });
   } catch (error) {
     // fetchPublishedPlaces() is designed to catch its own errors and return
     // a status instead of throwing, but guard here too in case something
@@ -107,21 +128,52 @@ function setViewToggleEnabled(enabled) {
   if (mapBtn) mapBtn.disabled = !enabled;
 }
 
-/* ---------------- Sorting (Phase 5 D-decision: verified first, then most
-   recently verified, then name — browser-side, no Firestore orderBy()) ---------------- */
+// Default sort: verified places first, then most recently verified, then name.
+// When vsUserLocation is active, sortByDistance() overrides this before render.
 function sortPlaces(places) {
   return places.slice().sort(function (a, b) {
-    const aVerified = a.verificationStatus === "verified";
-    const bVerified = b.verificationStatus === "verified";
+    var aVerified = a.verificationStatus === "verified";
+    var bVerified = b.verificationStatus === "verified";
     if (aVerified !== bVerified) return aVerified ? -1 : 1;
 
     if (aVerified && bVerified) {
-      const aTime = a.lastVerifiedAt instanceof Date ? a.lastVerifiedAt.getTime() : 0;
-      const bTime = b.lastVerifiedAt instanceof Date ? b.lastVerifiedAt.getTime() : 0;
-      if (aTime !== bTime) return bTime - aTime; // most recently verified first
+      var aTime = a.lastVerifiedAt instanceof Date ? a.lastVerifiedAt.getTime() : 0;
+      var bTime = b.lastVerifiedAt instanceof Date ? b.lastVerifiedAt.getTime() : 0;
+      if (aTime !== bTime) return bTime - aTime;
     }
 
     return a.name.localeCompare(b.name);
+  });
+}
+
+/* ---------------- Location button ---------------- */
+function wireLocationButton() {
+  var btn = document.getElementById("useMyLocationBtn");
+  if (!btn) return; // button is optional; page works without it
+
+  btn.addEventListener("click", async function () {
+    btn.disabled = true;
+    btn.textContent = "Locating\u2026";
+
+    var result = await requestUserLocation();
+
+    if (result.status === "ok") {
+      vsUserLocation = { lat: result.lat, lon: result.lon };
+      btn.textContent = "\u2713 Location active";
+      btn.classList.add("btn-vs-primary");
+      btn.classList.remove("btn-vs-outline");
+      btn.disabled = true;
+      renderResults();
+    } else {
+      btn.disabled = false;
+      btn.textContent = "Use my location";
+      // Show a brief non-blocking note below the button
+      var note = document.getElementById("locationNote");
+      if (note) {
+        note.textContent = result.message;
+        note.classList.remove("d-none");
+      }
+    }
   });
 }
 
@@ -208,7 +260,10 @@ function getFilteredPlaces() {
       if (haystack.indexOf(searchTerm) === -1) return false;
     }
     if (vsActiveDietFilters.length > 0) {
-      const hasAll = vsActiveDietFilters.every(function (d) { return place.dietTags.indexOf(d) !== -1; });
+      const hasAll = vsActiveDietFilters.every(function (d) {
+        if (d === "vegan") return isVeganDietVerified(place);
+        return place.dietTags.indexOf(d) !== -1;
+      });
       if (!hasAll) return false;
     }
     if (vsActivePlaceType && place.placeType !== vsActivePlaceType) return false;
@@ -219,21 +274,31 @@ function getFilteredPlaces() {
 }
 
 function renderResults() {
-  if (!vsAllPlaces) return; // guard against a stray event before data loads
+  if (!vsAllPlaces) return;
 
-  const results = getFilteredPlaces();
-  const container = document.getElementById("resultsGrid");
-  const emptyState = document.getElementById("emptyState");
-  const countLabel = document.getElementById("resultsCount");
+  // If the user has shared their location, sort by distance; otherwise use verification sort.
+  var results = vsUserLocation
+    ? sortByDistance(getFilteredPlaces(), vsUserLocation)
+    : getFilteredPlaces();
 
-  countLabel.textContent = results.length + (results.length === 1 ? " place found" : " places found");
+  var container = document.getElementById("resultsGrid");
+  var emptyState = document.getElementById("emptyState");
+  var countLabel = document.getElementById("resultsCount");
+
+  var locLabel = vsUserLocation ? " (sorted by distance)" : "";
+  countLabel.textContent = results.length + (results.length === 1 ? " place found" : " places found") + locLabel;
 
   if (results.length === 0) {
     container.innerHTML = "";
     emptyState.classList.remove("d-none");
   } else {
     emptyState.classList.add("d-none");
-    container.innerHTML = results.map(renderPlaceCard).join("");
+    container.innerHTML = results.map(function (place) {
+      var km = vsUserLocation
+        ? haversineKm(vsUserLocation, { lat: place.latitude, lon: place.longitude })
+        : null;
+      return renderPlaceCard(place, km);
+    }).join("");
   }
 
   if (vsMap) {
@@ -245,11 +310,14 @@ function renderResults() {
   }
 }
 
+
 /* ---------------- Map (Leaflet + OpenStreetMap) ---------------- */
 function initMapIfNeeded() {
   if (vsMap) return;
-  // Centered roughly on Shegaon town.
-  vsMap = L.map("vs-map").setView([20.7945, 76.6970], 14);
+  // Default centre: geographic centre of India at a country-level zoom.
+  // renderMapMarkers() will call fitBounds() to re-centre on actual results
+  // if they have valid coordinates.
+  vsMap = L.map("vs-map").setView([20.5937, 78.9629], 5);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
     maxZoom: 19
@@ -261,39 +329,37 @@ function initMapIfNeeded() {
   vsMarkersLayer = L.layerGroup().addTo(vsMap);
 }
 
-// Revalidates a place's coordinates against the same pilot bounding box
-// places-service.js's normalizePlace() already checked — belt-and-braces,
-// not a reason to skip this: normalized data is still just data, and the
-// map should never blindly trust a coordinate pair without checking it
-// itself. Never "corrects" a bad coordinate — a place that fails this
-// check simply gets no marker, while everything else about it (its card,
-// its data) is untouched.
+// Validates a place's coordinates against the same global bounds
+// places-service.js's normalizePlace() already checked — belt-and-braces.
+// A place that fails is simply skipped on the map; its card is untouched.
 function isValidMapCoordinate(lat, lon) {
   if (typeof lat !== "number" || typeof lon !== "number") return false;
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
   return (
-    lat >= PILOT_BOUNDS.minLat && lat <= PILOT_BOUNDS.maxLat &&
-    lon >= PILOT_BOUNDS.minLon && lon <= PILOT_BOUNDS.maxLon
+    lat >= COORD_BOUNDS.minLat && lat <= COORD_BOUNDS.maxLat &&
+    lon >= COORD_BOUNDS.minLon && lon <= COORD_BOUNDS.maxLon
   );
 }
 
 function renderMapMarkers(places) {
-  // Clears every marker currently in the group in one call — this is what
-  // actually prevents stale markers from a previous filter/search
-  // accumulating on repeated List<->Map switches or filter changes.
+  // Clears every marker currently in the group in one call — prevents stale
+  // markers accumulating on repeated filter/search changes.
   vsMarkersLayer.clearLayers();
+
+  var validBounds = [];
 
   places.forEach(function (place) {
     if (!isValidMapCoordinate(place.latitude, place.longitude)) {
       // Skip only this marker; every other valid place still renders.
       console.warn(
         "VeganSaathi Explore: skipping map marker for \"" + place.name + "\" (id: " + place.id + ") — " +
-        "coordinates (" + place.latitude + ", " + place.longitude + ") are outside the expected pilot area."
+        "coordinates (" + place.latitude + ", " + place.longitude + ") are missing or outside valid global ranges."
       );
       return;
     }
 
-    const marker = L.marker([place.latitude, place.longitude]);
+    validBounds.push([place.latitude, place.longitude]);
+    var marker = L.marker([place.latitude, place.longitude]);
     marker.bindPopup(
       "<strong>" + escapeHtml(place.name) + "</strong><br>" +
       escapeHtml(capitalize(place.placeType)) + "<br>" +
@@ -301,4 +367,14 @@ function renderMapMarkers(places) {
     );
     vsMarkersLayer.addLayer(marker);
   });
+
+  // Fit the map to the markers so all results are visible.
+  // Only call fitBounds when there are valid coordinates to fit to.
+  if (validBounds.length > 0 && vsMap && typeof vsMap.fitBounds === "function") {
+    try {
+      vsMap.fitBounds(validBounds, { padding: [30, 30], maxZoom: 15 });
+    } catch (err) {
+      console.warn("VeganSaathi: fitBounds failed", err);
+    }
+  }
 }

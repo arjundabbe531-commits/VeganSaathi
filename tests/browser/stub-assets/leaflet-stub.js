@@ -23,7 +23,7 @@ window.L = (function () {
 
   return {
     map: function (id, opts) {
-      const mapObj = chainable({ _stub: "map" }, ["setView", "removeLayer"]);
+      const mapObj = chainable({ _stub: "map" }, ["setView", "removeLayer", "on", "off"]);
       mapObj.invalidateSize = function () {
         window.__STUB_INVALIDATE_SIZE_CALLS__ = (window.__STUB_INVALIDATE_SIZE_CALLS__ || 0) + 1;
         return mapObj;
@@ -36,7 +36,7 @@ window.L = (function () {
     },
 
     marker: function (coords) {
-      const markerObj = chainable({ _stub: "marker", _coords: coords }, ["addTo"]);
+      const markerObj = chainable({ _stub: "marker", _coords: coords }, ["addTo", "setLatLng", "on", "off"]);
       markerObj.bindPopup = function (html) {
         markerObj._popupHtml = html;
         window.__STUB_MARKER_POPUPS__ = window.__STUB_MARKER_POPUPS__ || [];

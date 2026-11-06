@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Place Details — VeganSaathi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link href="css/styles.css" rel="stylesheet">
@@ -16,75 +19,95 @@
 <section class="vs-section">
   <div class="container">
     <div id="placeLoadingState" class="vs-empty-state">
+      <div class="spinner-border text-success mb-3" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
       <p>Loading place details…</p>
     </div>
     <div id="placeNotFoundState" class="vs-empty-state d-none">
+      <div style="font-size:2.5rem; margin-bottom:0.5rem;">🔍</div>
       <p>This place isn't available. It may have been removed, or the link may be incorrect.</p>
-      <a href="explore.html" class="btn btn-vs-primary btn-sm">Back to Explore</a>
+      <a href="explore.html" class="btn btn-vs-primary btn-sm mt-3 px-4">Back to Explore</a>
     </div>
     <div id="placeErrorState" class="vs-empty-state d-none">
+      <div style="font-size:2.5rem; margin-bottom:0.5rem;">⚠️</div>
       <p>Unable to load this place right now. Please try again in a moment.</p>
-      <a href="explore.html" class="btn btn-vs-outline btn-sm">Back to Explore</a>
+      <a href="explore.html" class="btn btn-vs-outline btn-sm mt-3 px-4">Back to Explore</a>
     </div>
+
     <div id="placeContent" class="row g-4 d-none">
-      <div class="col-lg-7">
-        <div class="vs-card mb-3">
-          <div class="vs-place-card__image" id="placeImage" style="height:220px;"></div>
-          <div class="p-3">
-            <h1 class="h3 mb-1" id="placeName"></h1>
-            <p class="text-muted-vs mb-2"><span id="placeType"></span> &middot; <span id="placeArea"></span></p>
-            <div class="mb-2" id="placeDietBadges"></div>
-            <div class="mb-3" id="placeVerification"></div>
-            <p class="vs-verify-note">Verified by our team as of the date shown — always confirm specifics with the vendor.</p>
-            <hr>
-            <p id="placeDescription"></p>
-            <dl class="row">
-              <dt class="col-sm-3">Address</dt>
-              <dd class="col-sm-9" id="placeAddress"></dd>
-              <dt class="col-sm-3">Price range</dt>
-              <dd class="col-sm-9" id="placePrice"></dd>
-            </dl>
-            <div id="vs-detail-map" style="height:260px;" class="mb-2"></div>
-            <div class="d-flex gap-2 mt-2">
-              <button type="button" id="saveBtn" class="btn btn-vs-outline">Save Place</button>
+      <div class="col-lg-8">
+        <div class="vs-card mb-4 overflow-hidden">
+          <div class="vs-place-card__image" id="placeImage" style="height:260px;"></div>
+          <div class="p-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+              <div>
+                <h1 class="h3 mb-1" id="placeName" style="color:var(--vs-text);"></h1>
+                <p class="text-muted-vs mb-2"><span id="placeType"></span> &middot; <span id="placeArea"></span></p>
+              </div>
+              <button type="button" id="saveBtn" class="btn btn-vs-outline btn-sm px-3">Save Place</button>
             </div>
+            
+            <div class="mb-3" id="placeDietBadges"></div>
+            <div class="mb-2" id="placeVerification"></div>
+            <p class="vs-verify-note mb-3">The verification date and any verified vegan options are shown above. Information can change, so confirm ingredients and preparation with the vendor.</p>
+            
+            <hr style="border-color:var(--vs-border);">
+            
+            <h2 class="h6 text-uppercase text-muted-vs mb-2" style="letter-spacing:0.03em; font-weight:700;">About this place</h2>
+            <p id="placeDescription" class="mb-4" style="line-height:1.65;"></p>
+            
+            <dl class="row mb-4 p-3 rounded-3" style="background-color:var(--vs-green-50); border:1px solid var(--vs-green-200);">
+              <dt class="col-sm-3 text-muted-vs" style="font-size:0.85rem; text-transform:uppercase;">Address</dt>
+              <dd class="col-sm-9 fw-semibold mb-2" id="placeAddress"></dd>
+              <dt class="col-sm-3 text-muted-vs" style="font-size:0.85rem; text-transform:uppercase;">Price range</dt>
+              <dd class="col-sm-9 fw-semibold mb-0" id="placePrice"></dd>
+            </dl>
+
+            <h2 class="h6 text-uppercase text-muted-vs mb-2" style="letter-spacing:0.03em; font-weight:700;">Location on Map</h2>
+            <div id="vs-detail-map" style="height:280px;" class="mb-2"></div>
           </div>
         </div>
 
-        <!-- Reviews -->
-        <div class="vs-card p-3 mb-3">
-          <h2 class="h5">Community Reviews</h2>
+        <!-- Community Reviews -->
+        <div class="vs-card p-4 mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0">Community Reviews</h2>
+            <span class="badge bg-light text-dark border">Student &amp; Visitor Logs</span>
+          </div>
           <div id="reviewsList"></div>
 
-          <hr>
-          <h3 class="h6">Write a Review</h3>
+          <hr style="border-color:var(--vs-border);" class="my-4">
+          
+          <h3 class="h6 mb-3 fw-bold">Write a Review</h3>
           <form id="reviewForm" novalidate>
-            <div class="mb-2">
-              <label for="reviewRating" class="form-label">Rating</label>
+            <div class="mb-3">
+              <label for="reviewRating" class="form-label" style="font-weight:600; font-size:0.9rem;">Rating</label>
               <select id="reviewRating" class="form-select" required>
                 <option value="">Choose a rating</option>
-                <option value="5">5 — Excellent</option>
-                <option value="4">4 — Good</option>
-                <option value="3">3 — Okay</option>
-                <option value="2">2 — Poor</option>
+                <option value="5">5 — Excellent (Highly recommended)</option>
+                <option value="4">4 — Good (Reliable vegan options)</option>
+                <option value="3">3 — Okay (Needs custom requests)</option>
+                <option value="2">2 — Poor (Few options / cross-contact risk)</option>
                 <option value="1">1 — Very poor</option>
               </select>
             </div>
-            <div class="mb-2">
-              <label for="reviewComment" class="form-label">Comment</label>
-              <textarea id="reviewComment" class="form-control" rows="3" placeholder="Share your experience..." required></textarea>
+            <div class="mb-3">
+              <label for="reviewComment" class="form-label" style="font-weight:600; font-size:0.9rem;">Comment</label>
+              <textarea id="reviewComment" class="form-control" rows="3" placeholder="Share your dining experience, staff willingness to customize, and favorite dishes..." required></textarea>
             </div>
-            <button type="submit" class="btn btn-vs-primary btn-sm">Submit Review</button>
+            <button type="submit" class="btn btn-vs-primary btn-sm px-4">Submit Review</button>
             <div id="reviewFeedback" class="vs-form-note mt-2 d-none"></div>
           </form>
         </div>
 
-        <!-- Report -->
-        <div class="vs-card p-3">
-          <h2 class="h5">Report Incorrect Information</h2>
+        <!-- Report Issue -->
+        <div class="vs-card p-4">
+          <h2 class="h6 text-danger mb-2">Report Incorrect Information</h2>
+          <p class="text-muted-vs" style="font-size:0.88rem;">Notice a change in ownership, menu ghee usage, or closing? Let our moderation team know.</p>
           <form id="reportForm" novalidate>
-            <div class="mb-2">
-              <label for="reportReason" class="form-label">Reason</label>
+            <div class="mb-3">
+              <label for="reportReason" class="form-label" style="font-weight:600; font-size:0.88rem;">Reason</label>
               <select id="reportReason" class="form-select" required>
                 <option value="">Choose a reason</option>
                 <option value="place-closed">Place no longer exists</option>
@@ -95,25 +118,35 @@
                 <option value="other">Other</option>
               </select>
             </div>
-            <div class="mb-2">
-              <label for="reportDescription" class="form-label">Additional detail (optional)</label>
-              <textarea id="reportDescription" class="form-control" rows="2"></textarea>
+            <div class="mb-3">
+              <label for="reportDescription" class="form-label" style="font-weight:600; font-size:0.88rem;">Additional detail (optional)</label>
+              <textarea id="reportDescription" class="form-control" rows="2" placeholder="Brief note explaining what needs updating..."></textarea>
             </div>
-            <button type="submit" class="btn btn-vs-outline btn-sm">Submit Report</button>
+            <button type="submit" class="btn btn-outline-danger btn-sm px-3">Submit Report</button>
             <div id="reportFeedback" class="vs-form-note mt-2 d-none"></div>
           </form>
         </div>
       </div>
 
-      <div class="col-lg-5">
-        <div class="vs-card p-3">
-          <h2 class="h6">Why trust this listing?</h2>
-          <p class="text-muted-vs" style="font-size:0.9rem;">Every VeganSaathi listing goes through community submission and admin review before it is published, and can be re-verified through a real site visit. See the Community Verification section on the Home page for how this works.</p>
-          <a href="index.html#" class="btn btn-vs-outline btn-sm">Back to Home</a>
-          <a href="explore.html" class="btn btn-vs-outline btn-sm">Back to Explore</a>
+      <!-- Right Column: Verification Standards Sidebar -->
+      <div class="col-lg-4">
+        <div class="vs-card p-4 mb-3">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span style="font-size:1.3rem;">🛡️</span>
+            <h2 class="h6 mb-0 fw-bold">Why trust this listing?</h2>
+          </div>
+          <p class="text-muted-vs" style="font-size:0.88rem; line-height:1.6;">
+            Listings are community submitted and reviewed before publication. A dated verification badge indicates a recorded review; vegan claims appear only when current dietary evidence is available. Contact the vendor to confirm today's ingredients and preparation practices.
+          </p>
+          <div class="p-3 rounded-3 mb-3" style="background-color:var(--vs-green-50); border:1px solid var(--vs-green-200); font-size:0.82rem; color:var(--vs-green-800);">
+            Verification dates are shown on each listing. A re-check reminder may appear when a listing's verification is older than 90 days.
+          </div>
+          <div class="d-flex flex-column gap-2">
+            <a href="index.html" class="btn btn-vs-outline btn-sm text-center">Back to Home</a>
+            <a href="explore.html" class="btn btn-vs-outline btn-sm text-center">Browse Other Places</a>
+          </div>
         </div>
       </div>
-      <p class="vs-mock-notice">Development note: the place details above are live from Firestore. Reviews and the Save button's saved/not-saved status are still local demo data — the real Reviews and Saved Places backend is Phase 6.</p>
     </div>
   </div>
 </section>
@@ -122,7 +155,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="js/mock-data.js"></script>
 <script src="js/components.js"></script>
 <script type="module" src="js/app.js"></script>
 <script type="module" src="js/place-details.js"></script>

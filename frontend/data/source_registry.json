@@ -1,0 +1,102 @@
+{
+  "version": "1.0",
+  "sources": [
+    {
+      "id": "overture-maps-places",
+      "name": "Overture Maps Foundation — Places",
+      "provider": "Overture Maps Foundation",
+      "documentation_url": "https://docs.overturemaps.org/guides/places/",
+      "licence_name": "CDLA Permissive 2.0",
+      "licence_url": "https://cdla.dev/permissive-2-0/",
+      "attribution_requirement": "Overture Maps Foundation — per-source attribution for upstream providers (OSM: ODbL, Meta/Microsoft/etc: check per record). Keep source_dataset field.",
+      "dataset_version": "2026-10-21.0 (pinned)",
+      "cost_status": "BLOCKED: CDLA Permissive 2.0 permits reuse, but AWS S3 request and egress costs are not verified as zero for this project.",
+      "review_status": "blocked",
+      "adapter_implemented": true,
+      "adapter_file": "scripts/data-pipeline/adapters/overture_adapter.py"
+    },
+    {
+      "id": "foursquare-os-places",
+      "name": "Foursquare Open Source Places",
+      "provider": "Foursquare",
+      "documentation_url": "https://docs.foursquare.com/data-products/docs/fsq-places-open-source",
+      "licence_name": "Apache 2.0",
+      "licence_url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "attribution_requirement": "Must retain NOTICE file. Apache 2.0 attribution. FSQ Place ID should be preserved for provenance.",
+      "dataset_version": "Pinned portal release required before acquisition; no default/latest release is permitted",
+      "cost_status": "BLOCKED: Provider describes OS Places data as free, but project has not verified portal quotas, transfer/access costs, or local zero-cost terms. Explicit zero-cost owner confirmation is required before query.",
+      "review_status": "blocked",
+      "adapter_implemented": true,
+      "adapter_file": "scripts/data-pipeline/adapters/foursquare_adapter.py",
+      "owner_action_required": "Before any live access, verify the portal account terms, limits, access method, exact release and local transfer costs are ₹0; configure all settings as local environment values without committing secrets."
+    },
+    {
+      "id": "openstreetmap-geofabrik",
+      "name": "OpenStreetMap — Geofabrik Western Zone Extract",
+      "provider": "OpenStreetMap contributors / Geofabrik GmbH",
+      "documentation_url": "https://download.geofabrik.de/asia/india.html",
+      "licence_name": "ODbL 1.0",
+      "licence_url": "https://www.openstreetmap.org/copyright",
+      "attribution_requirement": "Must display '© OpenStreetMap contributors' on any map or derived product. ODbL share-alike may apply to derivative databases — legal review required before distribution.",
+      "dataset_version": "Geofabrik Western Zone extract; source data through 2026-11-04T21:21:03Z",
+      "cost_status": "FREE AND APPROVED",
+      "review_status": "approved",
+      "adapter_implemented": true,
+      "adapter_file": "scripts/data-pipeline/adapters/osm_adapter.py"
+    },
+    {
+      "id": "sharan-india",
+      "name": "SHARAN India — Certified Restaurants List",
+      "provider": "SHARAN India (Sanctuary for Health and Reconnection to Animals and Nature)",
+      "documentation_url": "https://sharan-india.org/resources/certified-restaurants/",
+      "licence_name": "No explicit open licence found",
+      "licence_url": null,
+      "attribution_requirement": "Must credit SHARAN India as the source of any lead. Cannot republish their directory.",
+      "cost_status": "FREE BUT RIGHTS/LICENCE RESTRICTED",
+      "review_status": "approved",
+      "adapter_implemented": false
+    },
+    {
+      "id": "happycow",
+      "name": "HappyCow",
+      "provider": "HappyCow LLC",
+      "documentation_url": "https://www.happycow.net/terms-of-use",
+      "licence_name": "Proprietary — All Rights Reserved",
+      "cost_status": "BLOCKED — TERMS PROHIBIT USE",
+      "review_status": "blocked",
+      "adapter_implemented": false
+    },
+    {
+      "id": "openverse-images",
+      "name": "Openverse",
+      "provider": "WordPress Foundation / Creative Commons",
+      "documentation_url": "https://docs.openverse.org/api/reference/",
+      "licence_name": "Per-image (CC BY, CC0, CC BY-SA, etc.)",
+      "attribution_requirement": "Per-image: required attribution to creator, source platform, licence. Must display on every use.",
+      "cost_status": "FREE AND APPROVED",
+      "review_status": "approved",
+      "adapter_implemented": true,
+      "adapter_file": "scripts/data-pipeline/adapters/openverse_adapter.py"
+    },
+    {
+      "id": "wikimedia-commons",
+      "name": "Wikimedia Commons",
+      "provider": "Wikimedia Foundation",
+      "licence_name": "Per-file (CC BY-SA, CC0, PD, etc.)",
+      "attribution_requirement": "Per-file. Must attribute author and source. Many files require CC BY-SA share-alike.",
+      "cost_status": "FREE AND APPROVED",
+      "review_status": "approved",
+      "adapter_implemented": true,
+      "adapter_file": "scripts/data-pipeline/adapters/wikimedia_adapter.py"
+    },
+    {
+      "id": "google-places-api",
+      "name": "Google Places API",
+      "provider": "Google LLC",
+      "licence_name": "Google Maps Platform Terms of Service",
+      "cost_status": "BLOCKED — BILLING REQUIRED AND TERMS PROHIBIT BULK USE",
+      "review_status": "blocked",
+      "adapter_implemented": false
+    }
+  ]
+}

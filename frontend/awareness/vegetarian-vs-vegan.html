@@ -6,60 +6,156 @@
 <title>Vegetarian vs Vegan — VeganSaathi</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="../css/styles.css" rel="stylesheet">
-<script>window.VS_BASE = "../"; window.VS_ACTIVE_PAGE = "awareness";</script>
+<script>
+  window.VS_BASE = "../";
+  window.VS_ACTIVE_PAGE = "awareness";
+  window.VS_AWARENESS_SUBPAGE = "vegetarian-vs-vegan";
+</script>
 </head>
 <body>
 
 <div id="navbar-placeholder"></div>
 
 <section class="vs-section">
-  <div class="container" style="max-width:760px;">
-    <h1 class="h4">Vegetarian vs Vegan — Not the Same Thing</h1>
+  <div class="container" style="max-width:800px;">
+    
+    <!-- Sub-navigation across awareness topics -->
+    <div id="awareness-nav-placeholder"></div>
 
-    <p>"Vegetarian" and "vegan" are often used loosely as if one is just a stricter version
-    of the other. They are actually different rule-sets, and in an Indian context the gap
-    between them is unusually wide.</p>
+    <header class="mb-4">
+      <h1 class="h3 mb-2">Vegetarian vs Vegan — Not the Same Thing</h1>
+      <p class="text-muted-vs lead fs-6">
+        Comparing dietary categories in India: Lacto-Vegetarian, Eggetarian, Jain, and Vegan dietary principles.
+      </p>
+    </header>
 
-    <table class="table table-bordered bg-white mt-3">
-      <thead>
-        <tr><th>Term</th><th>Excludes</th><th>Includes</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Vegetarian (lacto-vegetarian, India's default)</td><td>Meat, fish, poultry, eggs</td><td>Dairy</td></tr>
-        <tr><td>Eggetarian</td><td>Meat, fish, poultry</td><td>Eggs, dairy</td></tr>
-        <tr><td>Jain</td><td>Meat, fish, poultry, eggs, root/underground vegetables, usually honey</td><td>Dairy, above-ground vegetables, grains, pulses</td></tr>
-        <tr><td>Vegan</td><td>All animal-derived products — meat, fish, poultry, eggs, dairy, honey</td><td>Only plant-derived foods</td></tr>
-      </tbody>
-    </table>
+    <article>
+      <p>
+        In everyday conversation across India, words like "veg", "pure veg", and "vegan" are frequently conflated. However, nutritional science, ethical frameworks, and religious traditions distinguish these patterns clearly. Understanding each definition is vital when ordering food, eating at college canteens, or using VeganSaathi's search filters.
+      </p>
 
-    <h2 class="h6 mt-4">Why "vegetarian" doesn't mean "vegan-safe" in India</h2>
-    <p>Indian vegetarian cooking relies heavily on dairy — ghee as a cooking fat, curd as
-    a daily staple, paneer as a default protein, and milk sweets at festivals. That makes
-    a dish or restaurant labelled "pure veg" very likely to still contain dairy, and
-    therefore not automatically safe for a vegan eater. VeganSaathi tracks vegan status as
-    its own explicit tag on every place, rather than assuming vegetarian listings are
-    vegan-friendly by default.</p>
+      <h2 class="h5 mt-4">Comparative Dietary Overview</h2>
+      <div class="table-responsive my-3">
+        <table class="table table-bordered bg-white align-middle" style="font-size:0.9rem;">
+          <thead class="table-light">
+            <tr>
+              <th>Dietary Category</th>
+              <th>What It Excludes</th>
+              <th>What It Includes</th>
+              <th>Indian Cultural Context</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Lacto-Vegetarian ("Pure Veg")</strong></td>
+              <td>Meat, poultry, fish, seafood, eggs</td>
+              <td>Dairy (milk, ghee, curd, paneer), grains, pulses, all vegetables, fruits</td>
+              <td>India’s cultural and commercial default for "Vegetarian" / green dot label.</td>
+            </tr>
+            <tr>
+              <td><strong>Eggetarian</strong></td>
+              <td>Meat, poultry, fish, seafood</td>
+              <td>Eggs, dairy products, grains, pulses, vegetables, fruits</td>
+              <td>Common collegiate practice where eggs are consumed for convenience or protein, but meat is avoided.</td>
+            </tr>
+            <tr>
+              <td><strong>Jain Diet</strong></td>
+              <td>Meat, fish, eggs, root vegetables (onion, garlic, potato, carrots), honey</td>
+              <td>Dairy products, above-ground vegetables, pulses, grains, fruits, nuts</td>
+              <td>Grounded in the spiritual principle of <em>Ahimsa</em> (non-violence) toward plants and soil organisms.</td>
+            </tr>
+            <tr>
+              <td><strong>Vegan</strong></td>
+              <td>All animal-derived products: meat, fish, eggs, dairy, honey, animal fats</td>
+              <td>100% plant-derived foods: pulses, grains, vegetables (including root vegetables), fruits, nuts, seeds</td>
+              <td>Excludes all dairy regardless of cultural sanctification.</td>
+            </tr>
+            <tr>
+              <td><strong>Plant-Based (General)</strong></td>
+              <td>Minimizes animal products to varying degrees</td>
+              <td>Emphasizes whole plant foods (vegetables, grains, legumes, nuts)</td>
+              <td>Often adopted primarily for cardiovascular health or climate impact.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-    <h2 class="h6 mt-4">Jain is its own system, not "extra strict vegetarian"</h2>
-    <p>Jain dietary rules follow from the principle of non-violence extended to plants and
-    micro-organisms — root vegetables like onion, garlic, and potato are avoided because
-    uprooting them is believed to disturb the whole plant and surrounding soil life, not
-    because of taste or tradition alone. Practice varies by individual and sect.</p>
+      <h2 class="h5 mt-4">Why "Pure Veg" Does Not Mean "Vegan-Safe" in India</h2>
+      <p>
+        In western countries, vegetarian food often implies eggs or cheese. In India, however, "pure vegetarian" restaurants exclude eggs completely, but place <strong>dairy at the very heart of their kitchen</strong>:
+      </p>
+      <ul>
+        <li><strong>Cooking mediums:</strong> Dal tadka, biryanis, and sabzis are frequently tempered in desi ghee or butter.</li>
+        <li><strong>Gravy bases:</strong> North Indian curries often blend fresh cream (malai), curd (dahi), or cashew-milk paste.</li>
+        <li><strong>Rotis & Naans:</strong> Chapatis and parathas are brushed with ghee or butter unless requested otherwise.</li>
+        <li><strong>Sweets & Desserts:</strong> Traditional sweets (gulab jamun, peda, barfi, jalebi) are built on milk solids (khoya/mawa) or fried in ghee.</li>
+      </ul>
+      <p>
+        Consequently, a restaurant bearing a prominent green dot or "Pure Veg" sign is rarely vegan by default. A diner must specifically ask whether items are prepared in vegetable oil without butter, ghee, or cream.
+      </p>
 
-    <div class="vs-mock-notice">
-      <strong>Sources:</strong> general nutrition/diet-taxonomy references (e.g. Mayo
-      Clinic and academic nutrition literature on lacto/ovo-vegetarianism), HappyCow's
-      India travel notes on the vegetarian/vegan gap, and general explanations of Jain
-      dietary practice. Review and finalize sourcing before CEP submission. Not medical
-      advice.
-    </div>
+      <h2 class="h5 mt-4">Jain Diet: A Distinct Philosophical Tradition</h2>
+      <p>
+        People unfamiliar with Indian traditions sometimes assume that Jain food is simply a stricter form of veganism. In reality, they represent two entirely different ethical paradigms:
+      </p>
+      <div class="row g-3 my-2">
+        <div class="col-md-6">
+          <div class="p-3 bg-white border rounded h-100">
+            <h3 class="h6 text-primary mb-2">Jain Food is NOT Automatically Vegan</h3>
+            <p class="mb-0 text-muted-vs" style="font-size:0.88rem;">
+              Traditional Jain cuisine permits dairy products (milk, curd, ghee). Many beloved Jain dishes heavily incorporate paneer and ghee-tempered pulses.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="p-3 bg-white border rounded h-100">
+            <h3 class="h6 text-success mb-2">Vegan Food is NOT Automatically Jain</h3>
+            <p class="mb-0 text-muted-vs" style="font-size:0.88rem;">
+              Vegan food avoids animal products, but freely includes root vegetables like potatoes, onions, garlic, ginger, and carrots, which Jain practice avoids to protect underground life.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Guidance on VeganSaathi -->
+      <div class="vs-callout-card my-4">
+        <h3 class="h6 mb-1 text-success">Filtering on VeganSaathi</h3>
+        <p class="mb-2" style="font-size:0.9rem;">
+          VeganSaathi’s Explore directory explicitly tracks distinct dietary tags: <code>Vegan</code>, <code>Vegetarian</code>, <code>Eggetarian</code>, and <code>Jain</code>. We never assume a listing tagged vegetarian is automatically vegan, giving you transparent choices.
+        </p>
+        <a href="../explore.html" class="btn btn-vs-primary btn-sm">Try the Diet Filters on Explore</a>
+      </div>
+
+      <!-- References & Sources -->
+      <section class="vs-reference-card my-4">
+        <h2 class="h6 mb-2">References & Credible Sources</h2>
+        <ul class="mb-0 ps-3">
+          <li>
+            <strong>Harvard Health Publishing:</strong> <em>What is a plant-based diet and why should you try it?</em> Available at: 
+            <a href="https://www.health.harvard.edu/blog/what-is-a-plant-based-diet-and-why-should-you-try-it-201809261700" target="_blank" rel="noopener noreferrer">health.harvard.edu/blog</a>.
+          </li>
+          <li>
+            <strong>The Vegan Society:</strong> <em>Definition of Veganism and General FAQs.</em> Available at: 
+            <a href="https://www.vegansociety.com/resources/general-faqs" target="_blank" rel="noopener noreferrer">vegansociety.com/general-faqs</a>.
+          </li>
+          <li>
+            <strong>National Health Service (NHS, UK):</strong> <em>Vegetarian and vegan diets.</em> Available at: 
+            <a href="https://www.nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/the-vegan-diet/" target="_blank" rel="noopener noreferrer">nhs.uk/live-well/eat-well/how-to-eat-a-balanced-diet/the-vegan-diet</a>.
+          </li>
+        </ul>
+      </section>
+
+      <!-- Educational & Medical Disclaimer -->
+      <div class="vs-disclaimer-box my-4" role="note">
+        <strong>Educational Disclaimer:</strong> The dietary comparisons on this page are provided for educational and community clarity. Religious and cultural observances vary by individual practice, family tradition, and geographical region. This material does not constitute medical or nutritional counsel.
+      </div>
+    </article>
   </div>
 </section>
 
 <div id="footer-placeholder"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/mock-data.js"></script>
 <script src="../js/components.js"></script>
 <script type="module" src="../js/app.js"></script>
 </body>

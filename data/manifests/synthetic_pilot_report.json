@@ -1,0 +1,65 @@
+{
+  "total_candidates": 15,
+  "exact_duplicate_pairs": 1,
+  "highly_probable_duplicate_pairs": 1,
+  "possible_duplicate_pairs": 0,
+  "franchise_branch_pairs": 0,
+  "suspected_duplicate_candidates": 1,
+  "unique_candidates": 14,
+  "field_completeness": {
+    "has_name": 15,
+    "has_coordinates": 15,
+    "has_address": 15,
+    "has_website": 10,
+    "has_phone": 15
+  },
+  "vegan_signals": {
+    "strong": 6,
+    "moderate": 4,
+    "weak": 3,
+    "none": 2
+  },
+  "by_city": {
+    "Pune": 4,
+    "Mumbai": 4,
+    "Nagpur": 3,
+    "Shegaon": 2,
+    "Akola": 2
+  },
+  "by_place_type": {
+    "cafe": 7,
+    "restaurant": 4,
+    "mess": 2,
+    "canteen": 1,
+    "dhaba": 1
+  },
+  "by_source": {
+    "synthetic-demonstration-fixture": 15
+  },
+  "batch_id": "synthetic-test-pilot-20261105-174217",
+  "is_synthetic_fixture": true,
+  "dataset_origin": "synthetic_maharashtra_pilot_fixtures.json",
+  "batch_purpose": "pipeline_unit_and_flow_testing",
+  "real_world_verification_status": "none (synthetic demonstration fixture only)",
+  "duplicate_pairs": [
+    {
+      "a": "cand_synthetic_osm_n_pune_002",
+      "b": "cand_synthetic_gers_ov_pune_001",
+      "type": "exact",
+      "score": 1.0,
+      "signals": [
+        "shared_source_id:synthetic_fixture_id:gers_ov_pune_001"
+      ]
+    },
+    {
+      "a": "cand_synthetic_gers_ov_pune_001",
+      "b": "cand_synthetic_osm_n_pune_002",
+      "type": "highly_probable",
+      "score": 0.95,
+      "signals": [
+        "same_phone:8888812345",
+        "similar_name:1.00"
+      ]
+    }
+  ]
+}

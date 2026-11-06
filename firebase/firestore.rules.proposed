@@ -1,0 +1,273 @@
+// VeganSaathi — Firestore Security Rules — PROPOSED (Batch 6 Reference Spec)
+// ============================================================================
+// EVALUATED & EMULATOR-TESTED: November 5–6, 2026.
+//
+// Status of proposals in this reference spec:
+//   R1 — Review comment / report description length capped at 500 characters.
+//   R2 — A review may only be created for an existing place with status "published".
+//   R3 — User profile updates are strictly bounded to known fields ("name",
+//        "dietPreference", "updatedAt") with dietPreference re-validated.
+//   Admin payload — Admin place creation and updates validated via isValidPlacePayload.
+//   Place intelligence collections — placeCandidates, importBatches, placePhotos,
+//        verificationHistory, businessClaims.
+//
+// These proposed protections were verified against the Firestore Emulator
+// (tests/rules/firestore.rules.proposed.test.mjs: 17 passed, 0 failed) and have
+// been PROMOTED into active firebase/firestore.rules. This file is retained as
+// the reference baseline for the Batch 6 proposal suite.
+//
+// See docs/FIREBASE_SECURITY.md and docs/DATABASE_SCHEMA.md for the access model.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------- helpers ----------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    function isValidDietPreference(value) {
+      return value in ["vegan", "vegetarian", "eggetarian", "jain", "unspecified"];
+    }
+
+    function isValidDietTags(tags) {
+      return tags is list
+        && tags.size() > 0
+        && tags.hasOnly(["vegan", "vegetarian", "eggetarian", "jain"]);
+    }
+
+    function isValidPlaceType(value) {
+      return value in ["restaurant", "mess", "canteen", "cafe", "dhaba", "other"];
+    }
+
+    function isValidPriceRange(value) {
+      return value in ["budget", "moderate", "premium", "Price not listed"];
+    }
+
+    function isValidCoordinates(lat, lon) {
+      return (lat is int || lat is float)
+        && (lon is int || lon is float)
+        && lat >= -90 && lat <= 90
+        && lon >= -180 && lon <= 180;
+    }
+
+    function isValidPlacePayload(data) {
+      return isValidPlaceType(data.placeType)
+        && isValidDietTags(data.dietTags)
+        && isValidPriceRange(data.priceRange)
+        && isValidCoordinates(data.latitude, data.longitude)
+        && data.name is string
+        && data.name.size() >= 2
+        && data.name.size() <= 100
+        && data.address is string
+        && data.address.size() > 0
+        && data.address.size() <= 300
+        && (data.verificationStatus != "verified" || data.lastVerifiedAt is timestamp);
+    }
+
+    // R1 helper: an optional string field, if present, must not exceed maxLen.
+    // Used for review comments and report descriptions, which are optional in
+    // the schema but must be bounded whenever a value is actually given.
+    // R1 helper: an optional field is fine when ABSENT. When PRESENT, it must
+    // be a string within maxLen. A present non-string value (number, bool, map,
+    // null) is refused, not silently let through. (An earlier draft OR'd in
+    // "not a string", making a present non-string value pass the check.)
+    function isWithinOptionalLength(data, field, maxLen) {
+      return !(field in data) || (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    // ---------------- users ----------------
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+
+      allow create: if isOwner(userId)
+        && request.resource.data.role == "user"
+        && isValidDietPreference(request.resource.data.dietPreference);
+
+      // R3: a profile update may only touch known fields, role and email stay
+      // fixed, and dietPreference is re-validated on every update (not just
+      // at creation). hasOnly() is checked against the fields the UPDATE
+      // actually writes, not the whole document, so a partial update that
+      // only changes "name" is unaffected.
+      allow update: if isOwner(userId)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["name", "dietPreference", "updatedAt"])
+        && isValidDietPreference(request.resource.data.dietPreference);
+
+      allow delete: if false;
+    }
+
+    // ---------------- places ----------------
+    match /places/{placeId} {
+      allow read: if (resource.data.status == "published")
+        || isAdmin()
+        || (isSignedIn() && resource.data.submittedBy == request.auth.uid);
+
+      // Admins can create places directly (e.g. from approved import batches),
+      // subject to valid schema and verification payload requirements.
+      // A new community submission always starts pending/unverified and source="community".
+      // A user cannot publish, pre-verify, or spoof fieldwork attribution.
+      allow create: if (isAdmin() && isValidPlacePayload(request.resource.data))
+        || (
+          isSignedIn()
+          && request.resource.data.submittedBy == request.auth.uid
+          && request.resource.data.source == "community"
+          && request.resource.data.status == "pending"
+          && request.resource.data.verificationStatus == "unverified"
+          && isValidPlacePayload(request.resource.data)
+        );
+
+      allow update: if isAdmin()
+        || (
+          isSignedIn()
+          && resource.data.submittedBy == request.auth.uid
+          && resource.data.status == "pending"
+          && request.resource.data.status == "pending"
+          && request.resource.data.verificationStatus == "unverified"
+          && request.resource.data.source == "community"
+          && request.resource.data.submittedBy == resource.data.submittedBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          && isValidPlaceType(request.resource.data.placeType)
+          && isValidDietTags(request.resource.data.dietTags)
+          && isValidPriceRange(request.resource.data.priceRange)
+          && isValidCoordinates(request.resource.data.latitude, request.resource.data.longitude)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() >= 2
+          && request.resource.data.name.size() <= 100
+          && request.resource.data.address is string
+          && request.resource.data.address.size() > 0
+          && request.resource.data.address.size() <= 300
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------------- reviews ----------------
+    match /reviews/{reviewId} {
+      allow read: if true;
+
+      // R2: the target place must exist and already be published — a review
+      // can no longer be attached to a pending, rejected, or nonexistent
+      // place. R1: comment, if present, is capped at 500 characters.
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.authorName is string
+        && request.resource.data.authorName.size() > 0
+        && isWithinOptionalLength(request.resource.data, "comment", 500)
+        && exists(/databases/$(database)/documents/places/$(request.resource.data.placeId))
+        && get(/databases/$(database)/documents/places/$(request.resource.data.placeId)).data.status == "published";
+
+      allow update: if false;
+
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // ---------------- reports ----------------
+    match /reports/{reportId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.reporterId == request.auth.uid);
+
+      // R1: description, if present, is capped at 500 characters.
+      allow create: if isSignedIn()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.status == "pending"
+        && request.resource.data.reason in [
+             "place-closed", "wrong-diet-info", "wrong-address",
+             "temporarily-unavailable", "outdated", "other"
+           ]
+        && isWithinOptionalLength(request.resource.data, "description", 500);
+
+      allow update: if isAdmin();
+
+      allow delete: if false;
+    }
+
+    // ---------------- savedPlaces ----------------
+    match /savedPlaces/{saveId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && saveId == (request.auth.uid + "_" + request.resource.data.placeId);
+
+      allow update: if false;
+
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ---------------- editSuggestions (Should-Have — not built until a later phase) ----------------
+    match /editSuggestions/{suggestionId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.suggestedBy == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.suggestedBy == request.auth.uid
+        && request.resource.data.status == "pending";
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ---------------- placeCandidates (Place Intelligence staging) ----------------
+    match /placeCandidates/{candidateId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---------------- importBatches (Audit manifest records) ----------------
+    match /importBatches/{batchId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---------------- placePhotos (Rights-cleared photo pipeline) ----------------
+    match /placePhotos/{photoId} {
+      allow read: if (resource.data.approval_status == "approved")
+        || isAdmin()
+        || (isSignedIn() && resource.data.submitter_uid == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.submitter_uid == request.auth.uid
+        && request.resource.data.approval_status == "pending"
+        && request.resource.data.place_id is string
+        && request.resource.data.photo_category in ["storefront", "interior", "food", "menu", "logo"];
+
+      allow update: if isAdmin();
+
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.submitter_uid == request.auth.uid && resource.data.approval_status == "pending");
+    }
+
+    // ---------------- verificationHistory (Audit trail for verification decisions) ----------------
+    match /verificationHistory/{historyId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ---------------- businessClaims (Business owner claim workflow) ----------------
+    match /businessClaims/{claimId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == "pending";
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

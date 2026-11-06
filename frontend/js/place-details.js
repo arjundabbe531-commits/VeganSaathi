@@ -22,7 +22,16 @@
    ========================================================================== */
 
 import { onAuthChange, getCurrentUser } from "./auth-state.js";
-import { fetchPlaceById } from "./places-service.js";
+import {
+  fetchPlaceById,
+  fetchReviewsForPlace,
+  submitReview,
+  deleteReview,
+  submitReport,
+  isPlaceSaved,
+  savePlace,
+  unsavePlace
+} from "./places-service.js";
 
 document.addEventListener("DOMContentLoaded", function () {
   const params = new URLSearchParams(window.location.search);
@@ -75,12 +84,8 @@ async function loadPlace(id) {
   const place = result.place;
 
   renderPlaceDetail(place);
-  renderReviewsFor(place.id);
-  // Action buttons (Save / Review / Report) must work even if the map fails
-  // to load for any reason (offline demo, blocked CDN, slow connection) —
-  // wire them first, then attempt the map in its own try/catch so a map
-  // failure can never take the rest of the page down with it.
-  wireActionButtons(place);
+  await renderReviewsFor(place.id);
+  await wireActionButtons(place);
   safelyInitDetailMap(place);
 
   showPlaceState("content");
@@ -118,28 +123,81 @@ function safelyInitDetailMap(place) {
 function renderPlaceDetail(place) {
   document.title = place.name + " — VeganSaathi";
 
-  // placeImageLabel() (components.js) already handles "no photo available"
-  // correctly for a real place (which has imageUrl, not the mock-only
-  // imageLabel field) — reused here rather than duplicated.
-  document.getElementById("placeImage").textContent = placeImageLabel(place);
+  const imgEl = document.getElementById("placeImage");
+  if (imgEl) {
+    let heroUrl = "";
+    if (place.imageUrl && typeof place.imageUrl === "string" && place.imageUrl.trim().length > 0) {
+      heroUrl = buildOptimizedImageUrl(place.imageUrl.trim(), 1200, 800);
+    }
+    if (heroUrl) {
+      imgEl.innerHTML = '<img class="vs-place-detail__img" src="' + escapeHtml(heroUrl) + '" alt="' + escapeHtml(place.name) + '" data-fallback="' + escapeHtml(placeImageLabel(place)) + '" onerror="this.onerror=null;this.parentElement.textContent=this.getAttribute(\'data-fallback\')||\'No photo yet\';" />';
+    } else {
+      imgEl.textContent = placeImageLabel(place);
+    }
+  }
   document.getElementById("placeName").textContent = place.name;
-  document.getElementById("placeType").textContent = capitalize(place.placeType);
+  document.getElementById("placeType").textContent = formatPlaceType(place.placeType);
   document.getElementById("placeArea").textContent = place.area;
   document.getElementById("placeAddress").textContent = place.address;
   document.getElementById("placePrice").textContent = capitalize(place.priceRange);
   document.getElementById("placeDescription").textContent = place.description;
-  document.getElementById("placeDietBadges").innerHTML = renderDietBadges(place.dietTags);
+  document.getElementById("placeDietBadges").innerHTML = renderPlaceDietBadges(place);
   document.getElementById("placeVerification").innerHTML = renderVerificationBadge(place);
 }
 
-function renderReviewsFor(placeId) {
-  const reviews = MOCK_REVIEWS.filter(function (r) { return r.placeId === placeId; });
+async function renderReviewsFor(placeId) {
   const container = document.getElementById("reviewsList");
-  if (reviews.length === 0) {
-    container.innerHTML = '<p class="text-muted-vs">No reviews yet for this place.</p>';
+  if (!container) return;
+
+  container.innerHTML = '<p class="text-muted-vs">Loading reviews…</p>';
+
+  const res = await fetchReviewsForPlace(placeId);
+  if (res && res.status !== "ok") {
+    container.innerHTML = '<p class="text-muted-vs text-danger">Unable to load reviews right now. Please try again later.</p>';
     return;
   }
-  container.innerHTML = reviews.map(renderReviewCard).join("");
+  const reviews = res && res.places ? res.places : (res && res.reviews ? res.reviews : []);
+
+  if (reviews.length === 0) {
+    container.innerHTML = '<p class="text-muted-vs">No reviews yet for this place. Be the first to share your experience!</p>';
+    return;
+  }
+
+  const currentUser = getCurrentUser();
+  const currentUid = currentUser ? currentUser.uid : null;
+
+  container.innerHTML = reviews.map(function (review) {
+    const isAuthor = currentUid && review.userId === currentUid;
+    const deleteBtn = isAuthor
+      ? ' <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2 delete-review-btn" data-review-id="' + escapeHtml(review.id) + '">Delete</button>'
+      : "";
+
+    const rating = Math.max(0, Math.min(5, Math.round(Number(review.rating)) || 0));
+    const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+
+    return (
+      '<div class="vs-card p-3 mb-2" id="review-' + escapeHtml(review.id) + '">' +
+      '<div class="d-flex justify-content-between align-items-center">' +
+      "<div><strong>" + escapeHtml(review.authorName) + "</strong>" + deleteBtn + "</div>" +
+      '<span aria-label="' + rating + ' out of 5 stars" style="color:#b8862f;">' + stars + "</span>" +
+      "</div>" +
+      '<p class="mb-1 mt-1">' + escapeHtml(review.comment) + "</p>" +
+      '<div class="text-muted-vs" style="font-size:0.78rem;">' + escapeHtml(formatDate(review.createdAt)) + "</div>" +
+      "</div>"
+    );
+  }).join("");
+
+  container.querySelectorAll(".delete-review-btn").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      const revId = btn.getAttribute("data-review-id");
+      if (!revId) return;
+      if (!confirm("Are you sure you want to delete your review?")) return;
+      btn.disabled = true;
+      btn.textContent = "Deleting…";
+      await deleteReview(revId);
+      await renderReviewsFor(placeId);
+    });
+  });
 }
 
 function initDetailMap(place) {
@@ -183,23 +241,50 @@ function updateActionAvailability(user) {
   }
 }
 
-function wireActionButtons(place) {
-  const isSaved = MOCK_SAVED_PLACES.indexOf(place.id) !== -1;
+async function wireActionButtons(place) {
   const saveBtn = document.getElementById("saveBtn");
-  updateSaveButton(saveBtn, isSaved);
 
-  saveBtn.addEventListener("click", function () {
-    if (!getCurrentUser()) return; // button is disabled in this state, but guard anyway
-    const nowSaved = saveBtn.getAttribute("data-saved") === "true";
-    updateSaveButton(saveBtn, !nowSaved);
-    // Phase 2 note: this only changes the button's visual state; nothing is persisted yet.
+  async function refreshSaveButton() {
+    const user = getCurrentUser();
+    if (!user) {
+      updateSaveButton(saveBtn, false);
+      return;
+    }
+    const isSaved = await isPlaceSaved(place.id, user.uid);
+    updateSaveButton(saveBtn, isSaved);
+  }
+
+  await refreshSaveButton();
+
+  // Re-check save state on auth change
+  onAuthChange(function () {
+    refreshSaveButton();
   });
 
-  document.getElementById("reviewForm").addEventListener("submit", function (e) {
+  saveBtn.addEventListener("click", async function () {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    const currentlySaved = saveBtn.getAttribute("data-saved") === "true";
+    saveBtn.disabled = true;
+
+    if (currentlySaved) {
+      await unsavePlace(place.id, user.uid);
+      updateSaveButton(saveBtn, false);
+    } else {
+      await savePlace(place.id, user.uid);
+      updateSaveButton(saveBtn, true);
+    }
+
+    saveBtn.disabled = false;
+  });
+
+  document.getElementById("reviewForm").addEventListener("submit", async function (e) {
     e.preventDefault();
     const feedback = document.getElementById("reviewFeedback");
+    const user = getCurrentUser();
 
-    if (!getCurrentUser()) {
+    if (!user) {
       feedback.className = "vs-form-note mt-2";
       feedback.style.backgroundColor = "#fbeaea";
       feedback.style.borderColor = "#f0c3c3";
@@ -217,38 +302,118 @@ function wireActionButtons(place) {
       feedback.style.backgroundColor = "#fbeaea";
       feedback.style.borderColor = "#f0c3c3";
       feedback.style.color = "#8a2f2f";
-      feedback.textContent = "Please choose a rating and write a short comment before submitting.";
+      feedback.textContent = "Please choose a rating and write a short comment (at least 3 characters).";
       feedback.classList.remove("d-none");
       return;
     }
 
-    feedback.className = "vs-form-note mt-2";
-    feedback.textContent = "Demo: review submission will be connected to Firestore in a later phase. Nothing was saved.";
-    feedback.classList.remove("d-none");
-    document.getElementById("reviewForm").reset();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const res = await submitReview({
+        placeId: place.id,
+        rating: rating,
+        comment: comment,
+        user: user
+      });
+
+      if (res.status === "ok") {
+        feedback.className = "vs-form-note mt-2";
+        feedback.style.backgroundColor = "#e8f3ea";
+        feedback.style.borderColor = "#c7e2ce";
+        feedback.style.color = "#2f6b3f";
+        feedback.textContent = "Your review was submitted successfully!";
+        feedback.classList.remove("d-none");
+        document.getElementById("reviewForm").reset();
+        await renderReviewsFor(place.id);
+      } else {
+        feedback.className = "vs-form-note mt-2";
+        feedback.style.backgroundColor = "#fbeaea";
+        feedback.style.borderColor = "#f0c3c3";
+        feedback.style.color = "#8a2f2f";
+        feedback.textContent = res.message || "Failed to submit review. Please try again.";
+        feedback.classList.remove("d-none");
+      }
+    } catch (err) {
+      console.error("VeganSaathi: review submission error", err);
+      feedback.className = "vs-form-note mt-2";
+      feedback.style.backgroundColor = "#fbeaea";
+      feedback.style.borderColor = "#f0c3c3";
+      feedback.style.color = "#8a2f2f";
+      feedback.textContent = "Unable to submit review right now. Please try again.";
+      feedback.classList.remove("d-none");
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
   });
 
-  document.getElementById("reportForm").addEventListener("submit", function (e) {
+  document.getElementById("reportForm").addEventListener("submit", async function (e) {
     e.preventDefault();
     const feedback = document.getElementById("reportFeedback");
+    const user = getCurrentUser();
 
-    if (!getCurrentUser()) {
+    if (!user) {
+      feedback.className = "vs-form-note mt-2";
+      feedback.style.backgroundColor = "#fbeaea";
+      feedback.style.borderColor = "#f0c3c3";
+      feedback.style.color = "#8a2f2f";
       feedback.textContent = "Please sign in to report incorrect information.";
       feedback.classList.remove("d-none");
       return;
     }
 
     const reason = document.getElementById("reportReason").value;
+    const description = document.getElementById("reportDescription").value.trim();
 
     if (!reason) {
+      feedback.className = "vs-form-note mt-2";
+      feedback.style.backgroundColor = "#fbeaea";
+      feedback.style.borderColor = "#f0c3c3";
+      feedback.style.color = "#8a2f2f";
       feedback.textContent = "Please choose a reason for the report.";
       feedback.classList.remove("d-none");
       return;
     }
 
-    feedback.textContent = "Demo: this report will be connected to the admin review queue in a later phase. Nothing was saved.";
-    feedback.classList.remove("d-none");
-    document.getElementById("reportForm").reset();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const res = await submitReport({
+        placeId: place.id,
+        reason: reason,
+        description: description,
+        user: user
+      });
+
+      if (res.status === "ok") {
+        feedback.className = "vs-form-note mt-2";
+        feedback.style.backgroundColor = "#e8f3ea";
+        feedback.style.borderColor = "#c7e2ce";
+        feedback.style.color = "#2f6b3f";
+        feedback.textContent = "Thank you! Your report was submitted to the admin moderation queue.";
+        feedback.classList.remove("d-none");
+        document.getElementById("reportForm").reset();
+      } else {
+        feedback.className = "vs-form-note mt-2";
+        feedback.style.backgroundColor = "#fbeaea";
+        feedback.style.borderColor = "#f0c3c3";
+        feedback.style.color = "#8a2f2f";
+        feedback.textContent = res.message || "Failed to submit report. Please try again.";
+        feedback.classList.remove("d-none");
+      }
+    } catch (err) {
+      console.error("VeganSaathi: report submission error", err);
+      feedback.className = "vs-form-note mt-2";
+      feedback.style.backgroundColor = "#fbeaea";
+      feedback.style.borderColor = "#f0c3c3";
+      feedback.style.color = "#8a2f2f";
+      feedback.textContent = "Unable to submit report right now. Please try again.";
+      feedback.classList.remove("d-none");
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
   });
 }
 

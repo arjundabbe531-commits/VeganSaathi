@@ -61,3 +61,56 @@ export async function getDoc(docRef) {
 export function makeStubTimestamp(date) {
   return { toDate: function () { return date; } };
 }
+
+export function serverTimestamp() {
+  return { toDate: function () { return new Date(); } };
+}
+
+export function orderBy(field, direction) {
+  return { _stub: "orderBy", field: field, direction: direction };
+}
+
+export async function addDoc(collectionRef, data) {
+  if (globalThis.__STUB_THROW__) {
+    const err = globalThis.__STUB_THROW__;
+    globalThis.__STUB_THROW__ = null;
+    throw err;
+  }
+  const id = "stub-id-" + Math.random().toString(36).slice(2, 9);
+  globalThis.__STUB_WRITES__ = globalThis.__STUB_WRITES__ || [];
+  globalThis.__STUB_WRITES__.push({ collection: collectionRef.path, id: id, data: data });
+  return { id: id };
+}
+
+export async function setDoc(docRef, data) {
+  if (globalThis.__STUB_THROW__) {
+    const err = globalThis.__STUB_THROW__;
+    globalThis.__STUB_THROW__ = null;
+    throw err;
+  }
+  globalThis.__STUB_WRITES__ = globalThis.__STUB_WRITES__ || [];
+  globalThis.__STUB_WRITES__.push({ path: docRef.collectionName + "/" + docRef.id, id: docRef.id, data: data });
+  return Promise.resolve();
+}
+
+export async function deleteDoc(docRef) {
+  if (globalThis.__STUB_THROW__) {
+    const err = globalThis.__STUB_THROW__;
+    globalThis.__STUB_THROW__ = null;
+    throw err;
+  }
+  globalThis.__STUB_DELETES__ = globalThis.__STUB_DELETES__ || [];
+  globalThis.__STUB_DELETES__.push(docRef.collectionName + "/" + docRef.id);
+  return Promise.resolve();
+}
+
+export async function updateDoc(docRef, data) {
+  if (globalThis.__STUB_THROW__) {
+    const err = globalThis.__STUB_THROW__;
+    globalThis.__STUB_THROW__ = null;
+    throw err;
+  }
+  globalThis.__STUB_UPDATES__ = globalThis.__STUB_UPDATES__ || [];
+  globalThis.__STUB_UPDATES__.push({ path: (docRef.collectionName || docRef.path) + "/" + docRef.id, id: docRef.id, data: data });
+  return Promise.resolve();
+}

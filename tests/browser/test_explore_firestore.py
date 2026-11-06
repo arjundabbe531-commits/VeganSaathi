@@ -163,19 +163,40 @@ def main():
             # ---- 5. Diet filter narrows real results ----
             ctx, pg, errs = new_page(browser)
             goto(pg, "explore.html", init_docs=[
-                place("p1", dietTags=["vegan"]),
+                place("p1", name="Verified Vegan Cafe", dietTags=["vegan"], verificationStatus="verified",
+                      veganClassification="verified_vegan_options", evidenceStatus="ingredients_reviewed",
+                      verificationDimensions={"vegan_options_verified": True}, lastVerifiedAt=iso_days_ago(5),
+                      evidenceRefs=[{"claim": "vegan_options", "url": "https://example.org/menu",
+                                     "lastCheckedAt": iso_days_ago(5)["__iso"], "validity": "current",
+                                     "strength": "direct", "excerpt": "Vegan meals are prepared without animal ingredients."}]),
                 place("p2", dietTags=["vegetarian"]),
+                place("p3", name="Unverified Cafe", dietTags=["vegan"]),
             ])
+            normalized_verified = pg.evaluate("""async () => {
+                const module = await import('./js/places-service.js');
+                return module.normalizePlace(window.__STUB_PLACES_DOCS__.find(d => d.id === 'p1'));
+            }""")
+            log("5. normalizer retains explicit dietary verification evidence",
+                normalized_verified.get("verificationDimensions", {}).get("vegan_options_verified") is True and
+                normalized_verified.get("veganClassification") == "verified_vegan_options" and
+                normalized_verified.get("evidenceStatus") == "ingredients_reviewed")
+            unverified_badges = pg.eval_on_selector_all(
+                "#resultsGrid .vs-place-card",
+                "cards => { const card = cards.find(el => el.textContent.includes('Unverified Cafe')); return card ? Array.from(card.querySelectorAll('.vs-badge')).map(el => el.className).join(' ') : 'missing'; }"
+            )
+            log("5. unverified place card does not display a Vegan badge", "missing" not in unverified_badges and "vs-badge-vegan" not in unverified_badges, unverified_badges)
             pg.click('button.vs-filter-chip[data-diet="vegan"]')
             pg.wait_for_timeout(150)
             count_text = pg.eval_on_selector("#resultsCount", "el => el.textContent")
-            log("5. diet filter narrows real Firestore-sourced results", "1 place" in count_text, count_text)
+            log("5. vegan filter excludes records without verified dietary evidence", "1 place" in count_text, count_text)
+            filter_tags = pg.eval_on_selector_all(".vs-filter-chip[data-diet]", "els => els.map(el => el.dataset.diet)")
+            log("5. public dietary filters offer vegan only", filter_tags == ["vegan"], str(filter_tags))
             ctx.close()
 
             # ---- 6. Filters can exclude everything -> distinct "no matches" state ----
             ctx, pg, errs = new_page(browser)
             goto(pg, "explore.html", init_docs=[place("p1", dietTags=["vegan"])])
-            pg.click('button.vs-filter-chip[data-diet="jain"]')  # place has no jain tag
+            pg.click('button.vs-filter-chip[data-diet="vegan"]')  # listing has no qualifying evidence
             pg.wait_for_timeout(150)
             log("6. filtered-to-nothing shows the filter empty state", not is_hidden(pg, "#emptyState"))
             log("6. filtered-to-nothing is distinct from the empty-DATABASE state", is_hidden(pg, "#emptyDatabaseState"))

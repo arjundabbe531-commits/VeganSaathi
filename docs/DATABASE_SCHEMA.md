@@ -29,35 +29,69 @@ Community submissions (Phase 6) use auto-generated IDs.
 |---|---|---|---|
 | name | string | yes | Place name, 2–100 characters |
 | description | string | no | Short factual description, ≤ 500 characters |
-| placeType | string (enum) | yes | restaurant / mess / canteen / cafe / dhaba / other |
+| placeType | string (enum) | yes | restaurant / cafe / mess / canteen / dhaba / bakery / dessert / shop / other. See the shared mapping in `scripts/data-pipeline/adapters/place_taxonomy.py`; unknown source categories remain `other`. |
 | address | string | yes | Human-readable address. Free text; informal is fine for messes and hostels |
-| area | string | no | Short landmark/locality shown on cards (e.g. "near hostel gate"). More useful than a formal address in a small town |
-| latitude | number | yes | For map pin. 5 decimals. Validated client-side against a pilot bounding box (lat 20.70–20.90, lon 76.55–76.80 — see `places-service.js`'s `PILOT_BOUNDS`) to catch swapped values |
-| longitude | number | yes | For map pin. 5 decimals |
-| dietTags | array<string> | yes, non-empty | Subset of [vegan, vegetarian, eggetarian, jain]. A tag means **the team confirmed at least one real meal option meets that definition**. Tag every category that applies (a vegan place gets `vegan` **and** `vegetarian`); no implicit inference in code |
+| area | string | no | Short landmark/locality shown on cards (e.g. "near hostel gate" or neighborhood) |
+| city | string | no | City, town or municipality (e.g. "Shegaon", "Pune", "London") |
+| state | string | no | State, province or administrative region (e.g. "Maharashtra", "Greater London") |
+| country | string | no | Country name (e.g. "India", "United Kingdom", "Japan") |
+| postalCode | string | no | Postal code or PIN code (e.g. "444203", "W1D 4HA") |
+| latitude | number | yes | For map pin. Validated globally against `COORD_BOUNDS` (lat -90 to 90, lon -180 to 180) |
+| longitude | number | yes | For map pin. Validated globally against `COORD_BOUNDS` (lat -90 to 90, lon -180 to 180) |
+| dietTags | array<string> | yes, non-empty | Internal dietary discovery values. Public VeganSaathi surfaces show only a supported vegan classification; approval never infers vegetarian, eggetarian, or Jain from vegan evidence. |
 | dietNotes | string | no | What the team was told, in plain words (e.g. dish-level caveats). The honesty layer that the tags alone cannot carry. ≤ 300 characters |
 | priceRange | string (enum) | no | budget / moderate / premium (thresholds agreed by the team — see `docs/FIELDWORK_GUIDE.md`). If missing, the UI shows "Price not listed" |
 | openingInfo | string | no | Free-text opening information, only if confirmed |
-| imageUrl | string | no | Cloudinary URL (future phase — not yet implemented) |
+| imageUrl | string | no | Primary image URL (HTTP/HTTPS URL) |
 | status | string (enum) | yes | pending / published / rejected — **admin-controlled**. Controls visibility only |
 | verificationStatus | string (enum) | yes | unverified / verified. **admin-controlled** |
-| lastVerifiedAt | timestamp | conditional | **Required when `verificationStatus == "verified"`.** The date a team member physically visited and confirmed the details |
+| veganClassification | string (enum) | conditional | fully_vegan / vegan_friendly / verified_vegan_options / vegan_status_unverified / vegan_claim_conflicting. The class describes whole-venue status versus available options; a specific option does not imply an entirely vegan venue. |
+| evidenceStatus | string (enum) | conditional | Reviewed dietary evidence state. Discovery leads, stale or conflicting evidence cannot support a public vegan classification. |
+| evidenceRefs | array<map> | conditional | Public-safe dietary evidence summary (claim, HTTPS source URL, last-checked date, strength, validity, excerpt). Full reviewed source metadata remains in `verificationHistory`. |
+| verificationDimensions | map | conditional | Separate business identity, address, coordinate, operation, physical-visit, dietary-evidence and photo-rights dimensions. `address_confirmed` and `coordinates_supported` require claim-specific evidence. |
+| lastVerifiedAt | timestamp | conditional | **Required when `verificationStatus == "verified"`.** Date of the most recent documented review. It is not proof of a physical visit; see `verificationDimensions.physically_visited`. |
 | verificationNote | string | no | What was checked and how, ≤ 300 characters |
-| source | string (enum) | yes | `fieldwork` (entered by the team from a real visit) or `community` (submitted by a user, Phase 6). Powers the CEP metrics ("places researched via fieldwork" vs "community-submitted") |
+| source | string (enum) | yes | `fieldwork` (entered by the team from a real visit) or `community` (submitted by a user or imported from external research). Powers the CEP metrics |
 | submittedBy | string (uid) | yes | Reference to `users` doc — used by security rules for ownership checks. For team-seeded places, the uid of the teammate who entered it |
 | submittedByName | string | yes | Denormalized display name, captured at submission time, so the admin dashboard and public UI can show "submitted by X" without a second read of the `users` collection |
-| createdAt | timestamp | yes | |
-| updatedAt | timestamp | yes | |
+| createdAt | timestamp | yes | Document creation timestamp |
+| updatedAt | timestamp | yes | Document last updated timestamp |
+
+Private research needs distinct, scope-specific vegan, vegetarian, eggetarian and Jain claims with separate evidence status and review history. The present Firestore schema is not yet a full implementation of that target. See `docs/RESEARCH_DATA_MODEL.md`; it records the target shape and implementation boundary without changing production data or rules.
+
+### Three-Tier Data Separation Model
+
+To protect public performance, privacy, and schema simplicity while supporting deep research provenance, place data is strictly separated into three tiers:
+
+1. **Tier 1 — Public Application Document (Cloud Firestore `places` collection)**:
+   The lean, optimized schema shown in the table above. Directly queried and rendered by the web application (`explore.html`, `place-details.html`, `map`). Contains only fields verified as safe, necessary, and rendered in the UI.
+
+2. **Tier 2 — Research & Provenance Ledger (`research/` offline datasets & audit artifacts)**:
+   The rich research dataset (e.g., `places_master.csv`, `place_sources.csv`, `place_images.csv`). Preserves deep auditability:
+   - Specific branch names, alternate spellings, and local script names.
+   - Granular dietary option breakdowns (`vegan_options_status`, `cross_contact_information`).
+   - Multiple documentation source URLs, review aggregators, and menu links.
+   - Multiple candidate images with author attribution, source page URLs, and copyright/license rights status.
+   - Operating status check dates and researcher provenance.
+   *These fields are never dumped wholesale into public Firestore documents.*
+
+3. **Tier 3 — Import Validation Metadata (Internal Pipeline State)**:
+   Operational metadata evaluated exclusively by `scripts/validate-import.mjs` during the offline reconciliation process:
+   - `classification`: `IMPORT_ELIGIBLE`, `IMPORT_ELIGIBLE_WITH_ADVISORIES`, or `BLOCKED_PRELIMINARY_LEAD`.
+   - `blockers`: Explicit blocking reasons (e.g. `COORDINATES_MISSING`).
+   - `advisories`: Quality warnings (e.g. `MISSING_SOURCE_URLS`, `SUSPICIOUS_NULL_ISLAND`).
+   - `sourceId`: Traces each generated import row back to the source research record.
+   *This metadata controls whether an import row is generated; it is not written to production Firestore documents.*
 
 ### Status and verification model
 
-`status` controls **visibility**. `verificationStatus` + `lastVerifiedAt` communicate **trust**.
+`status` controls **visibility**. `verificationStatus` + `lastVerifiedAt` communicate the date of a documented review. `veganClassification` and claim-specific evidence communicate dietary claims. Physical visits are recorded separately.
 
 | `status` | `verificationStatus` | Meaning | Visible to visitors? |
 |---|---|---|---|
 | pending | unverified | Submitted, awaiting review | No |
 | published | unverified | Approved but not yet visited | Yes — shown as "Not yet verified" |
-| published | verified | Team visited on `lastVerifiedAt` | Yes — "Verified, last checked {date}" |
+| published | verified | A reviewer completed the evidence-backed review recorded in `verificationHistory` | Yes — "Verified, last checked {date}" |
 | rejected | any | Declined | No |
 
 A `verified` document without `lastVerifiedAt` is invalid; the UI treats it as "Not yet
@@ -65,8 +99,11 @@ verified".
 
 ### Last-verified model and the 90-day freshness cue
 
-"Verified" means a team member **physically visited on the date shown and confirmed the
-listed details**. It is a statement about that date only, never a guarantee.
+`verificationStatus: "verified"` does not by itself mean someone physically visited or that
+the entire venue is vegan. The `physically_visited` dimension is true only when a visit
+evidence reference is recorded. Vegan classification is claim-specific and requires current
+dietary evidence. Every decision's complete evidence references are retained immutably in
+`verificationHistory`.
 
 The UI may show a soft **"re-check due"** cue when `lastVerifiedAt` is more than **90 days**
 old. This cue is presentation only: it **never** changes `verificationStatus` automatically.
@@ -79,11 +116,9 @@ Only a person, after a visit, changes verification data. The absolute date is al
   skips invalid documents with a console warning instead of crashing the page.
 - **List queries must include `where("status", "==", "published")`.** Firestore rules are
   not filters; a visitor's list query without it is rejected.
-- **`source` is not yet enforced by rules.** No client writes places until Phase 6; at that
-  point the create rule should pin `source == "community"` so the metric cannot be spoofed.
-- **Privacy:** `submittedBy` / `submittedByName` are readable by anyone on a published
-  place (rules work per document). Fine for team-seeded data; revisit before Phase 6
-  community submissions.
+- **`source` is strictly enforced by rules in Phase 6.** Client place submissions must have `source == "community"`, `submittedBy == request.auth.uid`, `status == "pending"`, and `verificationStatus == "unverified"`. Submitter edits on pending submissions preserve `source == "community"`, `submittedBy`, and `createdAt`, preventing fieldwork metric spoofing or privilege escalation.
+- **Coordinates & pilot bounds:** Latitude and longitude must be numbers within `PILOT_BOUNDS` (lat 20.70–20.90, lon 76.55–76.80) enforced both client-side and server-side in security rules.
+- **Privacy:** `submittedBy` / `submittedByName` are readable by anyone on a published place (rules work per document). For pending places, only the submitter and admins may read.
 
 ## Collection: `reviews`
 
@@ -117,7 +152,7 @@ Document ID = `{uid}_{placeId}` (composite key, avoids duplicate saves without a
 | placeId | string | yes | |
 | createdAt | timestamp | yes | |
 
-## Collection: `editSuggestions` (Should-Have, not MVP-blocking)
+## Collection: `editSuggestions` (disabled; not a supported workflow)
 
 | Field | Type | Required | Purpose |
 |---|---|---|---|
@@ -126,6 +161,42 @@ Document ID = `{uid}_{placeId}` (composite key, avoids duplicate saves without a
 | changes | map | yes | Field → proposed new value |
 | status | string (enum) | yes | pending / applied / dismissed |
 | createdAt | timestamp | yes | |
+
+The table above describes a future proposal only. The active rules deny all client reads and
+writes to `editSuggestions`; no client workflow should depend on these fields.
+
+## Collection: `businessClaims` (disabled; no approved schema)
+
+No client reads or writes are allowed. Do not create claim documents until identity-proof,
+privacy, ownership and state-transition requirements have a reviewed schema and workflow.
+
+## Collections: `placePhotos` and `photoRightsReviewHistory`
+
+Photo creation is disabled while the application lacks a trusted evidence intake path. A
+pending photo may be approved only when the existing record contains traceable rights evidence
+and the admin approval transaction creates an immutable review-history record. Reviewed
+evidence is copied into the history snapshot so later edits cannot rewrite the basis for the
+decision.
+
+| Photo field | Type | Required for approval | Purpose |
+|---|---|---:|---|
+| `creator_name` | string | yes | Identifies the person who created the image. |
+| `rights_holder` | string | yes | Identifies the person/entity holding publication rights. |
+| `permission_basis` | enum | yes | `original_work`, `written_permission`, or `open_license`. |
+| `permission_evidence_ref` | HTTPS URL or `evidence-record:<id>` | yes | Traceable permission/licence evidence for human review. |
+| `licence` | string | yes | Licence or recorded rights basis. |
+| `attribution_required` | boolean | yes | Whether visible attribution is required. |
+| `attribution_text` | string | conditionally | Required attribution wording when the licence requires it. |
+| `rights_review_status` | enum | yes | `accepted` or `rejected`, written by the reviewing admin. |
+| `rights_reviewed_by`, `rights_reviewed_at` | uid, timestamp | yes | Reviewer identity and server time. |
+| `rights_review_notes` | string | yes | Human note describing the evidence checked or rejection reason. |
+| `rights_review_history_id` | string | yes | Links the moderation change to its immutable history record. |
+
+`photoRightsReviewHistory/{reviewId}` is admin-readable, create-only, and immutable. Each
+record stores `photo_id`, `decision`, `reviewer_uid`, `reviewed_at` and a snapshot of creator,
+rights holder, permission basis/reference, licence and attribution fields. These rules do not
+establish that the referenced evidence is genuine; the admin must inspect it. No photo rights
+or upload workflow has been enabled by these schema notes.
 
 ---
 
@@ -139,10 +210,13 @@ Document ID = `{uid}_{placeId}` (composite key, avoids duplicate saves without a
   trust once it *is* public. A place can be published but not yet re-verified recently.
 - **No collection stores plaintext passwords.** Firebase Authentication handles credentials
   entirely outside Firestore.
-- Indexes: Firestore auto-indexes single fields. A composite index is needed for `places`
-  queries that combine `status == "published"` with a `dietTags` array-contains filter —
-  defined ahead of time in `firebase/firestore.indexes.json` (see `docs/FIREBASE_SETUP.md`)
-  so it's ready before Phase 5 writes that query, rather than discovered as a runtime error.
+- **Indexes:** Firestore auto-indexes single fields. Composite indexes defined in `firebase/firestore.indexes.json` include:
+  1. `places`: `status ASC` + `dietTags CONTAINS` (for filtered published queries).
+  2. `places`: `submittedBy ASC` + `createdAt DESC` (for submitter dashboard/profile).
+  3. `reviews`: `placeId ASC` + `createdAt DESC` (for place detail reviews sorted newest-first).
+  4. `reviews`: `userId ASC` + `createdAt DESC` (for user profile reviews).
+  5. `savedPlaces`: `userId ASC` + `createdAt DESC` (for user saved places list).
+  In client code, in-memory sorting is additionally applied as a resilient fallback.
 
 ## Phase 3 Corrections (fixed during the Firebase Foundation pass)
 
@@ -161,3 +235,23 @@ Document ID = `{uid}_{placeId}` (composite key, avoids duplicate saves without a
   address to a broader audience than necessary), each place/review now stores a
   denormalized display name captured at write time. This keeps `firebase/firestore.rules`
   tight: `users/{uid}` stays readable only by its owner and by admins.
+
+## Verification and admin-written fields (added by the integration)
+
+These fields are written by `frontend/js/admin-service.js`. The security rules allow admins
+to write any field on `places`, so this list is documentation, not enforcement.
+
+| Field | Type | Written by | Meaning |
+|---|---|---|---|
+| `lastVerifiedAt` | timestamp | `reverifyPlace` | The date of the PHYSICAL VISIT entered by the admin, stored at local noon. It is never the time a button was pressed. |
+| `verificationNote` | string (max 300) | `reverifyPlace` | What was checked at the visit. Required; never a default claim. |
+| `verifiedBy` | string (uid) | `reverifyPlace` | The admin who recorded the verification. |
+| `verifiedAt` | timestamp | `reverifyPlace` | When the verification was recorded in the system (server time). Distinct from `lastVerifiedAt`. |
+| `approvedBy`, `approvedAt` | string, timestamp | `approvePlace` | Who approved a submission, and when. |
+| `rejectedBy`, `rejectedAt`, `rejectionReason` | string, timestamp, string | `rejectPlace` | Who rejected a submission, when, and why. (Corrects an earlier wrong field name `rejectReason`.) |
+
+Reports and reviews written by admins: `resolvedBy`, `resolvedAt`, `dismissedBy` on
+`reports`; admins delete `reviews` without recording an actor.
+
+**Limitation:** the app does not yet check that `lastVerifiedAt` is after the place was
+submitted. The visit date is validated only as a real, non-future calendar date.

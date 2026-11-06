@@ -1,69 +1,85 @@
 /* ==========================================================================
    VeganSaathi — saved-page.js
    ============================================================================
-   Phase 4 scope: gate this page behind sign-in. The actual saved-places
-   data is still local mock data for this browser session — the real
-   Firestore-backed Saved Places feature is Phase 6 (see
-   docs/DEVELOPMENT_PLAN.md). This file preserves that Phase 2 mock
-   save/remove behavior exactly, just no longer showing it to signed-out
-   visitors.
+   Phase 6 — Persistent user-specific saved places from Firestore.
+   Gated behind sign-in. Reads real saved places from savedPlaces collection
+   and fetches corresponding published place details.
    ========================================================================== */
 
 import { onAuthChange } from "./auth-state.js";
+import { fetchSavedPlacesForUser, unsavePlace } from "./places-service.js";
 
-let savedIds = [];
-
-function renderSaved() {
+async function loadAndRenderSaved(user) {
   const grid = document.getElementById("savedGrid");
   const empty = document.getElementById("savedEmptyState");
-  const places = MOCK_PLACES.filter(function (p) { return savedIds.indexOf(p.id) !== -1; });
+  if (!grid || !empty) return;
+
+  grid.innerHTML = '<div class="col-12 text-center text-muted-vs py-4">Loading your saved places…</div>';
+  empty.classList.add("d-none");
+
+  const res = await fetchSavedPlacesForUser(user.uid);
+  if (res && res.status !== "ok") {
+    grid.innerHTML = '<div class="col-12 text-center text-danger py-4">Unable to load your saved places right now. Please try again.</div>';
+    empty.classList.add("d-none");
+    return;
+  }
+  const places = res && res.places ? res.places : [];
 
   if (places.length === 0) {
     grid.innerHTML = "";
     empty.classList.remove("d-none");
     return;
   }
+
   empty.classList.add("d-none");
   grid.innerHTML = places.map(function (place) {
     return (
-      '<div class="col-sm-6 col-lg-4">' +
+      '<div class="col-sm-6 col-lg-4" id="saved-card-' + escapeHtml(place.id) + '">' +
       '<div class="vs-card vs-place-card">' +
       '<div class="vs-place-card__image">' + escapeHtml(placeImageLabel(place)) + "</div>" +
       '<div class="vs-place-card__body">' +
       '<h3 class="vs-place-card__title">' + escapeHtml(place.name) + "</h3>" +
-      "<div>" + renderDietBadges(place.dietTags) + "</div>" +
+      '<div class="vs-place-card__meta">' + escapeHtml(formatPlaceType(place.placeType)) + (place.area ? " &middot; " + escapeHtml(place.area) : "") + "</div>" +
+      "<div>" + renderPlaceDietBadges(place) + "</div>" +
       '<div class="d-flex gap-2 mt-2">' +
       '<a href="' + escapeHtml(placeDetailsUrl(place.id)) + '" class="btn btn-vs-primary btn-sm">View Details</a>' +
-      '<button type="button" class="btn btn-vs-outline btn-sm" data-remove-id="' + escapeHtml(place.id) + '">Remove</button>' +
+      '<button type="button" class="btn btn-vs-outline btn-sm remove-saved-btn" data-place-id="' + escapeHtml(place.id) + '">Remove</button>' +
       "</div></div></div></div>"
     );
   }).join("");
 
-  grid.querySelectorAll("[data-remove-id]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      savedIds = savedIds.filter(function (id) { return id !== btn.getAttribute("data-remove-id"); });
-      renderSaved();
+  grid.querySelectorAll(".remove-saved-btn").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      const placeId = btn.getAttribute("data-place-id");
+      if (!placeId) return;
+      btn.disabled = true;
+      btn.textContent = "Removing…";
+      await unsavePlace(placeId, user.uid);
+      await loadAndRenderSaved(user);
     });
   });
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  onAuthChange(function (user) {
+function initSavedPage() {
+  onAuthChange(async function (user) {
     const signedOutEl = document.getElementById("savedSignedOut");
     const signedInEl = document.getElementById("savedSignedIn");
 
     if (!user) {
-      signedOutEl.classList.remove("d-none");
-      signedInEl.classList.add("d-none");
+      if (signedOutEl) signedOutEl.classList.remove("d-none");
+      if (signedInEl) signedInEl.classList.add("d-none");
       return;
     }
 
-    signedOutEl.classList.add("d-none");
-    signedInEl.classList.remove("d-none");
+    if (signedOutEl) signedOutEl.classList.add("d-none");
+    if (signedInEl) signedInEl.classList.remove("d-none");
 
-    // Reset to the mock seed data each time someone signs in on this page —
-    // there is no real per-user persistence yet (Phase 6).
-    savedIds = MOCK_SAVED_PLACES.slice();
-    renderSaved();
+    await loadAndRenderSaved(user);
   });
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initSavedPage);
+} else {
+  initSavedPage();
+}

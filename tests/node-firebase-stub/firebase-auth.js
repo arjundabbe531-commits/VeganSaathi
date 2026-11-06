@@ -4,3 +4,8 @@
 export function getAuth(app) {
   return { _stub: "auth", app: app };
 }
+
+export function onAuthStateChanged(auth, callback) {
+  // TEST-ONLY: call callback immediately with null if no user set
+  return function unsubscribe() {};
+}
