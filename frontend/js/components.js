@@ -242,18 +242,42 @@ function renderDietBadges(dietTags) {
 }
 
 function isVeganDietVerified(place) {
+  const claim = {
+    fully_vegan: "fully_vegan_venue",
+    vegan_friendly: "vegan_friendly_options",
+    verified_vegan_options: "vegan_options"
+  }[place?.veganClassification];
+  const dietaryEvidence = Array.isArray(place?.evidenceRefs)
+    ? place.evidenceRefs.find((ref) => hasFreshDietaryEvidence(ref, claim))
+    : null;
   return Boolean(place &&
     place.verificationStatus === "verified" &&
     place.verificationDimensions &&
     place.verificationDimensions.vegan_options_verified === true &&
     ["fully_vegan", "vegan_friendly", "verified_vegan_options"].includes(place.veganClassification) &&
     ["ingredients_reviewed", "owner_confirmed", "vegansaathi_reviewed"].includes(place.evidenceStatus) &&
+    dietaryEvidence &&
     Array.isArray(place.dietTags) && place.dietTags.includes("vegan"));
 }
 
+function hasFreshDietaryEvidence(ref, claim) {
+  if (!ref || ref.claim !== claim || ref.validity !== "current" ||
+      !["direct", "corroborating"].includes(ref.strength) || typeof ref.excerpt !== "string" || ref.excerpt.trim().length < 20 ||
+      typeof ref.url !== "string" || !/^https:\/\//i.test(ref.url)) return false;
+  const checkedAt = Date.parse(ref.lastCheckedAt);
+  const age = Date.now() - checkedAt;
+  return Number.isFinite(checkedAt) && age >= 0 && age <= 180 * 86400000;
+}
+
 function renderPlaceDietBadges(place) {
-  const tags = Array.isArray(place?.dietTags) ? place.dietTags : [];
-  return renderDietBadges(isVeganDietVerified(place) ? tags : tags.filter((tag) => tag !== "vegan"));
+  if (!isVeganDietVerified(place)) return "";
+  const labels = {
+    fully_vegan: "Fully vegan",
+    vegan_friendly: "Vegan-friendly options",
+    verified_vegan_options: "Verified vegan options"
+  };
+  const label = labels[place.veganClassification];
+  return label ? '<span class="vs-badge vs-badge-vegan">🌿 ' + label + "</span>" : "";
 }
 
 /* ---------------- Verification badge ---------------- */

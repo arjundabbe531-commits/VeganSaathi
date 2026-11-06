@@ -274,6 +274,10 @@ export function normalizePlace(rawDoc) {
     dietTags: data.dietTags.slice(),
     veganClassification: typeof data.veganClassification === "string" ? data.veganClassification : "",
     evidenceStatus: typeof data.evidenceStatus === "string" ? data.evidenceStatus : "",
+    evidenceRefs: Array.isArray(data.evidenceRefs) ? data.evidenceRefs.filter((ref) => ref && typeof ref === "object" && typeof ref.claim === "string" && typeof ref.url === "string" && typeof ref.lastCheckedAt === "string" && typeof ref.validity === "string" && typeof ref.strength === "string" && typeof ref.excerpt === "string").map((ref) => ({
+      claim: ref.claim, url: ref.url, lastCheckedAt: ref.lastCheckedAt, validity: ref.validity,
+      strength: ref.strength, excerpt: ref.excerpt
+    })) : [],
     verificationDimensions: data.verificationDimensions && typeof data.verificationDimensions === "object" && !Array.isArray(data.verificationDimensions)
       ? { vegan_options_verified: data.verificationDimensions.vegan_options_verified === true }
       : { vegan_options_verified: false },

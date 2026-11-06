@@ -663,12 +663,22 @@ async function approveCandidate(candidate) {
   }
   _approvalsInFlight.add(candidateId);
   try {
+    const evidenceText = document.getElementById("vd-evidence-refs")?.value?.trim() || "[]";
+    let evidenceRefs;
+    try {
+      evidenceRefs = JSON.parse(evidenceText);
+      if (!Array.isArray(evidenceRefs)) throw new Error("Evidence must be a JSON array.");
+      evidenceRefs = evidenceRefs.map((ref) => ({ ...ref, reviewerUid: _currentAdmin.uid }));
+    } catch (parseError) {
+      throw new Error("Evidence references must be a valid JSON array: " + parseError.message);
+    }
     const decision = {
       veganClass: document.getElementById("vd-vegan-class")?.value || "vegan_status_unverified",
       existence: document.getElementById("vd-existence")?.value || "candidate",
       operating: document.getElementById("vd-operating")?.value || "unknown",
       evidenceStatus: document.getElementById("vd-evidence")?.value || "no_vegan_evidence",
-      evidenceUrl: document.getElementById("vd-evidence-url")?.value?.trim() || "",
+      evidenceRefs,
+      physicallyVisited: document.getElementById("vd-physically-visited")?.checked === true,
       notes: document.getElementById("vd-notes")?.value?.trim() || ""
     };
     const result = await approveCandidateRecord({

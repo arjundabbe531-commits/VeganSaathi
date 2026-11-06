@@ -3,7 +3,14 @@ import assert from "node:assert/strict";
 import { approveCandidateRecord, assertCandidateCanStage } from "../frontend/js/candidate-approval.js";
 
 const baseCandidate = () => ({ candidate_id: "c-1", name: "Green Table", mapped_place_type: "cafe", address: "12 Market Road, Pune", latitude: 18.52, longitude: 73.85, dietTags: ["jain"], import_status: "staged" });
-const baseDecision = () => ({ veganClass: "verified_vegan_options", existence: "business_identity_supported", operating: "open", evidenceStatus: "ingredients_reviewed", notes: "Reviewed current ingredient list." });
+const evidence = (claim, overrides = {}) => ({
+  claim, url: `https://evidence.example.test/${claim}`, sourceType: "official_business_source",
+  sourceOwner: "Green Table", collectedAt: "2026-11-01", lastCheckedAt: "2026-11-05",
+  excerpt: `Current evidence supporting ${claim}.`, reviewerUid: "admin-1", strength: "direct",
+  validity: "current", rightsLimitations: "Public business information", reviewerNote: "Reviewed directly.",
+  ...overrides
+});
+const baseDecision = () => ({ veganClass: "verified_vegan_options", existence: "business_identity_supported", operating: "open", evidenceStatus: "ingredients_reviewed", evidenceUrl: "https://business.example.test/menu", evidenceRefs: [evidence("business_identity"), evidence("current_operation"), evidence("address"), evidence("coordinates"), evidence("vegan_options")], notes: "Reviewed current ingredient list." });
 
 function harness({ candidate = baseCandidate(), candidateId = "c-1", existingPlace = false, readError = null } = {}) {
   candidate.candidate_id = candidateId;
@@ -47,7 +54,15 @@ test("production approval publishes verified record and atomically records candi
   const result = await approveCandidateRecord(h);
   assert.equal(result.placeId, "place_c-1");
   assert.equal(h.store.get("places/place_c-1").verificationStatus, "verified");
-  assert.deepEqual(h.store.get("places/place_c-1").dietTags, ["vegan", "vegetarian", "jain"]);
+  assert.deepEqual(h.store.get("places/place_c-1").dietTags, ["vegan"]);
+  assert.equal(h.store.get("places/place_c-1").verificationDimensions.address_confirmed, true);
+  assert.equal(h.store.get("places/place_c-1").verificationDimensions.coordinates_supported, true);
+  const history = [...h.store.entries()].find(([key]) => key.startsWith("verificationHistory/"))[1];
+  assert.deepEqual(history.evidenceRefs, h.decision.evidenceRefs);
+  assert.equal(history.evidenceRefs.find((ref) => ref.claim === "vegan_options").excerpt, "Current evidence supporting vegan_options.");
+  assert.equal(history.evidenceRefs[0].reviewerUid, "admin-1");
+  assert.equal(h.store.get("places/place_c-1").evidenceRefs[0].reviewerUid, undefined);
+  assert.equal(h.store.get("places/place_c-1").evidenceRefs[0].sourceOwner, undefined);
   assert.equal(h.store.get("placeCandidates/c-1").import_status, "approved");
   assert.equal([...h.store.keys()].filter((key) => key.startsWith("verificationHistory/")).length, 1);
 });
@@ -95,6 +110,25 @@ test("transaction fails closed for candidate read errors, missing candidate, sta
   await assert.rejects(approveCandidateRecord(duplicate), /already exists/);
   const targetReadFailure = harness({ readError: (ref) => ref.path === "places/place_c-1" ? new Error("target read denied") : null });
   await assert.rejects(approveCandidateRecord(targetReadFailure), /target read denied/);
+});
+
+test("production approval requires claim-matched reviewed dietary evidence references", async (t) => {
+  for (const [label, alter] of [
+    ["missing refs", (h) => { h.decision.evidenceRefs = []; }],
+    ["no vegan claim ref", (h) => { h.decision.evidenceRefs = h.decision.evidenceRefs.filter((ref) => ref.claim !== "vegan_options"); }],
+    ["stale ref", (h) => { h.decision.evidenceRefs.find((ref) => ref.claim === "vegan_options").lastCheckedAt = "2025-01-01"; }],
+    ["future ref", (h) => { h.decision.evidenceRefs.find((ref) => ref.claim === "vegan_options").lastCheckedAt = "2099-01-01"; }],
+    ["impossible review date", (h) => { h.decision.evidenceRefs.find((ref) => ref.claim === "vegan_options").lastCheckedAt = "2026-02-30"; }],
+    ["conflicting ref", (h) => { h.decision.evidenceRefs.find((ref) => ref.claim === "vegan_options").validity = "conflicting"; }],
+    ["invalid ref URL", (h) => { h.decision.evidenceRefs.find((ref) => ref.claim === "vegan_options").url = "javascript:alert(1)"; }],
+    ["mismatched reviewer", (h) => { h.decision.evidenceRefs.find((ref) => ref.claim === "vegan_options").reviewerUid = "someone-else"; }],
+    ["wrong class-specific claim", (h) => { h.decision.veganClass = "fully_vegan"; }],
+    ["visit checkbox without visit evidence", (h) => { h.decision.physicallyVisited = true; }]
+  ]) await t.test(label, async () => {
+    const h = harness(); alter(h);
+    await assert.rejects(approveCandidateRecord(h));
+    assert.equal(h.store.has("places/place_c-1"), false);
+  });
 });
 
 test("racing production approvals publish exactly once", async () => {

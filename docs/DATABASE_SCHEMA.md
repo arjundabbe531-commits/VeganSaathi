@@ -38,14 +38,18 @@ Community submissions (Phase 6) use auto-generated IDs.
 | postalCode | string | no | Postal code or PIN code (e.g. "444203", "W1D 4HA") |
 | latitude | number | yes | For map pin. Validated globally against `COORD_BOUNDS` (lat -90 to 90, lon -180 to 180) |
 | longitude | number | yes | For map pin. Validated globally against `COORD_BOUNDS` (lat -90 to 90, lon -180 to 180) |
-| dietTags | array<string> | yes, non-empty | Subset of [vegan, vegetarian, eggetarian, jain]. A tag means **the team confirmed at least one real meal option meets that definition**. Tag every category that applies (a vegan place gets `vegan` **and** `vegetarian`); no implicit inference in code |
+| dietTags | array<string> | yes, non-empty | Internal dietary discovery values. Public VeganSaathi surfaces show only a supported vegan classification; approval never infers vegetarian, eggetarian, or Jain from vegan evidence. |
 | dietNotes | string | no | What the team was told, in plain words (e.g. dish-level caveats). The honesty layer that the tags alone cannot carry. ≤ 300 characters |
 | priceRange | string (enum) | no | budget / moderate / premium (thresholds agreed by the team — see `docs/FIELDWORK_GUIDE.md`). If missing, the UI shows "Price not listed" |
 | openingInfo | string | no | Free-text opening information, only if confirmed |
 | imageUrl | string | no | Primary image URL (HTTP/HTTPS URL) |
 | status | string (enum) | yes | pending / published / rejected — **admin-controlled**. Controls visibility only |
 | verificationStatus | string (enum) | yes | unverified / verified. **admin-controlled** |
-| lastVerifiedAt | timestamp | conditional | **Required when `verificationStatus == "verified"`.** The date a team member physically visited and confirmed the details |
+| veganClassification | string (enum) | conditional | fully_vegan / vegan_friendly / verified_vegan_options / vegan_status_unverified / vegan_claim_conflicting. The class describes whole-venue status versus available options; a specific option does not imply an entirely vegan venue. |
+| evidenceStatus | string (enum) | conditional | Reviewed dietary evidence state. Discovery leads, stale or conflicting evidence cannot support a public vegan classification. |
+| evidenceRefs | array<map> | conditional | Public-safe dietary evidence summary (claim, HTTPS source URL, last-checked date, strength, validity, excerpt). Full reviewed source metadata remains in `verificationHistory`. |
+| verificationDimensions | map | conditional | Separate business identity, address, coordinate, operation, physical-visit, dietary-evidence and photo-rights dimensions. `address_confirmed` and `coordinates_supported` require claim-specific evidence. |
+| lastVerifiedAt | timestamp | conditional | **Required when `verificationStatus == "verified"`.** Date of the most recent documented review. It is not proof of a physical visit; see `verificationDimensions.physically_visited`. |
 | verificationNote | string | no | What was checked and how, ≤ 300 characters |
 | source | string (enum) | yes | `fieldwork` (entered by the team from a real visit) or `community` (submitted by a user or imported from external research). Powers the CEP metrics |
 | submittedBy | string (uid) | yes | Reference to `users` doc — used by security rules for ownership checks. For team-seeded places, the uid of the teammate who entered it |
@@ -79,13 +83,13 @@ To protect public performance, privacy, and schema simplicity while supporting d
 
 ### Status and verification model
 
-`status` controls **visibility**. `verificationStatus` + `lastVerifiedAt` communicate **trust**.
+`status` controls **visibility**. `verificationStatus` + `lastVerifiedAt` communicate the date of a documented review. `veganClassification` and claim-specific evidence communicate dietary claims. Physical visits are recorded separately.
 
 | `status` | `verificationStatus` | Meaning | Visible to visitors? |
 |---|---|---|---|
 | pending | unverified | Submitted, awaiting review | No |
 | published | unverified | Approved but not yet visited | Yes — shown as "Not yet verified" |
-| published | verified | Team visited on `lastVerifiedAt` | Yes — "Verified, last checked {date}" |
+| published | verified | A reviewer completed the evidence-backed review recorded in `verificationHistory` | Yes — "Verified, last checked {date}" |
 | rejected | any | Declined | No |
 
 A `verified` document without `lastVerifiedAt` is invalid; the UI treats it as "Not yet
@@ -93,8 +97,11 @@ verified".
 
 ### Last-verified model and the 90-day freshness cue
 
-"Verified" means a team member **physically visited on the date shown and confirmed the
-listed details**. It is a statement about that date only, never a guarantee.
+`verificationStatus: "verified"` does not by itself mean someone physically visited or that
+the entire venue is vegan. The `physically_visited` dimension is true only when a visit
+evidence reference is recorded. Vegan classification is claim-specific and requires current
+dietary evidence. Every decision's complete evidence references are retained immutably in
+`verificationHistory`.
 
 The UI may show a soft **"re-check due"** cue when `lastVerifiedAt` is more than **90 days**
 old. This cue is presentation only: it **never** changes `verificationStatus` automatically.

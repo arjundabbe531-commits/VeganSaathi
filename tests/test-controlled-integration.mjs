@@ -230,6 +230,31 @@ test("Integration: Place card rendering handles missing imageUrl safely", () => 
   assert.ok(html.includes("Dining Hall (mock photo)"), "Renders honest fallback text");
 });
 
+test("Public place cards distinguish a vegan menu option from a fully vegan venue", () => {
+  const verifiedOption = {
+    id: "p-options", name: "Green Table", placeType: "cafe", dietTags: ["vegan", "vegetarian", "jain"],
+    veganClassification: "verified_vegan_options", evidenceStatus: "ingredients_reviewed",
+    verificationStatus: "verified", verificationDimensions: { vegan_options_verified: true },
+    evidenceRefs: [{ claim: "vegan_options", url: "https://business.example.test/menu", lastCheckedAt: new Date().toISOString(), validity: "current", strength: "direct", excerpt: "Current menu item and ingredient notes were reviewed." }]
+  };
+  const optionsHtml = components.renderPlaceCard(verifiedOption);
+  assert.ok(optionsHtml.includes("Verified vegan options"));
+  assert.ok(!optionsHtml.includes(">Vegan</span>"));
+  assert.ok(!optionsHtml.includes("Vegetarian"));
+  assert.ok(!optionsHtml.includes("Jain"));
+
+  const fullyVegan = { ...verifiedOption, veganClassification: "fully_vegan", evidenceRefs: [...verifiedOption.evidenceRefs, { claim: "fully_vegan_venue", url: "https://business.example.test/menu", lastCheckedAt: new Date().toISOString(), validity: "current", strength: "direct", excerpt: "The complete relevant menu and preparation practices were reviewed." }] };
+  assert.ok(components.renderPlaceCard(fullyVegan).includes("Fully vegan"));
+
+  const unsupported = { ...verifiedOption, verificationStatus: "unverified" };
+  const unsupportedHtml = components.renderPlaceCard(unsupported);
+  assert.ok(!unsupportedHtml.includes("Verified vegan options"));
+  assert.ok(!unsupportedHtml.includes("Fully vegan"));
+
+  const stale = { ...verifiedOption, evidenceRefs: verifiedOption.evidenceRefs.map((ref) => ({ ...ref, lastCheckedAt: "2025-01-01", validity: "stale" })) };
+  assert.ok(!components.renderPlaceCard(stale).includes("Verified vegan options"));
+});
+
 test("Integration: Place card rendering handles apostrophes and special characters without quote breakout", () => {
   const trickyPlace = {
     id: "p-tricky",

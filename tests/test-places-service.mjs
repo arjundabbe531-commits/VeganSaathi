@@ -105,6 +105,16 @@ test("1. valid published place normalizes successfully", function () {
   assert.equal(result.status, "published");
 });
 
+test("published normalization preserves only bounded public dietary evidence fields", function () {
+  const result = normalizePlace(basePlace({
+    dietTags: ["vegan"], veganClassification: "verified_vegan_options", evidenceStatus: "ingredients_reviewed",
+    verificationStatus: "verified", lastVerifiedAt: stubTimestamp("2026-11-05T12:00:00Z"),
+    verificationDimensions: { vegan_options_verified: true },
+    evidenceRefs: [{ claim: "vegan_options", url: "https://business.example.test/menu", sourceType: "official_business_source", sourceOwner: "Business", lastCheckedAt: "2026-11-05", validity: "current", strength: "direct", excerpt: "Specific menu item and ingredients reviewed.", reviewerUid: "private-admin-id", reviewerNote: "Internal moderation note." }]
+  }));
+  assert.deepEqual(result.evidenceRefs, [{ claim: "vegan_options", url: "https://business.example.test/menu", lastCheckedAt: "2026-11-05", validity: "current", strength: "direct", excerpt: "Specific menu item and ingredients reviewed." }]);
+});
+
 /* ==========================================================================
    2. Missing optional fields get safe presentational defaults, not fabricated data
    ========================================================================== */
