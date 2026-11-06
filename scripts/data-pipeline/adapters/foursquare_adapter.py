@@ -3,16 +3,13 @@ VeganSaathi — Foursquare Open Source Places Adapter
 =====================================================
 Adapter for the Foursquare OS Places dataset (Apache 2.0).
 
-Access method: Foursquare Places Portal (places.foursquare.com) — requires
-free registration and an access token. Data is served via Apache Iceberg
-catalog; can be queried with DuckDB, PyIceberg, etc.
+Access method: Foursquare Places Portal (places.foursquare.com), using its
+Iceberg catalog with DuckDB. Official documentation describes the dataset as
+free; project account access, quotas, and zero-cost terms remain unverified.
 
-BLOCKED STATUS: This adapter is implemented but cannot run until
-the project owner registers at https://places.foursquare.com/ and
-provides FSQ_ACCESS_TOKEN in the environment. No purchase required.
-Free registration only.
-
-Alternative access: Hugging Face mirror (may require community approval).
+BLOCKED STATUS: Live access is disabled until the owner verifies portal access,
+the exact release, licence and project-level zero-cost terms. No fallback API,
+mirror or alternate distribution is used.
 
 Licence: Apache 2.0
 Attribution: Must retain NOTICE file. See data/raw/fsq-notice/NOTICE.
@@ -20,8 +17,7 @@ Attribution: Must retain NOTICE file. See data/raw/fsq-notice/NOTICE.
 
 from __future__ import annotations
 import logging
-import os
-import json
+import re
 from datetime import datetime, timezone
 from typing import Iterator, Optional, Dict, Any, List
 
@@ -37,26 +33,10 @@ MAHARASHTRA_BBOX = {
 
 ATTRIBUTION = "Foursquare Open Source Places (Apache 2.0)"
 
-# FSQ category IDs for food/dining — subset of their 1000+ category taxonomy
-FSQ_FOOD_CATEGORY_IDS = {
-    # Food & Drink top-level categories — IDs from FSQ public taxonomy
-    "13000",  # Dining and Drinking (parent)
-    "13065",  # Restaurant
-    "13032",  # Café
-    "13031",  # Coffee Shop
-    "13040",  # Fast Food Restaurant
-    "13025",  # Bakery
-    "13055",  # Dessert Shop
-    "13045",  # Ice Cream Parlor
-    "13070",  # Vegetarian / Vegan Restaurant
-    "13071",  # Vegan Restaurant (if separate)
-    "13060",  # Juice Bar
-    "13037",  # Food Court
-    "13057",  # Sweet Shop
-    # Grocery & Food Stores
-    "17069",  # Grocery Store / Supermarket
-    "17018",  # Health Food Store
-    "17037",  # Organic Grocery
+FOOD_CATEGORY_NAMES = {
+    "bakery", "cafe", "café", "coffee shop", "dessert shop", "food court", "food market", "grocery store",
+    "ice cream parlor", "ice cream shop", "juice bar", "restaurant", "sweet shop", "supermarket", "tea room",
+    "vegan and vegetarian restaurant", "vegetarian / vegan restaurant", "food and drink shop",
 }
 
 
@@ -67,27 +47,36 @@ class FoursquareAdapter(BaseSourceAdapter):
     Config keys:
       access_token (required): FSQ access token from places.foursquare.com
         Can also be set via FSQ_ACCESS_TOKEN environment variable.
-      iceberg_rest_url: Iceberg REST catalog URL (from portal)
-      warehouse: Iceberg warehouse path
+      catalog_uri: Iceberg REST catalog URI copied from the Places Portal
+      warehouse: Iceberg warehouse/catalog identifier copied from the portal
       namespace: Iceberg namespace (default: "fsq")
-      table: Iceberg table name (default: "places")
+      places_table/categories_table: table names copied from the portal
+      dataset_version: pinned release identifier copied from the portal
+      licence_confirmed/zero_cost_confirmed: explicit owner confirmations
     """
 
     def get_source_id(self) -> str:
         return "foursquare-os-places"
 
     def validate_config(self) -> bool:
-        token = self.config.get("access_token") or os.environ.get("FSQ_ACCESS_TOKEN", "")
-        if not token:
-            self.logger.error(
-                "BLOCKED: Foursquare access token not configured.\n"
-                "Required action (free, no purchase):\n"
-                "  1. Register at https://places.foursquare.com/\n"
-                "  2. Generate a free access token\n"
-                "  3. Set environment variable: FSQ_ACCESS_TOKEN=<token>\n"
-                "  4. Re-run the pipeline\n"
-                "Until then, Foursquare data acquisition is blocked."
-            )
+        required = ["access_token", "catalog_uri", "warehouse", "namespace", "places_table",
+                    "categories_table", "dataset_version"]
+        missing = [key for key in required if not str(self.config.get(key, "")).strip()]
+        if missing:
+            self.logger.error("Foursquare acquisition blocked; missing portal settings: %s", ", ".join(missing))
+            return False
+        if str(self.config["dataset_version"]).strip().lower() == "latest":
+            self.logger.error("Foursquare acquisition blocked; dataset_version must be a pinned portal release.")
+            return False
+        if self.config.get("licence_confirmed") is not True or self.config.get("zero_cost_confirmed") is not True:
+            self.logger.error("Foursquare acquisition blocked; licence and zero-cost confirmations are required.")
+            return False
+        for key in ("namespace", "places_table", "categories_table"):
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(self.config[key])):
+                self.logger.error("Foursquare acquisition blocked; invalid SQL identifier in %s.", key)
+                return False
+        if not str(self.config["catalog_uri"]).startswith("https://"):
+            self.logger.error("Foursquare acquisition blocked; catalog_uri must use HTTPS.")
             return False
 
         # Check DuckDB availability
@@ -102,7 +91,7 @@ class FoursquareAdapter(BaseSourceAdapter):
     def source_metadata(self) -> Dict[str, Any]:
         return {
             "name": "Foursquare Open Source Places",
-            "version": "latest",
+            "version": str(self.config.get("dataset_version", "not-acquired")),
             "licence": "Apache 2.0",
             "licence_url": "https://www.apache.org/licenses/LICENSE-2.0",
             "attribution": ATTRIBUTION,
@@ -114,84 +103,73 @@ class FoursquareAdapter(BaseSourceAdapter):
         Query Foursquare Iceberg catalog via DuckDB.
         Requires a valid access token.
         """
+        if not self.validate_config():
+            raise RuntimeError("Foursquare access is blocked by missing or unverified configuration.")
         import duckdb
-
-        token = self.config.get("access_token") or os.environ.get("FSQ_ACCESS_TOKEN", "")
-        iceberg_rest_url = self.config.get(
-            "iceberg_rest_url",
-            "https://api.foursquare.com/places/catalog/api"
+        sql_token = str(self.config["access_token"]).replace("'", "''")
+        sql_uri = str(self.config["catalog_uri"]).replace("'", "''")
+        sql_warehouse = str(self.config["warehouse"]).replace("'", "''")
+        query = self._build_query(
+            self.config["namespace"], self.config["places_table"], self.config["categories_table"],
+            f"LIMIT {int(self.config.get('dry_run_limit', 100))}" if dry_run else "",
         )
-        warehouse = self.config.get("warehouse", "s3://fsq-os-places-us-east-1/")
-        namespace = self.config.get("namespace", "fsq")
-        table = self.config.get("table", "places")
-
-        bbox = MAHARASHTRA_BBOX
-        limit_clause = "LIMIT 100" if dry_run else ""
-
-        # DuckDB Iceberg catalog query
-        # Note: exact connection syntax depends on FSQ portal documentation
-        # at time of access. This follows the documented Iceberg REST API pattern.
-        query = f"""
-        INSTALL iceberg; LOAD iceberg;
-        INSTALL httpfs; LOAD httpfs;
-
-        CREATE SECRET fsq_secret (
-            TYPE BEARER,
-            TOKEN '{token}'
-        );
-
-        SELECT
-            fsq_place_id,
-            name,
-            latitude,
-            longitude,
-            address,
-            locality            AS city,
-            region              AS state,
-            country,
-            postcode            AS postal_code,
-            tel                 AS phone,
-            website,
-            email,
-            fsq_category_ids[1] AS category_id,
-            fsq_category_labels[1] AS category_label,
-            date_created,
-            date_updated
-        FROM iceberg_scan(
-            '{warehouse}{namespace}/{table}',
-            allow_moved_paths=true
-        )
-        WHERE
-            latitude BETWEEN {bbox['min_lat']} AND {bbox['max_lat']}
-            AND longitude BETWEEN {bbox['min_lon']} AND {bbox['max_lon']}
-            AND country = 'IN'
-        {limit_clause}
-        """
-
-        self.logger.info(f"Foursquare: querying Iceberg catalog (dry_run={dry_run})")
+        self.logger.info("Foursquare: querying configured Iceberg REST catalog (dry_run=%s)", dry_run)
+        conn = None
         try:
             conn = duckdb.connect(database=":memory:")
-            # Setup
-            for stmt in ["INSTALL iceberg", "LOAD iceberg", "INSTALL httpfs", "LOAD httpfs"]:
-                try:
-                    conn.execute(stmt)
-                except Exception:
-                    pass
-
-            result = conn.execute(query.strip().split("SELECT", 1)[1])
-            columns = [desc[0] for desc in result.description]
-            for row in result.fetchall():
-                yield dict(zip(columns, row))
-            conn.close()
-        except Exception as e:
-            self.logger.error(f"Foursquare fetch failed: {e}")
-            self.logger.warning(
-                "If this is an authentication or connection error, verify:\n"
-                "  - FSQ_ACCESS_TOKEN is valid and not expired\n"
-                "  - The Iceberg catalog URL is current (check places.foursquare.com)\n"
-                "  - Your IP is not rate-limited"
+            conn.execute("INSTALL iceberg")
+            conn.execute("LOAD iceberg")
+            conn.execute("LOAD httpfs")
+            conn.execute(f"CREATE SECRET fsq_iceberg_secret (TYPE iceberg, TOKEN '{sql_token}')")
+            conn.execute(
+                f"ATTACH '{sql_warehouse}' AS fsq_catalog "
+                f"(TYPE iceberg, SECRET fsq_iceberg_secret, ENDPOINT '{sql_uri}')"
             )
-            raise
+            result = conn.execute(query)
+            columns = [desc[0] for desc in result.description]
+            while True:
+                rows = result.fetchmany(1000)
+                if not rows:
+                    break
+                for row in rows:
+                    record = dict(zip(columns, row))
+                    record["dataset_version"] = self.config["dataset_version"]
+                    yield record
+        except Exception as e:
+            self.logger.error("Foursquare catalogue query failed (%s); check token, portal connection details and local DuckDB extensions.", type(e).__name__)
+            raise RuntimeError("Foursquare catalogue query failed; secret values were withheld from logs.") from None
+        finally:
+            if conn is not None:
+                conn.close()
+
+    @staticmethod
+    def _build_query(namespace: str, places_table: str, categories_table: str, limit_clause: str = "") -> str:
+        """Build a food-category query using Foursquare's Categories taxonomy."""
+        return f"""
+            SELECT p.fsq_place_id, p.name, p.latitude, p.longitude, p.address,
+                   p.locality AS city, p.region AS state, p.country,
+                   p.postcode AS postal_code, p.tel AS phone, p.website, p.email,
+                   p.fsq_category_ids AS category_ids,
+                   p.fsq_category_labels AS category_labels,
+                   p.date_created, p.date_refreshed, p.date_closed, p.unresolved_flags
+            FROM fsq_catalog.{namespace}.{places_table} AS p
+            WHERE p.latitude BETWEEN {MAHARASHTRA_BBOX['min_lat']} AND {MAHARASHTRA_BBOX['max_lat']}
+              AND p.longitude BETWEEN {MAHARASHTRA_BBOX['min_lon']} AND {MAHARASHTRA_BBOX['max_lon']}
+              AND p.country = 'IN'
+              AND EXISTS (
+                  SELECT 1
+                  FROM UNNEST(p.fsq_category_ids) AS fsq(category_id)
+                  JOIN fsq_catalog.{namespace}.{categories_table} AS c
+                    ON c.category_id = fsq.category_id
+                  WHERE lower(c.category_name) LIKE '%restaurant%'
+                     OR lower(c.category_name) LIKE '%bakery%'
+                     OR lower(c.category_name) IN ({', '.join(repr(value) for value in sorted(FOOD_CATEGORY_NAMES))})
+                     OR lower(c.level2_category_name) LIKE '%grocery%'
+                     OR lower(c.level2_category_name) LIKE '%food store%'
+              )
+              AND p.date_closed IS NULL
+            {limit_clause}
+        """.strip()
 
     def map_record(self, raw: Dict[str, Any]) -> Optional[CandidateRecord]:
         name = str(raw.get("name", "")).strip()
@@ -210,7 +188,10 @@ class FoursquareAdapter(BaseSourceAdapter):
         if not self.is_in_maharashtra(lat, lon):
             return None
 
-        category_label = str(raw.get("category_label", "")).lower()
+        labels = raw.get("category_labels", [])
+        if isinstance(labels, str):
+            labels = [labels]
+        category_label = " | ".join(str(label) for label in labels if label).lower()
         city = str(raw.get("city", "")).strip()
         address = str(raw.get("address", "")).strip()
         postal_code = str(raw.get("postal_code", "")).strip()
@@ -235,7 +216,7 @@ class FoursquareAdapter(BaseSourceAdapter):
         candidate = CandidateRecord(
             source_id=self.get_source_id(),
             source_record_id=fsq_id,
-            source_dataset_version="fsq-os-latest",
+            source_dataset_version=f"fsq-os-{raw.get('dataset_version') or raw.get('synthetic_dataset_version') or self.config.get('dataset_version', 'unknown')}",
             name=name,
             address=address,
             city=city,
@@ -289,7 +270,7 @@ class FoursquareFixtureAdapter(FoursquareAdapter):
             "postal_code": "440010", "phone": "+917122555001",
             "website": "https://greenleafcafe.in",
             "email": "hello@greenleafcafe.in",
-            "category_id": "13070", "category_label": "Vegan Restaurant",
+            "category_ids": ["4d4b7105d754a06374d81259"], "category_labels": ["Dining and Drinking > Restaurant"],
         },
         {
             "fsq_place_id": "fixture_fsq_002",
@@ -300,7 +281,7 @@ class FoursquareFixtureAdapter(FoursquareAdapter):
             "postal_code": "411001", "phone": "+912025555002",
             "website": "https://puneorganickitchen.com",
             "email": "",
-            "category_id": "13065", "category_label": "Restaurant",
+            "category_ids": ["4d4b7105d754a06374d81259"], "category_labels": ["Dining and Drinking > Restaurant"],
         },
         {
             "fsq_place_id": "fixture_fsq_003",
@@ -311,7 +292,7 @@ class FoursquareFixtureAdapter(FoursquareAdapter):
             "postal_code": "400050", "phone": "+912225555003",
             "website": "https://mumbaiplant.house",
             "email": "",
-            "category_id": "13070", "category_label": "Vegan Restaurant",
+            "category_ids": ["4d4b7105d754a06374d81259"], "category_labels": ["Dining and Drinking > Restaurant"],
         },
     ]
     FIXTURE_DATASET_VERSION = "vegansaathi-foursquare-fixtures-2026.1"

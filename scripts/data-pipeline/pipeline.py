@@ -8,7 +8,8 @@ Usage:
   python pipeline.py overture --dry-run
   python pipeline.py overture --output data/processed/overture_mh.ndjson
   python pipeline.py osm --pbf data/raw/osm/western-zone-latest.osm.pbf
-  python pipeline.py foursquare  (requires FSQ_ACCESS_TOKEN env var)
+  python pipeline.py foursquare --include-test-fixtures
+  python pipeline.py foursquare  (requires verified Foursquare Portal settings)
   python pipeline.py all --dry-run
   python pipeline.py report --input data/processed/
 
@@ -143,9 +144,9 @@ def run_osm(args):
 
 
 def run_foursquare(args):
-    """Run the Foursquare extraction (requires FSQ_ACCESS_TOKEN or --fixtures)."""
+    """Run Foursquare only with verified portal settings and explicit zero-cost confirmation."""
     ensure_dirs()
-    use_fixtures = getattr(args, "fixtures", False)
+    use_fixtures = getattr(args, "include_test_fixtures", False)
 
     batch_id = make_batch_id("foursquare")
     output = args.output or f"data/processed/fsq_{datetime.now().strftime('%Y%m%d')}.ndjson"
@@ -154,7 +155,7 @@ def run_foursquare(args):
     manifest = ImportManifest(
         batch_id=batch_id,
         source_id="foursquare-os-places",
-        dataset_version="latest",
+        dataset_version=("vegansaathi-foursquare-fixtures-2026.1" if use_fixtures else os.environ.get("FSQ_DATASET_VERSION", "not-acquired")),
         geographic_scope="Maharashtra, India",
         bounding_box=FSQ_BBOX,
         extraction_date=datetime.now(timezone.utc).date().isoformat(),
@@ -168,21 +169,26 @@ def run_foursquare(args):
         logger.info("=== Foursquare Fixture Extraction (sample data, no credentials) ===")
         adapter = FoursquareFixtureAdapter(config={})
     else:
-        token = os.environ.get("FSQ_ACCESS_TOKEN", "")
-        if not token:
-            logger.warning(
-                "BLOCKED: FSQ_ACCESS_TOKEN not set.\n"
-                "Use --fixtures for sample data, or set FSQ_ACCESS_TOKEN.\n"
-                "Register free at: https://places.foursquare.com/"
-            )
+        config = {
+            "access_token": os.environ.get("FSQ_ACCESS_TOKEN", ""),
+            "catalog_uri": os.environ.get("FSQ_CATALOG_URI", ""),
+            "warehouse": os.environ.get("FSQ_WAREHOUSE", ""),
+            "namespace": os.environ.get("FSQ_NAMESPACE", ""),
+            "places_table": os.environ.get("FSQ_PLACES_TABLE", ""),
+            "categories_table": os.environ.get("FSQ_CATEGORIES_TABLE", ""),
+            "dataset_version": os.environ.get("FSQ_DATASET_VERSION", ""),
+            "licence_confirmed": os.environ.get("FSQ_LICENCE_CONFIRMED") == "Apache-2.0",
+            "zero_cost_confirmed": os.environ.get("FSQ_ZERO_COST_CONFIRMED", "").lower() == "true",
+        }
+        adapter = FoursquareAdapter(config=config)
+        if not adapter.validate_config():
+            logger.warning("Foursquare access is blocked. No dataset query was attempted.")
             manifest.import_status = "blocked"
-            manifest.errors.append("FSQ_ACCESS_TOKEN not configured")
-            manifest.notes += " | BLOCKED: requires owner to register at places.foursquare.com"
+            manifest.errors.append("missing or unverified Foursquare portal settings, dataset release, licence, or zero-cost confirmation")
+            manifest.notes += " | BLOCKED: requires explicit verified portal configuration; no live query attempted"
             manifest.save(manifest_path)
             print_manifest_summary(manifest)
             return [], manifest
-
-        adapter = FoursquareAdapter(config={"access_token": token})
         logger.info(f"=== Foursquare Extraction — batch {batch_id} ===")
 
     candidates = adapter.run_batch(
@@ -222,7 +228,7 @@ def run_all(args):
             "dry_run": args.dry_run,
             "output": None,
             "limit": args.limit,
-            "fixtures": True,
+            "include_test_fixtures": True,
         })()
         cands_fsq, _ = run_foursquare(args_fsq)
         all_candidates.extend(cands_fsq)
@@ -277,10 +283,11 @@ Examples:
   python pipeline.py osm --pbf data/raw/osm/western-zone-latest.osm.pbf
 
   # Foursquare with fixture data (no credentials needed)
-  python pipeline.py foursquare --fixtures
+  python pipeline.py foursquare --include-test-fixtures
 
   # Foursquare with real credentials
-  FSQ_ACCESS_TOKEN=<token> python pipeline.py foursquare
+  # Live access is blocked until portal release, licence, and zero-cost settings are verified
+  python pipeline.py foursquare
 
   # Run all sources and produce pilot report
   python pipeline.py all --dry-run
@@ -307,7 +314,8 @@ Examples:
 
     # Foursquare
     p_fsq = subparsers.add_parser("foursquare", help="Run Foursquare OS Places extraction")
-    p_fsq.add_argument("--fixtures", action="store_true", help="Use fixture data (no credentials)")
+    p_fsq.add_argument("--include-test-fixtures", action="store_true",
+                       help="Use synthetic fixtures for isolated testing only")
     p_fsq.add_argument("--dry-run", action="store_true")
     p_fsq.add_argument("--output", default=None)
     p_fsq.add_argument("--limit", type=int, default=None)

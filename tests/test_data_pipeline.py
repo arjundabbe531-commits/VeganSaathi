@@ -71,6 +71,71 @@ class TestDataPipeline(unittest.TestCase):
         self.assertEqual(cands[0].city, "Nagpur")
         self.assertEqual(cands[1].city, "Pune")
         self.assertEqual(cands[2].city, "Mumbai")
+        self.assertTrue(all(c.source_dataset_version == f"fsq-os-{adapter.FIXTURE_DATASET_VERSION}" for c in cands))
+
+    def test_foursquare_portal_query_uses_pinned_catalog_and_bounded_fetch(self):
+        from unittest.mock import MagicMock, patch
+        from adapters.foursquare_adapter import FoursquareAdapter
+
+        config = {
+            "access_token": "test-secret", "catalog_uri": "https://catalog.example.test/iceberg",
+            "warehouse": "test-warehouse", "namespace": "fsq", "places_table": "places",
+            "categories_table": "categories", "dataset_version": "2026-10-15",
+            "licence_confirmed": True, "zero_cost_confirmed": True,
+        }
+        result = MagicMock()
+        result.description = [("fsq_place_id",), ("name",)]
+        result.fetchmany.side_effect = [[("p-1", "Test Cafe")], []]
+        connection = MagicMock()
+        connection.execute.return_value = result
+        duckdb = MagicMock()
+        duckdb.connect.return_value = connection
+
+        with patch.dict(sys.modules, {"duckdb": duckdb}):
+            adapter = FoursquareAdapter(config=config)
+            rows = list(adapter.fetch_records())
+
+        self.assertEqual(rows, [{"fsq_place_id": "p-1", "name": "Test Cafe", "dataset_version": "2026-10-15"}])
+        statements = [call.args[0] for call in connection.execute.call_args_list]
+        query = statements[-1]
+        self.assertIn("SELECT p.fsq_place_id", query)
+        self.assertIn("JOIN fsq_catalog.fsq.categories", query)
+        self.assertIn("date_refreshed", query)
+        self.assertNotIn("13070", query)
+        self.assertEqual(result.fetchmany.call_args_list[0].args, (1000,))
+        self.assertTrue(any("TYPE iceberg, TOKEN" in statement for statement in statements))
+        self.assertTrue(any("ATTACH 'test-warehouse'" in statement for statement in statements))
+        connection.close.assert_called_once()
+
+    def test_foursquare_live_access_requires_explicit_zero_cost_and_license(self):
+        from adapters.foursquare_adapter import FoursquareAdapter
+        from unittest.mock import patch
+        config = {
+            "access_token": "test-secret", "catalog_uri": "https://catalog.example.test/iceberg",
+            "warehouse": "test-warehouse", "namespace": "fsq", "places_table": "places",
+            "categories_table": "categories", "dataset_version": "2026-10-15",
+            "licence_confirmed": True, "zero_cost_confirmed": False,
+        }
+        with patch.dict(sys.modules, {"duckdb": object()}):
+            self.assertFalse(FoursquareAdapter(config=config).validate_config())
+
+    def test_foursquare_query_errors_do_not_log_secret(self):
+        from unittest.mock import MagicMock, patch
+        from adapters.foursquare_adapter import FoursquareAdapter
+        config = {
+            "access_token": "test-secret-never-log", "catalog_uri": "https://catalog.example.test/iceberg",
+            "warehouse": "test-warehouse", "namespace": "fsq", "places_table": "places",
+            "categories_table": "categories", "dataset_version": "2026-10-15",
+            "licence_confirmed": True, "zero_cost_confirmed": True,
+        }
+        connection = MagicMock()
+        connection.execute.side_effect = [None, None, None, None, None, RuntimeError("bad")]
+        duckdb = MagicMock()
+        duckdb.connect.return_value = connection
+        with patch.dict(sys.modules, {"duckdb": duckdb}), self.assertLogs("vegansaathi.adapter.foursquare-os-places", level="ERROR") as logs:
+            with self.assertRaisesRegex(RuntimeError, "secret values were withheld"):
+                list(FoursquareAdapter(config=config).fetch_records())
+        self.assertNotIn("test-secret-never-log", "\n".join(logs.output))
 
     def test_synthetic_provenance_propagates_to_batch_manifest_and_ndjson(self):
         adapter = FoursquareFixtureAdapter(config={})
