@@ -51,6 +51,15 @@ for f in tests/test-*.mjs; do
   record "node $f" "$code" "$TMP/out.txt"
 done
 
+# Python data-pipeline unit tests (offline fixtures and mocked adapters).
+python3 -m unittest tests.test_data_pipeline -v >"$TMP/out.txt" 2>&1; code=$?
+if [ "$code" -eq 0 ]; then
+  printf "PASS Python data-pipeline unit tests\n" >>"$TMP/out.txt"
+else
+  printf "FAIL Python data-pipeline unit tests\n" >>"$TMP/out.txt"
+fi
+record "python3 -m unittest tests.test_data_pipeline" "$code" "$TMP/out.txt"
+
 # Static checks
 node tests/check-duplicate-globals.js >"$TMP/out.txt" 2>&1; code=$?
 record "node tests/check-duplicate-globals.js" "$code" "$TMP/out.txt"

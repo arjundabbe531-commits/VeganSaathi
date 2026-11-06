@@ -63,15 +63,26 @@ foreach ($suite in $unitSuites) {
     Record-Result -Name $suiteName -ExitCode $LASTEXITCODE -OutputLines $output
 }
 
-# 2. Static Checker: Duplicate Globals
+# 2. Python data-pipeline unit tests
+$pythonOutput = & python -m unittest tests.test_data_pipeline -v 2>&1
+$pythonExit = $LASTEXITCODE
+$pythonLines = @($pythonOutput | ForEach-Object { "$_" })
+if ($pythonExit -eq 0) {
+    $pythonLines += "PASS Python data-pipeline unit tests"
+} else {
+    $pythonLines += "FAIL Python data-pipeline unit tests"
+}
+Record-Result -Name "python -m unittest tests.test_data_pipeline" -ExitCode $pythonExit -OutputLines $pythonLines
+
+# 3. Static Checker: Duplicate Globals
 $dupOutput = & node "$Root\tests\check-duplicate-globals.js" 2>&1
 Record-Result -Name "node tests/check-duplicate-globals.js" -ExitCode $LASTEXITCODE -OutputLines $dupOutput
 
-# 3. Static Checker: Rules Fixture
+# 4. Static Checker: Rules Fixture
 $rulesOutput = & python "$Root\tests\rules\check_fixture_static.py" 2>&1
 Record-Result -Name "python tests/rules/check_fixture_static.py" -ExitCode $LASTEXITCODE -OutputLines $rulesOutput
 
-# 4. Playwright Headless Browser Test Suites (stubbed services)
+# 5. Playwright Headless Browser Test Suites (stubbed services)
 if (-not $SkipBrowser) {
     $browserSuites = Get-ChildItem -Path "$Root\tests\browser" -Filter "test_*.py" | Sort-Object Name
     foreach ($suite in $browserSuites) {

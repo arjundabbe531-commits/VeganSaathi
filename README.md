@@ -79,12 +79,16 @@ have changed as suites were added; `TEST_RESULTS.md` is the one place to trust.
 except the Firestore Emulator step, which needs Java and the Firebase CLI.**
 
 ```bash
-# Node unit tests, duplicate-global check, and the rules-fixture static check:
+# Full local suite: Node tests, Python data-pipeline tests, static checks,
+# stubbed browser tests, and JS/MJS syntax gates.
 # On Windows PowerShell:
 powershell -ExecutionPolicy Bypass -File tests/run_all.ps1
 
 # On Linux, macOS, or Git Bash:
 bash tests/run_all.sh
+
+# Python data-pipeline adapter and deduplication unit tests:
+python -m unittest tests.test_data_pipeline -v
 
 # Individual Node unit test suites:
 node tests/test-places-service.mjs
