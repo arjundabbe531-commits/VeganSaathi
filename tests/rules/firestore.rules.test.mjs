@@ -313,6 +313,34 @@ describe("Administrator (role admin in users/{uid})", () => {
     }
   });
 
+  it("allows an admin core-fact edit to clear verification without claiming a physical visit", async () => {
+    await seedUsers();
+    await seedPlace("admin-edit-reset", {
+      ...publishedPlace,
+      verificationDimensions: { physically_visited: true, vegan_options_verified: true },
+      verificationHistoryId: "prior-verification-event",
+      veganClassification: "verified_vegan_options",
+      evidenceStatus: "ingredients_reviewed",
+      evidenceRefs: [{ claim: "vegan_options", url: "https://evidence.example.test/menu", lastCheckedAt: "2026-11-20", validity: "current", strength: "direct", excerpt: "Menu item ingredients reviewed." }],
+      evidenceUrl: "https://evidence.example.test/menu"
+    });
+    await assertSucceeds(updateDoc(doc(as("admin1"), "places", "admin-edit-reset"), {
+      name: "Updated Test Mess",
+      verificationStatus: "unverified",
+      lastVerifiedAt: null,
+      verificationNote: "",
+      verificationDimensions: { physically_visited: false, vegan_options_verified: false },
+      veganClassification: "",
+      evidenceStatus: "",
+      evidenceRefs: [],
+      evidenceUrl: ""
+    }));
+    const updated = await getDoc(doc(as("admin1"), "places", "admin-edit-reset"));
+    assert.equal(updated.data().verificationStatus, "unverified");
+    assert.equal(updated.data().verificationDimensions.physically_visited, false);
+    assert.deepEqual(updated.data().evidenceRefs, []);
+  });
+
   it("allows re-verification only when the visit and immutable history are linked in one transaction", async () => {
     await seedUsers();
     await seedPlace("reverify-linked", { status: "published", verificationStatus: "unverified" });

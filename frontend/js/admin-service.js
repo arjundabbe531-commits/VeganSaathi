@@ -356,7 +356,7 @@ export async function updatePlaceByAdmin(placeId, fields, adminUser) {
     verificationStatus: "unverified",
     lastVerifiedAt: null,
     verificationNote: "",
-    verificationDimensions: { vegan_options_verified: false },
+    verificationDimensions: { physically_visited: false, vegan_options_verified: false },
     veganClassification: "",
     evidenceStatus: "",
     evidenceRefs: [],

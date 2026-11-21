@@ -249,6 +249,7 @@ await asyncTest("updatePlaceByAdmin: updates permitted fields with valid data", 
   assert.equal(lastUpdate.data.priceRange, "budget");
   assert.equal(lastUpdate.data.verificationStatus, "unverified", "editing core place facts must revoke the old verification claim");
   assert.deepEqual(lastUpdate.data.evidenceRefs, [], "stale dietary evidence must not survive a core-fact edit");
+  assert.deepEqual(lastUpdate.data.verificationDimensions, { physically_visited: false, vegan_options_verified: false }, "reset dimensions must satisfy the active Firestore schema without preserving a visit claim");
 });
 
 await asyncTest("updatePlaceByAdmin: updates imageUrl when provided", async function () {
