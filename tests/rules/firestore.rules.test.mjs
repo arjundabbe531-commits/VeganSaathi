@@ -279,6 +279,40 @@ describe("Administrator (role admin in users/{uid})", () => {
     }));
   });
 
+  it("requires traceable visit evidence in the immutable re-verification event", async () => {
+    await seedUsers();
+    const adminDb = as("admin1");
+    const dimensions = { physically_visited: true };
+    const cases = [
+      { suffix: "missing", evidence: undefined },
+      { suffix: "plain-text", evidence: "not-a-url" },
+      { suffix: "insecure", evidence: "http://evidence.example.test/visit" },
+      { suffix: "space", evidence: "https://evidence.example.test/visit photo" }
+    ];
+    for (const entry of cases) {
+      const placeId = "reverify-evidence-" + entry.suffix;
+      const historyId = "reverify-evidence-event-" + entry.suffix;
+      const visitDate = new Date("2026-11-20T06:30:00Z");
+      const recordedAt = serverTimestamp();
+      await seedPlace(placeId, { status: "published", verificationStatus: "unverified" });
+      const batch = writeBatch(adminDb);
+      batch.update(doc(adminDb, "places", placeId), {
+        verificationStatus: "verified", lastVerifiedAt: visitDate,
+        verificationNote: "Visited and checked the kitchen and menu.", verifiedBy: "admin1",
+        verifiedAt: recordedAt, updatedAt: recordedAt, verificationHistoryId: historyId,
+        verificationDimensions: dimensions
+      });
+      const history = {
+        placeId, decision: "reverified", verificationStatus: "verified",
+        verificationDimensions: dimensions, notes: "Visited and checked the kitchen and menu.",
+        reviewerUid: "admin1", reviewerName: "Admin", timestamp: recordedAt, visitDate
+      };
+      if (entry.evidence !== undefined) history.visitEvidenceRef = entry.evidence;
+      batch.set(doc(adminDb, "verificationHistory", historyId), history);
+      await assertFails(batch.commit());
+    }
+  });
+
   it("allows re-verification only when the visit and immutable history are linked in one transaction", async () => {
     await seedUsers();
     await seedPlace("reverify-linked", { status: "published", verificationStatus: "unverified" });

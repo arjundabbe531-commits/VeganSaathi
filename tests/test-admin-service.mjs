@@ -420,7 +420,7 @@ await asyncTest("parseVisitDate accepts a real past date and rejects malformed, 
   assert.equal(good.date.getDate(), 12);
 });
 
-await asyncTest("reverifyPlace refuses a missing visit date, a future date and a missing evidence reference", async function () {
+await asyncTest("reverifyPlace refuses a missing or future visit date and missing or malformed evidence", async function () {
   setAdminStub();
   globalThis.__STUB_UPDATES__ = [];
   globalThis.__STUB_TRANSACTIONS__ = [];
@@ -428,9 +428,11 @@ await asyncTest("reverifyPlace refuses a missing visit date, a future date and a
   const missing = await reverifyPlace("p1", "checked kitchen", adminUser, "");
   const future = await reverifyPlace("p1", "checked kitchen", adminUser, "2099-01-01", "evidence-record:future");
   const missingEvidence = await reverifyPlace("p1", "checked kitchen", adminUser, "2026-10-12");
+  const malformedEvidence = await reverifyPlace("p1", "checked kitchen", adminUser, "2026-10-12", "http://insecure.example.test/visit");
   assert.equal(missing.status, "validation-error");
   assert.equal(future.status, "validation-error");
   assert.equal(missingEvidence.status, "validation-error");
+  assert.equal(malformedEvidence.status, "validation-error");
   assert.equal(globalThis.__STUB_UPDATES__.length, 0);
   assert.equal(globalThis.__STUB_TRANSACTIONS__.length, 0);
 });
