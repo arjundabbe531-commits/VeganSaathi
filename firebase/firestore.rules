@@ -81,7 +81,16 @@ service cloud.firestore {
         && data.address is string
         && data.address.size() > 0
         && data.address.size() <= 300
-        && (!("source" in data) || data.source in ["fieldwork", "community", "import"])
+        && data.status in ["pending", "published", "rejected"]
+        && data.verificationStatus in ["unverified", "verified"]
+        && data.source in ["fieldwork", "community", "import"]
+        && data.submittedBy is string
+        && data.submittedBy.size() > 0
+        && data.submittedByName is string
+        && data.submittedByName.size() > 0
+        && data.submittedByName.size() <= 120
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
         && (data.verificationStatus != "verified" || data.lastVerifiedAt is timestamp);
     }
 

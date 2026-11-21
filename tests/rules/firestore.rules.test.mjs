@@ -230,6 +230,20 @@ describe("Administrator (role admin in users/{uid})", () => {
       })));
     }
   });
+  it("rejects administrator place creation without fields required by public normalization", async () => {
+    await seedUsers();
+    const missingSource = communityPlace("admin1");
+    delete missingSource.source;
+    await assertFails(setDoc(doc(as("admin1"), "places", "admin-missing-source"), missingSource));
+
+    const missingSubmitterName = communityPlace("admin1");
+    delete missingSubmitterName.submittedByName;
+    await assertFails(setDoc(doc(as("admin1"), "places", "admin-missing-submitter-name"), missingSubmitterName));
+
+    const missingUpdatedAt = communityPlace("admin1");
+    delete missingUpdatedAt.updatedAt;
+    await assertFails(setDoc(doc(as("admin1"), "places", "admin-missing-updated-at"), missingUpdatedAt));
+  });
   it("can read a pending place", async () => {
     await seedUsers();
     await seedPlace("adm-read", {});
