@@ -154,14 +154,26 @@ describe("Ordinary signed-in user (u1)", () => {
   });
 
   it("can file a report under their own reporter id", async () => {
+    await seedPlace("pub1", publishedPlace);
     await assertSucceeds(setDoc(doc(as("u1"), "reports", "rep-ok"), { placeId: "pub1", reporterId: "u1", reason: "outdated", status: "pending", createdAt: serverTimestamp() }));
   });
   it("cannot file a report under another reporter's id", async () => {
+    await seedPlace("pub1", publishedPlace);
     await assertFails(setDoc(doc(as("u1"), "reports", "rep-x"), { placeId: "pub1", reporterId: "u2", reason: "outdated", status: "pending", createdAt: serverTimestamp() }));
   });
   it("cannot file a report with an unknown reason, or a status other than pending", async () => {
+    await seedPlace("pub1", publishedPlace);
     await assertFails(setDoc(doc(as("u1"), "reports", "rep-y"), { placeId: "pub1", reporterId: "u1", reason: "rude", status: "pending", createdAt: serverTimestamp() }));
     await assertFails(setDoc(doc(as("u1"), "reports", "rep-z"), { placeId: "pub1", reporterId: "u1", reason: "outdated", status: "resolved", createdAt: serverTimestamp() }));
+  });
+  it("cannot file a report for a missing or unpublished place", async () => {
+    await assertFails(setDoc(doc(as("u1"), "reports", "rep-missing-place"), {
+      placeId: "missing-place", reporterId: "u1", reason: "outdated", status: "pending", createdAt: serverTimestamp()
+    }));
+    await seedPlace("pending-report-place", {});
+    await assertFails(setDoc(doc(as("u1"), "reports", "rep-pending-place"), {
+      placeId: "pending-report-place", reporterId: "u1", reason: "outdated", status: "pending", createdAt: serverTimestamp()
+    }));
   });
   it("cannot read another reporter's report", async () => {
     await seed(env, async (db) => setDoc(doc(db, "reports", "rep-u2"), { placeId: "p", reporterId: "u2", reason: "outdated", status: "pending", createdAt: new Date() }));
@@ -173,7 +185,17 @@ describe("Ordinary signed-in user (u1)", () => {
   });
 
   it("can save a published place under their own key", async () => {
+    await seedPlace("pub1", publishedPlace);
     await assertSucceeds(setDoc(doc(as("u1"), "savedPlaces", "u1_pub1"), { userId: "u1", placeId: "pub1", createdAt: serverTimestamp() }));
+  });
+  it("cannot save a missing or unpublished place", async () => {
+    await assertFails(setDoc(doc(as("u1"), "savedPlaces", "u1_missing-place"), {
+      userId: "u1", placeId: "missing-place", createdAt: serverTimestamp()
+    }));
+    await seedPlace("pending-save-place", {});
+    await assertFails(setDoc(doc(as("u1"), "savedPlaces", "u1_pending-save-place"), {
+      userId: "u1", placeId: "pending-save-place", createdAt: serverTimestamp()
+    }));
   });
   it("cannot save under another user's key", async () => {
     await assertFails(setDoc(doc(as("u1"), "savedPlaces", "u2_pub1"), { userId: "u2", placeId: "pub1", createdAt: serverTimestamp() }));

@@ -92,6 +92,14 @@ review, say) but the `update` rule strictly enforces:
 
 So an edit can never be used to sneak a place into "published" or "verified" state, nor spoof the source. Admin edits to core place facts reset the current verification and dietary-evidence claims; a new verified state requires a linked history event in the same transaction. Physical re-verification also requires a traceable visit-evidence reference, visit date and note. Verification-history records cannot be updated or deleted. Candidate rejection events are also immutable and have their own restricted audit schema.
 
+## Reports and saved places: parent-place integrity
+
+Client-created reports and saved-place links must reference an existing place whose
+`status` is `published`. Firestore rules enforce this relationship at write time, so
+clients cannot create orphaned reports or saved-place records for missing or unpublished
+places. Reports remain visible only to the reporter and administrators; saved-place records
+remain visible only to their owner.
+
 ## Reviews and reports: read visibility
 
 - **Reviews are public-read.** They only make sense attached to a place that's already

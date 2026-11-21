@@ -371,6 +371,8 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(["placeId", "reporterId", "reason", "status", "description", "createdAt"])
         && request.resource.data.placeId is string
         && request.resource.data.placeId.size() > 0
+        && exists(/databases/$(database)/documents/places/$(request.resource.data.placeId))
+        && get(/databases/$(database)/documents/places/$(request.resource.data.placeId)).data.status == "published"
         && request.resource.data.status == "pending"
         && request.resource.data.reason in [
              "place-closed", "wrong-diet-info", "wrong-address",
@@ -395,7 +397,11 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.keys().hasOnly(["userId", "placeId", "createdAt"])
-        && saveId == (request.auth.uid + "_" + request.resource.data.placeId);
+        && request.resource.data.placeId is string
+        && request.resource.data.placeId.size() > 0
+        && saveId == (request.auth.uid + "_" + request.resource.data.placeId)
+        && exists(/databases/$(database)/documents/places/$(request.resource.data.placeId))
+        && get(/databases/$(database)/documents/places/$(request.resource.data.placeId)).data.status == "published";
 
       // Saved-place docs are only ever created or removed, never edited.
       allow update: if false;

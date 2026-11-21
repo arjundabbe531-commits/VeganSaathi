@@ -134,7 +134,7 @@ Only a person, after a visit, changes verification data. The absolute date is al
 
 | Field | Type | Required | Purpose |
 |---|---|---|---|
-| placeId | string | yes | Reference to `places` doc |
+| placeId | string | yes | Reference to an existing published `places` doc; enforced by Firestore rules |
 | reporterId | string (uid) | yes | |
 | reason | string (enum) | yes | place-closed / wrong-diet-info / wrong-address / temporarily-unavailable / outdated / other |
 | description | string | no | Free text detail |
@@ -148,7 +148,7 @@ Document ID = `{uid}_{placeId}` (composite key, avoids duplicate saves without a
 | Field | Type | Required | Purpose |
 |---|---|---|---|
 | userId | string (uid) | yes | |
-| placeId | string | yes | |
+| placeId | string | yes | Reference to an existing published `places` doc; enforced by Firestore rules |
 | createdAt | timestamp | yes | |
 
 ## Collection: `editSuggestions` (disabled; not a supported workflow)
