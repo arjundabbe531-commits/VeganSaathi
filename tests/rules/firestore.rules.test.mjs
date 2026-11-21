@@ -287,7 +287,8 @@ describe("Administrator (role admin in users/{uid})", () => {
     batch.set(doc(adminDb, "verificationHistory", historyId), {
       placeId: "reverify-linked", decision: "reverified", verificationStatus: "verified",
       verificationDimensions: dimensions, notes: "Visited and checked the kitchen and menu.",
-      reviewerUid: "admin1", reviewerName: "Admin", timestamp: recordedAt, visitDate
+      reviewerUid: "admin1", reviewerName: "Admin", timestamp: recordedAt, visitDate,
+      visitEvidenceRef: "evidence-record:visit-reverify-linked"
     });
     await assertSucceeds(batch.commit());
     await assertFails(updateDoc(doc(adminDb, "verificationHistory", historyId), { notes: "Rewritten history." }));

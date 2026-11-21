@@ -292,7 +292,7 @@ await asyncTest("reverifyPlace: records the place update and immutable verificat
   globalThis.__STUB_TRANSACTIONS__ = [];
   setAdminAndPlaces({ p1: validPendingPlace({ status: "published" }) });
   const adminUser = { uid: "admin-1" };
-  const res = await reverifyPlace("p1", "Checked kitchen on 12 Oct", adminUser, "2026-10-12");
+  const res = await reverifyPlace("p1", "Checked kitchen on 12 Oct", adminUser, "2026-10-12", "evidence-record:visit-2026-10-12");
   assert.equal(res.status, "ok");
 
   const transaction = globalThis.__STUB_TRANSACTIONS__[0];
@@ -420,15 +420,19 @@ await asyncTest("parseVisitDate accepts a real past date and rejects malformed, 
   assert.equal(good.date.getDate(), 12);
 });
 
-await asyncTest("reverifyPlace refuses a missing or invalid visit date and writes nothing", async function () {
+await asyncTest("reverifyPlace refuses a missing visit date, a future date and a missing evidence reference", async function () {
   setAdminStub();
   globalThis.__STUB_UPDATES__ = [];
+  globalThis.__STUB_TRANSACTIONS__ = [];
   const adminUser = { uid: "admin-1" };
   const missing = await reverifyPlace("p1", "checked kitchen", adminUser, "");
-  const future = await reverifyPlace("p1", "checked kitchen", adminUser, "2099-01-01");
+  const future = await reverifyPlace("p1", "checked kitchen", adminUser, "2099-01-01", "evidence-record:future");
+  const missingEvidence = await reverifyPlace("p1", "checked kitchen", adminUser, "2026-10-12");
   assert.equal(missing.status, "validation-error");
   assert.equal(future.status, "validation-error");
+  assert.equal(missingEvidence.status, "validation-error");
   assert.equal(globalThis.__STUB_UPDATES__.length, 0);
+  assert.equal(globalThis.__STUB_TRANSACTIONS__.length, 0);
 });
 
 await asyncTest("reverifyPlace stores the entered VISIT date and records it in the linked history event", async function () {
@@ -437,7 +441,7 @@ await asyncTest("reverifyPlace stores the entered VISIT date and records it in t
   globalThis.__STUB_WRITES__ = [];
   globalThis.__STUB_TRANSACTIONS__ = [];
   const adminUser = { uid: "admin-1" };
-  const res = await reverifyPlace("p1", "checked kitchen and menu", adminUser, "2026-10-12");
+  const res = await reverifyPlace("p1", "checked kitchen and menu", adminUser, "2026-10-12", "https://evidence.example.test/visits/2026-10-12");
   assert.equal(res.status, "ok");
   const write = globalThis.__STUB_UPDATES__[globalThis.__STUB_UPDATES__.length - 1];
   assert.ok(write.data.lastVerifiedAt instanceof Date, "lastVerifiedAt must be a Date built from the visit");
@@ -447,6 +451,7 @@ await asyncTest("reverifyPlace stores the entered VISIT date and records it in t
   assert.equal(write.data.verifiedBy, "admin-1", "the verifier is recorded");
   const history = globalThis.__STUB_TRANSACTIONS__[0].find((operation) => operation.type === "set");
   assert.equal(history.data.visitDate.getDate(), 12, "the immutable event preserves the actual visit date");
+  assert.equal(history.data.visitEvidenceRef, "https://evidence.example.test/visits/2026-10-12");
 });
 
 
