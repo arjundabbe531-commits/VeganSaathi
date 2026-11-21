@@ -37,7 +37,7 @@ Files: frontend/js/places-service.js, frontend/js/candidate-approval.js, docs/DA
 - [ ] Run the test and verify it fails because import is currently rejected.
 - [x] Add import to the public normalizer source allowlist; preserve fieldwork and community.
 - [x] Link the approved place to the history record created in the same transaction.
-- [ ] Document the distinct fieldwork, community and import source meanings.
+- [x] Document the distinct fieldwork, community and import source meanings.
 - [ ] Run the affected Node tests.
 
 ### Task 2: Enforce immutable linked verification history
@@ -49,5 +49,5 @@ Files: frontend/js/admin-service.js, firebase/firestore.rules, tests/node-fireba
 - [x] Change manual re-verification to read the published place and write place plus history atomically.
 - [x] Require reciprocal link, reviewer, event, dimensions and timestamp consistency in active rules; prohibit history update/delete.
 - [x] Make admin edits to core place facts clear current verification and dietary evidence claims, leaving old immutable history intact.
-- [ ] Update schema/security documentation to match the enforced behavior.
+- [x] Update schema/security documentation to match the enforced behavior.
 - [ ] Run all Node, Python, browser, static and active Firestore Emulator suites; report any environment-limited checks honestly.

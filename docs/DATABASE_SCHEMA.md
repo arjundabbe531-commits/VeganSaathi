@@ -102,7 +102,7 @@ A `verified` document without `lastVerifiedAt` and a linked immutable `verificat
 `verificationStatus: "verified"` does not by itself mean someone physically visited or that
 the entire venue is vegan. The `physically_visited` dimension is true only when a visit
 evidence reference is recorded. Vegan classification is claim-specific and requires current
-dietary evidence. Every approval and manual re-verification event is linked from the place document and retained immutably in `verificationHistory`. Editing core identity, location or dietary facts resets the current state to unverified and clears public dietary evidence; the prior history event is retained.
+dietary evidence. Every approval and manual re-verification event is linked from the place document and retained immutably in `verificationHistory`. A physical re-verification event must include a traceable HTTPS visit-evidence URL or `evidence-record:` reference as well as a visit date and reviewer note. Editing core identity, location or dietary facts resets the current state to unverified and clears public dietary evidence; the prior history event is retained.
 
 The UI may show a soft **"re-check due"** cue when `lastVerifiedAt` is more than **90 days**
 old. This cue is presentation only: it **never** changes `verificationStatus` automatically.

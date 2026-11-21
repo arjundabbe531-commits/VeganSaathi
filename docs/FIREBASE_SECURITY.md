@@ -76,6 +76,7 @@ Because client-side self-promotion is blocked by Firestore security rules, initi
 | `verificationStatus: "verified"` | **Admin only**, and only with a reciprocal immutable `verificationHistory` event in the same transaction |
 | `lastVerifiedAt` | **Admin only**; linked to the corresponding approval timestamp or recorded visit date in the immutable history event |
 | `verificationHistoryId` | **Admin transaction only**; points to a create-only history record that points back to the same place |
+| `visitEvidenceRef` | Required on physical re-verification history events; HTTPS URL or `evidence-record:` reference validated by rules |
 | `latitude`, `longitude` | Validated to be numeric and strictly within global coordinates `COORD_BOUNDS` (lat -90 to 90, lon -180 to 180) |
 | `imageUrl` | Optional string; client pre-flight enforces Cloudinary HTTPS URLs (or empty). Validated and updated via administrative moderation |
 
@@ -89,7 +90,7 @@ review, say) but the `update` rule strictly enforces:
 - `request.resource.data.createdAt == resource.data.createdAt` (cannot tamper creation timestamp)
 - `name` (2–100 chars), `address` (1–300 chars), valid `placeType`, `dietTags`, `priceRange`, and `latitude`/`longitude` in global coordinate bounds.
 
-So an edit can never be used to sneak a place into "published" or "verified" state, nor spoof the source. Admin edits to core place facts reset the current verification and dietary-evidence claims; a new verified state requires a linked history event in the same transaction. Verification-history records cannot be updated or deleted. Candidate rejection events are also immutable and have their own restricted audit schema.
+So an edit can never be used to sneak a place into "published" or "verified" state, nor spoof the source. Admin edits to core place facts reset the current verification and dietary-evidence claims; a new verified state requires a linked history event in the same transaction. Physical re-verification also requires a traceable visit-evidence reference, visit date and note. Verification-history records cannot be updated or deleted. Candidate rejection events are also immutable and have their own restricted audit schema.
 
 ## Reviews and reports: read visibility
 
