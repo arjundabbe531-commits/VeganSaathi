@@ -295,11 +295,13 @@ function isRecheckDue(lastVerifiedAt) {
 function renderVerificationBadge(place) {
   const verifiedOn = formatDate(place.lastVerifiedAt);
   if (place.verificationStatus === "verified" && verifiedOn) {
+    const physicallyVisited = place.verificationDimensions?.physically_visited === true;
+    const label = physicallyVisited ? "Field visit recorded — " : "Evidence reviewed — last checked ";
     const staleNote = isRecheckDue(place.lastVerifiedAt instanceof Date ? place.lastVerifiedAt : null)
       ? ' <span class="vs-verify-stale">(re-check due)</span>'
       : "";
     return (
-      '<span class="vs-verify"><span class="vs-verify__dot"></span>Verified — last checked ' +
+      '<span class="vs-verify"><span class="vs-verify__dot"></span>' + label +
       escapeHtml(verifiedOn) +
       "</span>" + staleNote
     );

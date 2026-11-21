@@ -279,8 +279,11 @@ export function normalizePlace(rawDoc) {
       strength: ref.strength, excerpt: ref.excerpt
     })) : [],
     verificationDimensions: data.verificationDimensions && typeof data.verificationDimensions === "object" && !Array.isArray(data.verificationDimensions)
-      ? { vegan_options_verified: data.verificationDimensions.vegan_options_verified === true }
-      : { vegan_options_verified: false },
+      ? {
+          physically_visited: data.verificationDimensions.physically_visited === true,
+          vegan_options_verified: data.verificationDimensions.vegan_options_verified === true
+        }
+      : { physically_visited: false, vegan_options_verified: false },
     dietNotes: dietNotes,
     priceRange: priceRange,
     openingInfo: openingInfo,

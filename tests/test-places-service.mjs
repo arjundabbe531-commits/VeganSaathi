@@ -111,6 +111,33 @@ test("approved imported places normalize and remain available to public discover
   assert.equal(result.source, "import");
 });
 
+test("normalization preserves physical-visit status without exposing private verification dimensions", function () {
+  const visited = normalizePlace(basePlace({
+    verificationStatus: "verified",
+    lastVerifiedAt: stubTimestamp("2026-11-05T12:00:00Z"),
+    verificationDimensions: {
+      physically_visited: true,
+      vegan_options_verified: true,
+      business_exists: true,
+      reviewer_uid: "private-admin"
+    }
+  }));
+  assert.deepEqual(visited.verificationDimensions, {
+    physically_visited: true,
+    vegan_options_verified: true
+  });
+
+  const onlineReviewed = normalizePlace(basePlace({
+    verificationStatus: "verified",
+    lastVerifiedAt: stubTimestamp("2026-11-05T12:00:00Z"),
+    verificationDimensions: { physically_visited: false, online_reviewed: true }
+  }));
+  assert.deepEqual(onlineReviewed.verificationDimensions, {
+    physically_visited: false,
+    vegan_options_verified: false
+  });
+});
+
 test("published normalization preserves only bounded public dietary evidence fields", function () {
   const result = normalizePlace(basePlace({
     dietTags: ["vegan"], veganClassification: "verified_vegan_options", evidenceStatus: "ingredients_reviewed",

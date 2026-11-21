@@ -253,7 +253,7 @@ def main():
             ])
             card_html = pg.eval_on_selector("#resultsGrid", "el => el.innerHTML")
             log("11. a very-stale place still shows as Verified (not auto-flipped to unverified)",
-                "Verified — last checked" in card_html and "Not yet verified" not in card_html)
+                "Evidence reviewed — last checked" in card_html and "Not yet verified" not in card_html)
             log("11. the actual verified date is still shown alongside the cue", "202" in card_html)
             ctx.close()
 

@@ -198,11 +198,24 @@ def main():
             # ---- 10. The verification badge still works correctly ----
             ctx, pg, errs = new_page(browser)
             goto(pg, "place-details.html?id=verified-1", docs=[
-                place("verified-1", name="Verified Place", verificationStatus="verified",
+                place("verified-1", name="Reviewed Place", verificationStatus="verified",
+                      verificationDimensions={"physically_visited": False, "vegan_options_verified": False},
                       lastVerifiedAt={"__iso": "2026-09-15T12:00:00Z"})
             ])
             badge_html = pg.eval_on_selector("#placeVerification", "el => el.innerHTML")
-            log("10. verified place shows 'Verified' with its real date", "Verified" in badge_html and "2026" in badge_html, badge_html)
+            log("10. online-reviewed place is labelled as evidence reviewed, not as a physical visit",
+                "Evidence reviewed — last checked" in badge_html and "2026" in badge_html and "Field visit recorded" not in badge_html, badge_html)
+            ctx.close()
+
+            ctx, pg, errs = new_page(browser)
+            goto(pg, "place-details.html?id=visited-1", docs=[
+                place("visited-1", name="Visited Place", verificationStatus="verified",
+                      verificationDimensions={"physically_visited": True, "vegan_options_verified": False},
+                      lastVerifiedAt={"__iso": "2026-09-15T12:00:00Z"})
+            ])
+            badge_html = pg.eval_on_selector("#placeVerification", "el => el.innerHTML")
+            log("10. a physically visited place is labelled as a recorded field visit",
+                "Field visit recorded" in badge_html and "2026" in badge_html, badge_html)
             ctx.close()
 
             ctx, pg, errs = new_page(browser)
