@@ -8,12 +8,10 @@
    resolve. An unknown/invalid/inaccessible id shows an honest "not
    available" state instead.
 
-   Reviews and the Save button's "already saved?" check are explicitly OUT
-   of scope for this task (real Reviews/Saved Places are Phase 6) and still
-   read from MOCK_REVIEWS/MOCK_SAVED_PLACES as a preserved UI shell — this
-   degrades correctly on its own for a real place, since a real Firestore
-   id will simply never match any mock id, honestly showing "no reviews
-   yet" / "not saved" rather than fabricating either.
+   Reviews, reports and saved-place state are loaded from Firestore through
+   places-service.js. Browsing is public; writing reviews/reports and saving
+   places requires authentication. No mock review or saved-place fallback is
+   used on this page.
 
    Loaded as an ES module (already was, since Phase 4) so it can share the
    one auth-state listener with the rest of the app (see auth-state.js) —
@@ -265,18 +263,47 @@ async function wireActionButtons(place) {
     const user = getCurrentUser();
     if (!user) return;
 
+    const feedback = document.getElementById("saveFeedback");
     const currentlySaved = saveBtn.getAttribute("data-saved") === "true";
     saveBtn.disabled = true;
-
-    if (currentlySaved) {
-      await unsavePlace(place.id, user.uid);
-      updateSaveButton(saveBtn, false);
-    } else {
-      await savePlace(place.id, user.uid);
-      updateSaveButton(saveBtn, true);
+    if (feedback) {
+      feedback.classList.add("d-none");
+      feedback.textContent = "";
     }
 
-    saveBtn.disabled = false;
+    try {
+      const result = currentlySaved
+        ? await unsavePlace(place.id, user.uid)
+        : await savePlace(place.id, user.uid);
+
+      if (!result || result.status !== "ok") {
+        if (feedback) {
+          feedback.className = "vs-form-note mt-2";
+          feedback.style.backgroundColor = "#fbeaea";
+          feedback.style.borderColor = "#f0c3c3";
+          feedback.style.color = "#8a2f2f";
+          feedback.textContent = "Unable to update your saved places right now. Please try again.";
+          feedback.setAttribute("role", "alert");
+          feedback.classList.remove("d-none");
+        }
+        return;
+      }
+
+      updateSaveButton(saveBtn, !currentlySaved);
+    } catch (error) {
+      console.error("VeganSaathi: saved-place update failed.", error);
+      if (feedback) {
+        feedback.className = "vs-form-note mt-2";
+        feedback.style.backgroundColor = "#fbeaea";
+        feedback.style.borderColor = "#f0c3c3";
+        feedback.style.color = "#8a2f2f";
+        feedback.textContent = "Unable to update your saved places right now. Please try again.";
+        feedback.setAttribute("role", "alert");
+        feedback.classList.remove("d-none");
+      }
+    } finally {
+      saveBtn.disabled = false;
+    }
   });
 
   document.getElementById("reviewForm").addEventListener("submit", async function (e) {
@@ -418,6 +445,7 @@ async function wireActionButtons(place) {
 }
 
 function updateSaveButton(btn, saved) {
+  if (!btn) return;
   btn.setAttribute("data-saved", saved ? "true" : "false");
   btn.textContent = saved ? "Saved ✓" : "Save Place";
   btn.classList.toggle("btn-vs-primary", saved);

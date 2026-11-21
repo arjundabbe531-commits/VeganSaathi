@@ -258,6 +258,25 @@ def main():
             log("11c. no uncaught page errors", len(errs) == 0, str(errs))
             ctx.close()
 
+            # ---- 11d. A failed save write never changes the visible saved state ----
+            ctx, pg, errs = new_page(browser)
+            pg.add_init_script("""
+                window.__STUB_USER__ = { uid: "member-1", email: "member@example.test", displayName: "Member" };
+                window.__STUB_SAVED_WRITE_THROW__ = Object.assign(new Error("permission denied"), { code: "permission-denied" });
+            """)
+            goto(pg, "place-details.html?id=save-failure-1", docs=[place("save-failure-1")])
+            save_btn = pg.locator("#saveBtn")
+            if save_btn.is_disabled():
+                pg.wait_for_timeout(150)
+            save_btn.click()
+            pg.wait_for_timeout(150)
+            saved_state = save_btn.get_attribute("data-saved")
+            feedback_text = pg.locator("#saveFeedback").text_content()
+            log("11d. failed saved-place write leaves button unsaved", saved_state == "false", str(saved_state))
+            log("11d. failed saved-place write displays an accessible error", "Unable to update your saved places" in (feedback_text or ""), feedback_text or "")
+            log("11d. no uncaught page errors", len(errs) == 0, str(errs))
+            ctx.close()
+
             # ---- 12. Missing optional fields don't crash rendering ----
             ctx, pg, errs = new_page(browser)
             minimal = place("minimal-1", name="Minimal Place")

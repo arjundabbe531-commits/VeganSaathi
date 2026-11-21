@@ -34,9 +34,12 @@ async function renderProfile(user, profile) {
   if (subEl) {
     try {
       const subRes = await fetchUserSubmissions(user.uid);
-      const subs = subRes && subRes.status === "ok" ? subRes.submissions : [];
-      if (subs.length === 0) {
+      if (!subRes || subRes.status !== "ok") {
+        subEl.textContent = "Unable to load submissions right now. Please try again.";
+      } else if (subRes.submissions.length === 0) {
         subEl.textContent = "You haven't submitted any places yet.";
+      } else {
+        const subs = subRes.submissions;
       } else {
         subEl.innerHTML = subs.map(function (s) {
           const badgeClass = s.status === "published" ? "bg-success" : (s.status === "pending" ? "bg-warning text-dark" : "bg-secondary");
@@ -59,9 +62,12 @@ async function renderProfile(user, profile) {
   if (revEl) {
     try {
       const revRes = await fetchUserReviews(user.uid);
-      const revs = revRes && revRes.status === "ok" ? revRes.reviews : [];
-      if (revs.length === 0) {
+      if (!revRes || revRes.status !== "ok") {
+        revEl.textContent = "Unable to load reviews right now. Please try again.";
+      } else if (revRes.reviews.length === 0) {
         revEl.textContent = "You haven't written any reviews yet.";
+      } else {
+        const revs = revRes.reviews;
       } else {
         revEl.innerHTML = revs.map(function (r) {
           const stars = "★".repeat(r.rating) + "☆".repeat(5 - r.rating);

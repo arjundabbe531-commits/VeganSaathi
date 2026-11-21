@@ -61,6 +61,16 @@ export async function getDoc(docRef) {
 }
 
 export async function setDoc(docRef, data) {
+  if (typeof window !== "undefined" && docRef.collectionName === "savedPlaces" && window.__STUB_SAVED_WRITE_THROW__) {
+    const error = window.__STUB_SAVED_WRITE_THROW__;
+    window.__STUB_SAVED_WRITE_THROW__ = null;
+    throw error;
+  }
+  if (typeof window !== "undefined" && docRef.collectionName === "savedPlaces" && window.__STUB_SAVED_DELETE_THROW__) {
+    const error = window.__STUB_SAVED_DELETE_THROW__;
+    window.__STUB_SAVED_DELETE_THROW__ = null;
+    throw error;
+  }
   if (typeof window !== "undefined") {
     window.__STUB_WRITES__ = window.__STUB_WRITES__ || [];
     window.__STUB_WRITES__.push({ path: docRef.path, data: data });
@@ -86,6 +96,11 @@ export async function addDoc(collectionRef, data) {
 }
 
 export async function deleteDoc(docRef) {
+  if (typeof window !== "undefined" && docRef.collectionName === "savedPlaces" && window.__STUB_SAVED_DELETE_THROW__) {
+    const error = window.__STUB_SAVED_DELETE_THROW__;
+    window.__STUB_SAVED_DELETE_THROW__ = null;
+    throw error;
+  }
   if (typeof window !== "undefined") {
     window.__STUB_DELETES__ = window.__STUB_DELETES__ || [];
     window.__STUB_DELETES__.push(docRef.path);
@@ -153,6 +168,12 @@ export async function getDocs(q) {
   }
 
   const collPath = (q && q._stub === "query" && q.collectionRef) ? q.collectionRef.path : (q ? q.path : "places");
+  if (typeof window !== "undefined" && window.__STUB_COLLECTION_THROW__ &&
+      window.__STUB_COLLECTION_THROW__.collection === collPath) {
+    const error = window.__STUB_COLLECTION_THROW__.error;
+    window.__STUB_COLLECTION_THROW__ = null;
+    throw error;
+  }
   let docs = [];
   if (typeof window !== "undefined") {
     if (collPath === "reports") {
