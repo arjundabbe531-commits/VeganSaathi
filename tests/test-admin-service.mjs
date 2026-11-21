@@ -284,17 +284,29 @@ await asyncTest("updatePlaceByAdmin: rejects unsafe imageUrl", async function ()
 });
 
 // 5. Re-Verification
-await asyncTest("reverifyPlace: marks listing verified and records timestamp and note", async function () {
+await asyncTest("reverifyPlace: records the place update and immutable verification history atomically", async function () {
   globalThis.__STUB_UPDATES__ = [];
-  setAdminStub();
+  globalThis.__STUB_WRITES__ = [];
+  globalThis.__STUB_TRANSACTIONS__ = [];
+  setAdminAndPlaces({ p1: validPendingPlace({ status: "published" }) });
   const adminUser = { uid: "admin-1" };
   const res = await reverifyPlace("p1", "Checked kitchen on 12 Oct", adminUser, "2026-10-12");
   assert.equal(res.status, "ok");
 
-  const lastUpdate = globalThis.__STUB_UPDATES__[globalThis.__STUB_UPDATES__.length - 1];
-  assert.equal(lastUpdate.id, "p1");
-  assert.equal(lastUpdate.data.verificationStatus, "verified");
-  assert.equal(lastUpdate.data.verificationNote, "Checked kitchen on 12 Oct");
+  const transaction = globalThis.__STUB_TRANSACTIONS__[0];
+  assert.ok(transaction, "re-verification must use a Firestore transaction");
+  const placeUpdate = transaction.find((operation) => operation.type === "update" && operation.path === "places/p1");
+  const historyCreate = transaction.find((operation) => operation.type === "set" && operation.path.startsWith("verificationHistory/"));
+  assert.ok(placeUpdate, "the place update must be part of the transaction");
+  assert.ok(historyCreate, "an immutable verification-history record must be created in the same transaction");
+  assert.equal(placeUpdate.data.verificationStatus, "verified");
+  assert.equal(placeUpdate.data.verificationNote, "Checked kitchen on 12 Oct");
+  assert.equal(placeUpdate.data.verificationHistoryId, historyCreate.id);
+  assert.equal(historyCreate.data.placeId, "p1");
+  assert.equal(historyCreate.data.decision, "reverified");
+  assert.equal(historyCreate.data.reviewerUid, "admin-1");
+  assert.equal(historyCreate.data.notes, "Checked kitchen on 12 Oct");
+  assert.ok(historyCreate.data.verificationDimensions.physically_visited);
 });
 
 // 6. Reports Moderation
@@ -417,9 +429,11 @@ await asyncTest("reverifyPlace refuses a missing or invalid visit date and write
   assert.equal(globalThis.__STUB_UPDATES__.length, 0);
 });
 
-await asyncTest("reverifyPlace stores the entered VISIT date as lastVerifiedAt, not the click time", async function () {
-  setAdminStub();
+await asyncTest("reverifyPlace stores the entered VISIT date and records it in the linked history event", async function () {
+  setAdminAndPlaces({ p1: validPendingPlace({ status: "published" }) });
   globalThis.__STUB_UPDATES__ = [];
+  globalThis.__STUB_WRITES__ = [];
+  globalThis.__STUB_TRANSACTIONS__ = [];
   const adminUser = { uid: "admin-1" };
   const res = await reverifyPlace("p1", "checked kitchen and menu", adminUser, "2026-10-12");
   assert.equal(res.status, "ok");
@@ -429,6 +443,8 @@ await asyncTest("reverifyPlace stores the entered VISIT date as lastVerifiedAt, 
   assert.equal(write.data.lastVerifiedAt.getMonth(), 9);
   assert.equal(write.data.lastVerifiedAt.getDate(), 12);
   assert.equal(write.data.verifiedBy, "admin-1", "the verifier is recorded");
+  const history = globalThis.__STUB_TRANSACTIONS__[0].find((operation) => operation.type === "set");
+  assert.equal(history.data.visitDate.getDate(), 12, "the immutable event preserves the actual visit date");
 });
 
 

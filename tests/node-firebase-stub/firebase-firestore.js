@@ -37,8 +37,53 @@ export async function getDocs(q) {
   };
 }
 
-export function doc(db, collectionName, id) {
-  return { _stub: "docRef", collectionName: collectionName, id: id };
+let generatedDocumentId = 0;
+
+export function doc(dbOrCollection, collectionName, id) {
+  if (dbOrCollection && dbOrCollection._stub === "collectionRef" && collectionName === undefined) {
+    const generatedId = "stub-history-" + (++generatedDocumentId);
+    return { _stub: "docRef", collectionName: dbOrCollection.path, id: generatedId, path: dbOrCollection.path + "/" + generatedId };
+  }
+  return { _stub: "docRef", collectionName: collectionName, id: id, path: collectionName + "/" + id };
+}
+
+export async function runTransaction(_db, updateFunction) {
+  if (globalThis.__STUB_THROW__) {
+    const err = globalThis.__STUB_THROW__;
+    globalThis.__STUB_THROW__ = null;
+    throw err;
+  }
+  const operations = [];
+  const transaction = {
+    get: async function (docRef) {
+      const lookup = globalThis.__STUB_DOC_BY_ID__;
+      const found = lookup ? lookup(docRef.id) : null;
+      return {
+        exists: function () { return !!found; },
+        id: docRef.id,
+        data: function () { return found ? found.data : undefined; }
+      };
+    },
+    update: function (docRef, data) {
+      operations.push({ type: "update", path: docRef.path || (docRef.collectionName + "/" + docRef.id), id: docRef.id, data: data });
+    },
+    set: function (docRef, data) {
+      operations.push({ type: "set", path: docRef.path || (docRef.collectionName + "/" + docRef.id), id: docRef.id, data: data });
+    }
+  };
+  const result = await updateFunction(transaction);
+  globalThis.__STUB_TRANSACTIONS__ = globalThis.__STUB_TRANSACTIONS__ || [];
+  globalThis.__STUB_TRANSACTIONS__.push(operations);
+  for (const operation of operations) {
+    if (operation.type === "update") {
+      globalThis.__STUB_UPDATES__ = globalThis.__STUB_UPDATES__ || [];
+      globalThis.__STUB_UPDATES__.push({ path: operation.path, id: operation.id, data: operation.data });
+    } else {
+      globalThis.__STUB_WRITES__ = globalThis.__STUB_WRITES__ || [];
+      globalThis.__STUB_WRITES__.push({ path: operation.path, id: operation.id, data: operation.data });
+    }
+  }
+  return result;
 }
 
 export async function getDoc(docRef) {

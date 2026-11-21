@@ -19,7 +19,7 @@ function harness({ candidate = baseCandidate(), candidateId = "c-1", existingPla
   let historySequence = 0;
   let transactionQueue = Promise.resolve();
   const firestore = {
-    doc: (dbOrCollection, collectionName, id) => ({ path: id ? `${collectionName}/${id}` : `${dbOrCollection.path}/history-${++historySequence}` }),
+    doc: (dbOrCollection, collectionName, id) => { const path = id ? collectionName + "/" + id : dbOrCollection.path + "/history-" + (++historySequence); return { path, id: path.split("/").pop() }; },
     collection: (_db, name) => ({ path: name }),
     serverTimestamp: () => "server-time",
     runTransaction: async (_db, callback) => {
@@ -64,6 +64,8 @@ test("production approval publishes verified record and atomically records candi
   assert.equal(h.store.get("places/place_c-1").evidenceRefs[0].reviewerUid, undefined);
   assert.equal(h.store.get("places/place_c-1").evidenceRefs[0].sourceOwner, undefined);
   assert.equal(h.store.get("placeCandidates/c-1").import_status, "approved");
+  const historyEntry = [...h.store.entries()].find(([key]) => key.startsWith("verificationHistory/"));
+  assert.equal(h.store.get("places/place_c-1").verificationHistoryId, historyEntry[0].split("/")[1]);
   assert.equal([...h.store.keys()].filter((key) => key.startsWith("verificationHistory/")).length, 1);
 });
 

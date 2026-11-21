@@ -218,6 +218,80 @@ describe("Administrator (role admin in users/{uid})", () => {
     await seedPlace("adm-approve", {});
     await assertSucceeds(updateDoc(doc(as("admin1"), "places", "adm-approve"), { status: "published", verificationStatus: "unverified" }));
   });
+
+  it("refuses a verified place creation unless the same transaction links immutable evidence history", async () => {
+    await seedUsers();
+    const adminDb = as("admin1");
+    const noHistory = communityPlace("admin1", {
+      status: "published", verificationStatus: "verified", source: "import",
+      lastVerifiedAt: serverTimestamp()
+    });
+    await assertFails(setDoc(doc(adminDb, "places", "verified-no-history"), noHistory));
+
+    const historyId = "approved-event-1";
+    const verifiedAt = serverTimestamp();
+    const dimensions = {
+      business_exists: true, address_confirmed: true, coordinates_supported: true,
+      is_operating: true, physically_visited: false, online_reviewed: false,
+      ingredients_reviewed: true, vegan_options_verified: true, photo_rights_cleared: false
+    };
+    const publicEvidence = ["business_identity", "current_operation", "address", "coordinates", "vegan_options"]
+      .map((claim) => ({ claim, url: "https://evidence.example.test/" + claim, lastCheckedAt: "2026-11-20", validity: "current", strength: "direct", excerpt: "Evidence reviewed for the approved test place." }));
+    const place = communityPlace("admin1", {
+      name: "Evidence Cafe", address: "12 Main Road, Pune", status: "published", verificationStatus: "verified",
+      source: "import", candidateId: "candidate-1", lastVerifiedAt: verifiedAt,
+      verificationHistoryId: historyId, verificationDimensions: dimensions,
+      veganClassification: "verified_vegan_options", evidenceStatus: "ingredients_reviewed",
+      evidenceRefs: publicEvidence, createdAt: verifiedAt, updatedAt: verifiedAt
+    });
+    const history = {
+      placeId: "verified-linked", candidateId: "candidate-1",
+      veganClassification: "verified_vegan_options", existenceStatus: "business_identity_supported",
+      operatingStatus: "open", evidenceStatus: "ingredients_reviewed",
+      evidenceUrl: "https://evidence.example.test/vegan_options",
+      evidenceRefs: publicEvidence, dietTags: ["vegan"], verificationStatus: "verified",
+      verificationDimensions: dimensions, notes: "Evidence checked and verified by the reviewer.",
+      reviewerUid: "admin1", reviewerName: "Admin", decision: "approved", timestamp: verifiedAt
+    };
+    const batch = writeBatch(adminDb);
+    batch.set(doc(adminDb, "places", "verified-linked"), place);
+    batch.set(doc(adminDb, "verificationHistory", historyId), history);
+    await assertSucceeds(batch.commit());
+    await assertFails(updateDoc(doc(adminDb, "verificationHistory", historyId), { notes: "Changed after approval." }));
+  });
+
+  it("refuses a re-verification update without a linked history event", async () => {
+    await seedUsers();
+    await seedPlace("reverify-no-history", { status: "published", verificationStatus: "unverified" });
+    await assertFails(updateDoc(doc(as("admin1"), "places", "reverify-no-history"), {
+      verificationStatus: "verified", lastVerifiedAt: new Date("2026-11-20T06:30:00Z"),
+      verificationNote: "Visited and checked the kitchen.", verifiedBy: "admin1", verifiedAt: serverTimestamp()
+    }));
+  });
+
+  it("allows re-verification only when the visit and immutable history are linked in one transaction", async () => {
+    await seedUsers();
+    await seedPlace("reverify-linked", { status: "published", verificationStatus: "unverified" });
+    const adminDb = as("admin1");
+    const historyId = "reverify-event-1";
+    const visitDate = new Date("2026-11-20T06:30:00Z");
+    const recordedAt = serverTimestamp();
+    const dimensions = { physically_visited: true };
+    const batch = writeBatch(adminDb);
+    batch.update(doc(adminDb, "places", "reverify-linked"), {
+      verificationStatus: "verified", lastVerifiedAt: visitDate,
+      verificationNote: "Visited and checked the kitchen and menu.", verifiedBy: "admin1",
+      verifiedAt: recordedAt, updatedAt: recordedAt, verificationHistoryId: historyId,
+      verificationDimensions: dimensions
+    });
+    batch.set(doc(adminDb, "verificationHistory", historyId), {
+      placeId: "reverify-linked", decision: "reverified", verificationStatus: "verified",
+      verificationDimensions: dimensions, notes: "Visited and checked the kitchen and menu.",
+      reviewerUid: "admin1", reviewerName: "Admin", timestamp: recordedAt, visitDate
+    });
+    await assertSucceeds(batch.commit());
+    await assertFails(updateDoc(doc(adminDb, "verificationHistory", historyId), { notes: "Rewritten history." }));
+  });
   it("can resolve a report", async () => {
     await seedUsers();
     await seed(env, async (db) => setDoc(doc(db, "reports", "adm-rep"), { placeId: "p", reporterId: "u1", reason: "outdated", status: "pending", createdAt: new Date() }));

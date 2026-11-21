@@ -105,6 +105,12 @@ test("1. valid published place normalizes successfully", function () {
   assert.equal(result.status, "published");
 });
 
+test("approved imported places normalize and remain available to public discovery", function () {
+  const result = normalizePlace(basePlace({ source: "import" }));
+  assert.ok(result, "approved imported places must not be discarded by public normalization");
+  assert.equal(result.source, "import");
+});
+
 test("published normalization preserves only bounded public dietary evidence fields", function () {
   const result = normalizePlace(basePlace({
     dietTags: ["vegan"], veganClassification: "verified_vegan_options", evidenceStatus: "ingredients_reviewed",
