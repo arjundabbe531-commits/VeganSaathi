@@ -160,14 +160,14 @@ class OvertureAdapter(BaseSourceAdapter):
         {limit_clause}
         """
 
-    def fetch_records(self, dry_run: bool = False) -> Iterator[Dict[str, Any]]:
+    def fetch_records(self, dry_run: bool = False, limit: Optional[int] = None) -> Iterator[Dict[str, Any]]:
         """
         Execute DuckDB query and yield raw record dicts.
         Uses streaming to avoid loading all records into memory.
         """
         import duckdb
 
-        query = self._build_query(dry_run=dry_run)
+        query = self._build_query(dry_run=dry_run, limit=limit)
         self.logger.info(f"Overture: executing DuckDB query (dry_run={dry_run})")
 
         conn = None

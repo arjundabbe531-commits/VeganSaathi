@@ -263,8 +263,8 @@ class BaseSourceAdapter(abc.ABC):
         """Return dict with name, version, licence, licence_url."""
 
     @abc.abstractmethod
-    def fetch_records(self, dry_run: bool = False) -> Iterator[Dict[str, Any]]:
-        """Yield raw record dicts from the source. Respect dry_run."""
+    def fetch_records(self, dry_run: bool = False, limit: Optional[int] = None) -> Iterator[Dict[str, Any]]:
+        """Yield raw record dicts from the source, respecting dry_run and an optional hard cap."""
 
     @abc.abstractmethod
     def map_record(self, raw: Dict[str, Any]) -> Optional[CandidateRecord]:
@@ -345,8 +345,8 @@ class BaseSourceAdapter(abc.ABC):
 
         try:
             with open(output_path, "w", encoding="utf-8") as out_f:
-                for i, raw in enumerate(self.fetch_records(dry_run=dry_run)):
-                    if limit and i >= limit:
+                for i, raw in enumerate(self.fetch_records(dry_run=dry_run, limit=limit)):
+                    if limit is not None and i >= limit:
                         break
                     manifest.input_count += 1
                     try:

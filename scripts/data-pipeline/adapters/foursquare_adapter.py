@@ -99,7 +99,7 @@ class FoursquareAdapter(BaseSourceAdapter):
             "notice": "Must retain Apache 2.0 NOTICE file (data/raw/fsq-notice/NOTICE)",
         }
 
-    def fetch_records(self, dry_run: bool = False) -> Iterator[Dict[str, Any]]:
+    def fetch_records(self, dry_run: bool = False, limit: Optional[int] = None) -> Iterator[Dict[str, Any]]:
         """
         Query Foursquare Iceberg catalog via DuckDB.
         Requires a valid access token.
@@ -110,9 +110,13 @@ class FoursquareAdapter(BaseSourceAdapter):
         sql_token = str(self.config["access_token"]).replace("'", "''")
         sql_uri = str(self.config["catalog_uri"]).replace("'", "''")
         sql_warehouse = str(self.config["warehouse"]).replace("'", "''")
+        effective_limit = limit
+        if dry_run:
+            dry_limit = int(self.config.get("dry_run_limit", 100))
+            effective_limit = min(effective_limit, dry_limit) if effective_limit is not None else dry_limit
         query = self._build_query(
             self.config["namespace"], self.config["places_table"], self.config["categories_table"],
-            f"LIMIT {int(self.config.get('dry_run_limit', 100))}" if dry_run else "",
+            f"LIMIT {int(effective_limit)}" if effective_limit is not None else "",
         )
         self.logger.info("Foursquare: querying configured Iceberg REST catalog (dry_run=%s)", dry_run)
         conn = None
@@ -128,14 +132,18 @@ class FoursquareAdapter(BaseSourceAdapter):
             )
             result = conn.execute(query)
             columns = [desc[0] for desc in result.description]
+            emitted = 0
             while True:
-                rows = result.fetchmany(1000)
+                rows = result.fetchmany(min(1000, max(1, effective_limit - emitted)) if effective_limit is not None else 1000)
                 if not rows:
                     break
                 for row in rows:
                     record = dict(zip(columns, row))
                     record["dataset_version"] = self.config["dataset_version"]
                     yield record
+                    emitted += 1
+                    if effective_limit is not None and emitted >= effective_limit:
+                        return
         except Exception as e:
             self.logger.error("Foursquare catalogue query failed (%s); check token, portal connection details and local DuckDB extensions.", type(e).__name__)
             raise RuntimeError("Foursquare catalogue query failed; secret values were withheld from logs.") from None
@@ -291,8 +299,15 @@ class FoursquareFixtureAdapter(FoursquareAdapter):
     def validate_config(self) -> bool:
         return True  # No credentials needed for fixtures
 
-    def fetch_records(self, dry_run: bool = False) -> Iterator[Dict[str, Any]]:
+    def fetch_records(self, dry_run: bool = False, limit: Optional[int] = None) -> Iterator[Dict[str, Any]]:
+        effective_limit = limit
+        if dry_run:
+            dry_limit = 100
+            effective_limit = min(effective_limit, dry_limit) if effective_limit is not None else dry_limit
+        emitted = 0
         for row in self.FIXTURE_RECORDS:
+            if effective_limit is not None and emitted >= effective_limit:
+                break
             record = dict(row)
             fixture_id = record["fsq_place_id"]
             record.update({
@@ -301,6 +316,7 @@ class FoursquareFixtureAdapter(FoursquareAdapter):
                 "synthetic_dataset_version": self.FIXTURE_DATASET_VERSION,
             })
             yield record
+            emitted += 1
 
     def map_record(self, raw: Dict[str, Any]) -> Optional[CandidateRecord]:
         candidate = super().map_record(raw)
