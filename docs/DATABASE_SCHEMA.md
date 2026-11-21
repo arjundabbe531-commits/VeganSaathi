@@ -51,7 +51,8 @@ Community submissions (Phase 6) use auto-generated IDs.
 | verificationDimensions | map | conditional | Separate business identity, address, coordinate, operation, physical-visit, dietary-evidence and photo-rights dimensions. `address_confirmed` and `coordinates_supported` require claim-specific evidence. |
 | lastVerifiedAt | timestamp | conditional | **Required when `verificationStatus == "verified"`.** Date of the most recent documented review. It is not proof of a physical visit; see `verificationDimensions.physically_visited`. |
 | verificationNote | string | no | What was checked and how, ≤ 300 characters |
-| source | string (enum) | yes | `fieldwork` (entered by the team from a real visit) or `community` (submitted by a user or imported from external research). Powers the CEP metrics |
+| verificationHistoryId | string | conditional | ID of the immutable `verificationHistory` event that established the current verified state; written with the place in one transaction |
+| source | string (enum) | yes | `fieldwork` (entered by the team from a real visit), `community` (direct user submission), or `import` (external dataset candidate accepted through administrator evidence review). Imported records do not become fieldwork or community submissions. |
 | submittedBy | string (uid) | yes | Reference to `users` doc — used by security rules for ownership checks. For team-seeded places, the uid of the teammate who entered it |
 | submittedByName | string | yes | Denormalized display name, captured at submission time, so the admin dashboard and public UI can show "submitted by X" without a second read of the `users` collection |
 | createdAt | timestamp | yes | Document creation timestamp |
@@ -94,16 +95,14 @@ To protect public performance, privacy, and schema simplicity while supporting d
 | published | verified | A reviewer completed the evidence-backed review recorded in `verificationHistory` | Yes — "Verified, last checked {date}" |
 | rejected | any | Declined | No |
 
-A `verified` document without `lastVerifiedAt` is invalid; the UI treats it as "Not yet
-verified".
+A `verified` document without `lastVerifiedAt` and a linked immutable `verificationHistoryId` event is invalid; Firestore rules require the place and history event to be created or updated in the same transaction. The UI treats an unverified place as "Not yet verified".
 
 ### Last-verified model and the 90-day freshness cue
 
 `verificationStatus: "verified"` does not by itself mean someone physically visited or that
 the entire venue is vegan. The `physically_visited` dimension is true only when a visit
 evidence reference is recorded. Vegan classification is claim-specific and requires current
-dietary evidence. Every decision's complete evidence references are retained immutably in
-`verificationHistory`.
+dietary evidence. Every approval and manual re-verification event is linked from the place document and retained immutably in `verificationHistory`. Editing core identity, location or dietary facts resets the current state to unverified and clears public dietary evidence; the prior history event is retained.
 
 The UI may show a soft **"re-check due"** cue when `lastVerifiedAt` is more than **90 days**
 old. This cue is presentation only: it **never** changes `verificationStatus` automatically.

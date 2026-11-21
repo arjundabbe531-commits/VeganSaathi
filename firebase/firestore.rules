@@ -81,7 +81,153 @@ service cloud.firestore {
         && data.address is string
         && data.address.size() > 0
         && data.address.size() <= 300
+        && (!("source" in data) || data.source in ["fieldwork", "community", "import"])
         && (data.verificationStatus != "verified" || data.lastVerifiedAt is timestamp);
+    }
+
+    function isValidVerificationDimensions(dimensions) {
+      return dimensions is map
+        && dimensions.keys().hasAll(["physically_visited"])
+        && dimensions.keys().hasOnly([
+          "business_exists", "address_confirmed", "coordinates_supported", "is_operating",
+          "physically_visited", "online_reviewed", "ingredients_reviewed",
+          "vegan_options_verified", "photo_rights_cleared"
+        ])
+        && dimensions.physically_visited is bool
+        && (!("business_exists" in dimensions) || dimensions.business_exists is bool)
+        && (!("address_confirmed" in dimensions) || dimensions.address_confirmed is bool)
+        && (!("coordinates_supported" in dimensions) || dimensions.coordinates_supported is bool)
+        && (!("is_operating" in dimensions) || dimensions.is_operating is bool)
+        && (!("online_reviewed" in dimensions) || dimensions.online_reviewed is bool)
+        && (!("ingredients_reviewed" in dimensions) || dimensions.ingredients_reviewed is bool)
+        && (!("vegan_options_verified" in dimensions) || dimensions.vegan_options_verified is bool)
+        && (!("photo_rights_cleared" in dimensions) || dimensions.photo_rights_cleared is bool);
+    }
+
+    function isValidApprovedVerificationHistory(history) {
+      return history.keys().hasAll([
+          "placeId", "candidateId", "veganClassification", "existenceStatus", "operatingStatus",
+          "evidenceStatus", "evidenceUrl", "evidenceRefs", "dietTags", "verificationStatus",
+          "verificationDimensions", "notes", "reviewerUid", "reviewerName", "decision", "timestamp"
+        ])
+        && history.keys().hasOnly([
+          "placeId", "candidateId", "veganClassification", "existenceStatus", "operatingStatus",
+          "evidenceStatus", "evidenceUrl", "evidenceRefs", "dietTags", "verificationStatus",
+          "verificationDimensions", "notes", "reviewerUid", "reviewerName", "decision", "timestamp"
+        ])
+        && history.candidateId is string && history.candidateId.size() > 0
+        && history.veganClassification in ["fully_vegan", "vegan_friendly", "verified_vegan_options"]
+        && history.existenceStatus in ["business_identity_supported", "owner_confirmed"]
+        && history.operatingStatus == "open"
+        && history.evidenceStatus in ["ingredients_reviewed", "owner_confirmed", "vegansaathi_reviewed"]
+        && history.evidenceUrl is string && history.evidenceUrl.matches("^https://.+$")
+        && history.evidenceRefs is list && history.evidenceRefs.size() >= 5
+        && history.dietTags == ["vegan"]
+        && history.verificationDimensions.business_exists == true
+        && history.verificationDimensions.address_confirmed == true
+        && history.verificationDimensions.coordinates_supported == true
+        && history.verificationDimensions.is_operating == true
+        && history.verificationDimensions.vegan_options_verified == true;
+    }
+
+    function isValidReverificationHistory(history) {
+      return history.keys().hasAll([
+          "placeId", "decision", "verificationStatus", "verificationDimensions", "notes",
+          "reviewerUid", "reviewerName", "timestamp", "visitDate"
+        ])
+        && history.keys().hasOnly([
+          "placeId", "decision", "verificationStatus", "verificationDimensions", "notes",
+          "reviewerUid", "reviewerName", "timestamp", "visitDate"
+        ])
+        && history.visitDate is timestamp
+        && history.verificationDimensions.physically_visited == true;
+    }
+
+    function hasLinkedVerificationHistory(placeId, placeData) {
+      return placeData.keys().hasAll(["verificationHistoryId", "verificationDimensions"])
+        && placeData.verificationHistoryId is string
+        && placeData.verificationHistoryId.size() > 0
+        && isValidVerificationDimensions(placeData.verificationDimensions)
+        && existsAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId))
+        && getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.keys().hasAll([
+          "placeId", "decision", "verificationStatus", "verificationDimensions", "notes",
+          "reviewerUid", "reviewerName", "timestamp"
+        ])
+        && getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.placeId == placeId
+        && getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.verificationStatus == "verified"
+        && getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.verificationDimensions == placeData.verificationDimensions
+        && getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.reviewerUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.timestamp == request.time
+        && getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.notes is string
+        && getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.notes.size() >= 10
+        && (
+          getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.decision == "approved"
+            ? isValidApprovedVerificationHistory(getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data)
+              && placeData.candidateId == getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.candidateId
+              && placeData.lastVerifiedAt == request.time
+              && getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.dietTags == placeData.dietTags
+            : getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.decision == "reverified"
+              && isValidReverificationHistory(getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data)
+              && placeData.lastVerifiedAt == getAfter(/databases/$(database)/documents/verificationHistory/$(placeData.verificationHistoryId)).data.visitDate
+              && placeData.verifiedBy == request.auth.uid
+              && placeData.verifiedAt == request.time
+        );
+    }
+
+    function hasLinkedPlaceForVerificationHistory(historyId, history) {
+      return history.keys().hasAll(["placeId", "decision"])
+        && history.placeId is string && history.placeId.size() > 0
+        && existsAfter(/databases/$(database)/documents/places/$(history.placeId))
+        && getAfter(/databases/$(database)/documents/places/$(history.placeId)).data.verificationHistoryId == historyId
+        && getAfter(/databases/$(database)/documents/places/$(history.placeId)).data.verificationStatus == "verified"
+        && getAfter(/databases/$(database)/documents/places/$(history.placeId)).data.verificationDimensions == history.verificationDimensions
+        && (
+          history.decision == "approved"
+            ? isValidApprovedVerificationHistory(history)
+              && getAfter(/databases/$(database)/documents/places/$(history.placeId)).data.candidateId == history.candidateId
+              && getAfter(/databases/$(database)/documents/places/$(history.placeId)).data.lastVerifiedAt == history.timestamp
+            : history.decision == "reverified"
+              && isValidReverificationHistory(history)
+              && getAfter(/databases/$(database)/documents/places/$(history.placeId)).data.lastVerifiedAt == history.visitDate
+              && getAfter(/databases/$(database)/documents/places/$(history.placeId)).data.verifiedBy == request.auth.uid
+              && getAfter(/databases/$(database)/documents/places/$(history.placeId)).data.verifiedAt == request.time
+        );
+    }
+
+    function isValidVerificationHistory(history) {
+      return history.keys().hasAll([
+          "placeId", "decision", "verificationStatus", "verificationDimensions", "notes",
+          "reviewerUid", "reviewerName", "timestamp"
+        ])
+        && history.verificationStatus == "verified"
+        && isValidVerificationDimensions(history.verificationDimensions)
+        && history.notes is string && history.notes.size() >= 10 && history.notes.size() <= 300
+        && history.reviewerUid == request.auth.uid
+        && history.reviewerName is string && history.reviewerName.size() > 0 && history.reviewerName.size() <= 120
+        && history.timestamp == request.time
+        && (history.decision == "approved"
+          ? isValidApprovedVerificationHistory(history)
+          : history.decision == "reverified" && isValidReverificationHistory(history));
+    }
+
+    function isValidRejectedCandidateHistory(history) {
+      return history.keys().hasAll(["candidateId", "notes", "reviewerUid", "reviewerName", "decision", "timestamp"])
+        && history.keys().hasOnly(["candidateId", "notes", "reviewerUid", "reviewerName", "decision", "timestamp"])
+        && history.candidateId is string && history.candidateId.size() > 0
+        && history.notes is string && history.notes.size() >= 5 && history.notes.size() <= 300
+        && history.reviewerUid == request.auth.uid
+        && history.reviewerName is string && history.reviewerName.size() > 0 && history.reviewerName.size() <= 120
+        && history.decision == "rejected"
+        && history.timestamp == request.time;
+    }
+
+    function verificationSensitiveFieldsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        "name", "placeType", "address", "latitude", "longitude", "dietTags", "source", "sourceId", "status",
+        "verificationStatus", "lastVerifiedAt", "verificationNote", "verifiedBy", "verifiedAt",
+        "verificationDimensions", "evidenceRefs", "evidenceStatus", "veganClassification",
+        "evidenceUrl", "verificationHistoryId"
+      ]);
     }
 
     function hasTraceablePhotoRights(data) {
@@ -140,7 +286,10 @@ service cloud.firestore {
       // subject to valid schema and verification payload requirements.
       // A new community submission always starts pending/unverified and source="community".
       // A user cannot publish, pre-verify, or spoof fieldwork attribution.
-      allow create: if (isAdmin() && isValidPlacePayload(request.resource.data))
+      allow create: if (isAdmin()
+          && isValidPlacePayload(request.resource.data)
+          && (request.resource.data.verificationStatus != "verified"
+            || hasLinkedVerificationHistory(placeId, request.resource.data)))
         || (
           isSignedIn()
           && request.resource.data.submittedBy == request.auth.uid
@@ -155,7 +304,13 @@ service cloud.firestore {
       // The original submitter may still edit their OWN submission while it
       // is still pending, but cannot use that edit to publish, verify,
       // reassign ownership, change creation timestamp, or flip source to fieldwork.
-      allow update: if (isAdmin() && isValidPlacePayload(request.resource.data))
+      allow update: if (isAdmin()
+          && isValidPlacePayload(request.resource.data)
+          && (
+            !verificationSensitiveFieldsChanged()
+            || request.resource.data.verificationStatus != "verified"
+            || hasLinkedVerificationHistory(placeId, request.resource.data)
+          ))
         || (
           isSignedIn()
           && resource.data.submittedBy == request.auth.uid
@@ -336,9 +491,14 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // ---------------- verificationHistory (Audit trail for verification decisions) ----------------
+    // ---------------- verificationHistory (Immutable verification and candidate-decision audit trail) ----------------
     match /verificationHistory/{historyId} {
-      allow read, create: if isAdmin();
+      allow read: if isAdmin();
+      allow create: if isAdmin() && (
+        (isValidVerificationHistory(request.resource.data)
+          && hasLinkedPlaceForVerificationHistory(historyId, request.resource.data))
+        || isValidRejectedCandidateHistory(request.resource.data)
+      );
       allow update, delete: if false;
     }
 

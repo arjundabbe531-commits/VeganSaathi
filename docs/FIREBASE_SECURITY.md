@@ -67,13 +67,15 @@ Because client-side self-promotion is blocked by Firestore security rules, initi
 
 | Field | Who can set it, and how |
 |---|---|
-| `source: "community"` | Enforced by the `create` rule for all client writes. Cannot be set to `"fieldwork"` |
+| `source: "community"` | Enforced by the `create` rule for all client writes. Cannot be set to `fieldwork` or `import` |
+| `source: "import"` | Admin-only candidate approval; the source is preserved for public normalization and provenance |
 | `status: "pending"` | Automatically true for every new submission — enforced by the `create` rule, not optional |
 | `status: "published"` | **Admin only** |
 | `status: "rejected"` | **Admin only** |
 | `verificationStatus: "unverified"` | Enforced by `create` rule. Users cannot pre-verify |
-| `verificationStatus: "verified"` | **Admin only** |
-| `lastVerifiedAt` | **Admin only** (set alongside `verificationStatus: "verified"`) |
+| `verificationStatus: "verified"` | **Admin only**, and only with a reciprocal immutable `verificationHistory` event in the same transaction |
+| `lastVerifiedAt` | **Admin only**; linked to the corresponding approval timestamp or recorded visit date in the immutable history event |
+| `verificationHistoryId` | **Admin transaction only**; points to a create-only history record that points back to the same place |
 | `latitude`, `longitude` | Validated to be numeric and strictly within global coordinates `COORD_BOUNDS` (lat -90 to 90, lon -180 to 180) |
 | `imageUrl` | Optional string; client pre-flight enforces Cloudinary HTTPS URLs (or empty). Validated and updated via administrative moderation |
 
@@ -87,7 +89,7 @@ review, say) but the `update` rule strictly enforces:
 - `request.resource.data.createdAt == resource.data.createdAt` (cannot tamper creation timestamp)
 - `name` (2–100 chars), `address` (1–300 chars), valid `placeType`, `dietTags`, `priceRange`, and `latitude`/`longitude` in global coordinate bounds.
 
-So an edit can never be used to sneak a place into "published" or "verified" state, nor spoof fieldwork source. Only an admin write can change status to published or verified.
+So an edit can never be used to sneak a place into "published" or "verified" state, nor spoof the source. Admin edits to core place facts reset the current verification and dietary-evidence claims; a new verified state requires a linked history event in the same transaction. Verification-history records cannot be updated or deleted. Candidate rejection events are also immutable and have their own restricted audit schema.
 
 ## Reviews and reports: read visibility
 
@@ -130,7 +132,9 @@ ownership, state-transition and evidence schemas are designed and tested.
 ## Rules verification state
 
 The active candidate rules include the R1–R3 checks for bounded review/report text, reviews
-only on existing published places, and allowlisted user-profile changes. The active test file
+only on existing published places, allowlisted user-profile changes, and reciprocal place/
+verification-history links for approved and re-verified place states. Candidate rejection audit
+records remain allowed under a separate, tightly allowlisted immutable schema. The active test file
 explicitly loads `firebase/firestore.rules`; the proposed reference suite explicitly loads
 `firebase/firestore.rules.proposed`. On 6 November 2026, the active suite passed 63/63 and the
 proposed reference suite passed 17/17 in separate Firestore Emulator runs. Emulator success

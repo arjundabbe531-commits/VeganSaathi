@@ -35,8 +35,8 @@ Files: frontend/js/places-service.js, frontend/js/candidate-approval.js, docs/DA
 
 - [ ] Add a regression test proving import source normalizes to a public place.
 - [ ] Run the test and verify it fails because import is currently rejected.
-- [ ] Add import to the public normalizer source allowlist; preserve fieldwork and community.
-- [ ] Link the approved place to the history record created in the same transaction.
+- [x] Add import to the public normalizer source allowlist; preserve fieldwork and community.
+- [x] Link the approved place to the history record created in the same transaction.
 - [ ] Document the distinct fieldwork, community and import source meanings.
 - [ ] Run the affected Node tests.
 
@@ -46,8 +46,8 @@ Files: frontend/js/admin-service.js, firebase/firestore.rules, tests/node-fireba
 
 - [ ] Add emulator tests for rejected verified writes without history, an approved candidate/place/history transaction, rejected re-verification without history, successful re-verification with reciprocal links, and immutable history.
 - [ ] Run the emulator suite and confirm new authorization tests fail against the current rules.
-- [ ] Change manual re-verification to read the published place and write place plus history atomically.
-- [ ] Require reciprocal link, reviewer, event, dimensions and timestamp consistency in active rules; prohibit history update/delete.
-- [ ] Make admin edits to core place facts clear current verification and dietary evidence claims, leaving old immutable history intact.
+- [x] Change manual re-verification to read the published place and write place plus history atomically.
+- [x] Require reciprocal link, reviewer, event, dimensions and timestamp consistency in active rules; prohibit history update/delete.
+- [x] Make admin edits to core place facts clear current verification and dietary evidence claims, leaving old immutable history intact.
 - [ ] Update schema/security documentation to match the enforced behavior.
 - [ ] Run all Node, Python, browser, static and active Firestore Emulator suites; report any environment-limited checks honestly.

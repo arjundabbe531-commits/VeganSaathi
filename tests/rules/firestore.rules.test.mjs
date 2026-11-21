@@ -292,6 +292,16 @@ describe("Administrator (role admin in users/{uid})", () => {
     await assertSucceeds(batch.commit());
     await assertFails(updateDoc(doc(adminDb, "verificationHistory", historyId), { notes: "Rewritten history." }));
   });
+  it("preserves immutable rejected-candidate audit events without creating a place", async () => {
+    await seedUsers();
+    await assertSucceeds(setDoc(doc(as("admin1"), "verificationHistory", "rejected-candidate-1"), {
+      candidateId: "candidate-1", notes: "Insufficient evidence to verify this candidate.",
+      reviewerUid: "admin1", reviewerName: "Admin", decision: "rejected", timestamp: serverTimestamp()
+    }));
+    await assertFails(updateDoc(doc(as("admin1"), "verificationHistory", "rejected-candidate-1"), {
+      notes: "Rewritten rejection."
+    }));
+  });
   it("can resolve a report", async () => {
     await seedUsers();
     await seed(env, async (db) => setDoc(doc(db, "reports", "adm-rep"), { placeId: "p", reporterId: "u1", reason: "outdated", status: "pending", createdAt: new Date() }));
