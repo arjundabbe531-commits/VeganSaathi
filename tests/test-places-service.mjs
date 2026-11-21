@@ -524,6 +524,9 @@ await asyncTest("submitReview rejects non-integer or out-of-range rating", async
 
   const res2 = await submitReview({ placeId: "p1", rating: 0, comment: "Bad food", user: user });
   assert.equal(res2.status, "validation-error");
+
+  const fractional = await submitReview({ placeId: "p1", rating: 4.5, comment: "Not an integer rating", user: user });
+  assert.equal(fractional.status, "validation-error", "fractional ratings must not be rounded into a valid value");
 });
 
 await asyncTest("submitReview writes review document successfully", async function () {
@@ -538,6 +541,24 @@ await asyncTest("submitReview writes review document successfully", async functi
   assert.equal(lastWrite.data.userId, "user-456");
   assert.equal(lastWrite.data.authorName, "Ananya");
   assert.equal(lastWrite.data.rating, 5);
+});
+
+await asyncTest("submitReview bounds public author names and falls back for whitespace-only names", async function () {
+  globalThis.__STUB_WRITES__ = [];
+  const longName = "A".repeat(150);
+  const longNameResult = await submitReview({
+    placeId: "p1", rating: 4, comment: "Good vegan options", user: { uid: "user-long", displayName: longName }
+  });
+  assert.equal(longNameResult.status, "ok");
+  const longWrite = globalThis.__STUB_WRITES__[globalThis.__STUB_WRITES__.length - 1];
+  assert.equal(longWrite.data.authorName.length, 100);
+
+  const blankNameResult = await submitReview({
+    placeId: "p1", rating: 4, comment: "Good vegan options", user: { uid: "user-blank", displayName: "   " }
+  });
+  assert.equal(blankNameResult.status, "ok");
+  const blankWrite = globalThis.__STUB_WRITES__[globalThis.__STUB_WRITES__.length - 1];
+  assert.equal(blankWrite.data.authorName, "Community member");
 });
 
 await asyncTest("fetchReviewsForPlace returns sorted reviews", async function () {

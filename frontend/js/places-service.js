@@ -605,7 +605,7 @@ export async function submitReview({ placeId, rating, comment, user }) {
     return { status: "validation-error", message: "Invalid place ID." };
   }
 
-  const numRating = Math.round(Number(rating));
+  const numRating = Number(rating);
   if (!Number.isInteger(numRating) || numRating < 1 || numRating > 5) {
     return { status: "validation-error", message: "Rating must be an integer between 1 and 5." };
   }
@@ -618,7 +618,8 @@ export async function submitReview({ placeId, rating, comment, user }) {
     return { status: "validation-error", message: "Comment must be 500 characters or fewer." };
   }
 
-  const authorName = user.displayName || "Community member";
+  const submittedName = typeof user.displayName === "string" ? user.displayName.trim() : "";
+  const authorName = Array.from(submittedName || "Community member").slice(0, 100).join("");
 
   const db = getFirebaseDb();
   try {
