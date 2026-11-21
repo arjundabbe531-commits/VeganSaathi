@@ -247,6 +247,8 @@ await asyncTest("updatePlaceByAdmin: updates permitted fields with valid data", 
   assert.equal(lastUpdate.data.name, "Updated Name");
   assert.equal(lastUpdate.data.placeType, "restaurant");
   assert.equal(lastUpdate.data.priceRange, "budget");
+  assert.equal(lastUpdate.data.verificationStatus, "unverified", "editing core place facts must revoke the old verification claim");
+  assert.deepEqual(lastUpdate.data.evidenceRefs, [], "stale dietary evidence must not survive a core-fact edit");
 });
 
 await asyncTest("updatePlaceByAdmin: updates imageUrl when provided", async function () {

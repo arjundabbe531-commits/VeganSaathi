@@ -33,7 +33,7 @@ const VALID_PLACE_TYPES = ["restaurant", "mess", "canteen", "cafe", "dhaba", "ba
 const VALID_DIET_TAGS = ["vegan", "vegetarian", "eggetarian", "jain"];
 const VALID_STATUSES = ["pending", "published", "rejected"];
 const VALID_VERIFICATION_STATUSES = ["unverified", "verified"];
-const VALID_SOURCES = ["fieldwork", "community"];
+const VALID_SOURCES = ["fieldwork", "community", "import"];
 
 /* ==========================================================================
    Global coordinate bounds — valid geographic ranges for any place on Earth.

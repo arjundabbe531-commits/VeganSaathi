@@ -23,6 +23,7 @@ import {
   deleteDoc,
   query,
   where,
+  runTransaction,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
@@ -350,6 +351,16 @@ export async function updatePlaceByAdmin(placeId, fields, adminUser) {
     priceRange: priceRange,
     openingInfo: openingInfo,
     description: description,
+    // Core identity/location/diet edits invalidate the current verification
+    // claim. The immutable prior verificationHistory event is retained.
+    verificationStatus: "unverified",
+    lastVerifiedAt: null,
+    verificationNote: "",
+    verificationDimensions: { vegan_options_verified: false },
+    veganClassification: "",
+    evidenceStatus: "",
+    evidenceRefs: [],
+    evidenceUrl: "",
     updatedAt: serverTimestamp()
   };
 
@@ -430,14 +441,47 @@ export async function reverifyPlace(placeId, verificationNote, adminUser, visitD
   if (!visit.ok) return { status: "validation-error", message: visit.message };
 
   const db = getFirebaseDb();
+  const placeRef = doc(db, "places", placeId);
+  const historyRef = doc(collection(db, "verificationHistory"));
+  const recordedAt = serverTimestamp();
   try {
-    await updateDoc(doc(db, "places", placeId), {
-      verificationStatus: "verified",
-      lastVerifiedAt: visit.date,
-      verificationNote: note,
-      verifiedBy: adminUser.uid,
-      verifiedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+    await runTransaction(db, async (transaction) => {
+      const placeSnapshot = await transaction.get(placeRef);
+      if (!placeSnapshot.exists()) {
+        throw new Error("Place no longer exists; refresh the admin list.");
+      }
+      const currentPlace = placeSnapshot.data() || {};
+      if (currentPlace.status !== "published") {
+        throw new Error("Only a published place can be re-verified.");
+      }
+
+      const existingDimensions = currentPlace.verificationDimensions &&
+        typeof currentPlace.verificationDimensions === "object" &&
+        !Array.isArray(currentPlace.verificationDimensions)
+        ? currentPlace.verificationDimensions
+        : {};
+      const verificationDimensions = { ...existingDimensions, physically_visited: true };
+      transaction.update(placeRef, {
+        verificationStatus: "verified",
+        lastVerifiedAt: visit.date,
+        verificationNote: note,
+        verifiedBy: adminUser.uid,
+        verifiedAt: recordedAt,
+        verificationHistoryId: historyRef.id,
+        verificationDimensions,
+        updatedAt: recordedAt
+      });
+      transaction.set(historyRef, {
+        placeId,
+        decision: "reverified",
+        verificationStatus: "verified",
+        verificationDimensions,
+        notes: note,
+        reviewerUid: adminUser.uid,
+        reviewerName: adminUser.displayName || "Admin",
+        timestamp: recordedAt,
+        visitDate: visit.date
+      });
     });
     return { status: "ok" };
   } catch (error) {

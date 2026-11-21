@@ -132,7 +132,7 @@ export async function approveCandidateRecord({ db, candidateId, candidate, decis
     verificationStatus: "verified", lastVerifiedAt: verifiedAt, veganClassification: decision.veganClass,
     existenceStatus: decision.existence, operatingStatus: decision.operating, evidenceStatus: decision.evidenceStatus,
     evidenceUrl: decision.evidenceRefs.find((ref) => ref.claim === dietaryClaimFor(decision.veganClass))?.url || "",
-    evidenceRefs: publicEvidenceRefs, verificationDimensions, verificationNote: decision.notes.trim(),
+    evidenceRefs: publicEvidenceRefs, verificationDimensions, verificationNote: decision.notes.trim(), verificationHistoryId: historyRef.id,
     source: candidate.source_id && candidate.source_id.includes("community") ? "community" : "import",
     sourceId: candidate.source_id || "", sourceLicence: candidate.licence || "", sourceAttribution: candidate.source_attribution || "",
     upstreamSourceIds: candidate.upstream_source_ids || {}, candidateId, batchId: candidate.batch_id || "",
