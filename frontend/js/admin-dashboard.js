@@ -396,10 +396,19 @@ async function loadVerificationTab() {
         ""
       );
       if (visitDate === null) return; // user cancelled
+      const visitEvidenceRef = prompt(
+        "Visit evidence reference for \"" + placeName + "\" (HTTPS URL or evidence-record:ID):",
+        ""
+      );
+      if (visitEvidenceRef === null) return;
+      if (!visitEvidenceRef.trim()) {
+        showAdminAlert("Add a traceable visit-evidence reference before confirming physical re-verification.", true);
+        return;
+      }
 
       btn.disabled = true;
       btn.textContent = "Updating…";
-      const res = await reverifyPlace(placeId, note, activeAdminUser, visitDate);
+      const res = await reverifyPlace(placeId, note, activeAdminUser, visitDate, visitEvidenceRef);
       if (res.status === "ok") {
         showAdminAlert("\"" + placeName + "\" marked as physically re-verified.", false);
         await loadVerificationTab();

@@ -686,8 +686,8 @@ async function approveCandidate(candidate) {
 }
 async function rejectCandidate(candidate) {
   const notes = document.getElementById("vd-notes")?.value?.trim();
-  if (!notes || notes.length < 5) {
-    showResult("vd-action-result", "Please add rejection notes before rejecting.", "warning");
+  if (!notes || notes.length < 5 || notes.length > 300) {
+    showResult("vd-action-result", "Please add rejection notes between 5 and 300 characters before rejecting.", "warning");
     return;
   }
   if (!confirm("Reject this candidate? It will be removed from the verification queue.")) return;

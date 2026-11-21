@@ -420,16 +420,15 @@ export function parseVisitDate(text, now) {
   return { ok: true, date: date };
 }
 
-export async function reverifyPlace(placeId, verificationNote, adminUser, visitDate) {
+export async function reverifyPlace(placeId, verificationNote, adminUser, visitDate, visitEvidenceRef) {
   const denied = await requireAdmin(adminUser);
   if (denied) return denied;
   if (!placeId) return { status: "validation-error", message: "Place ID is required." };
 
   const note = typeof verificationNote === "string" ? verificationNote.trim() : "";
-  if (note.length === 0) {
-    // A re-verification must record what was actually checked. Never write a
-    // default claim that a visit happened.
-    return { status: "validation-error", message: "Record what was checked at the visit before marking this place re-verified." };
+  if (note.length < 10) {
+    // A re-verification must record meaningful notes about the visit.
+    return { status: "validation-error", message: "Record at least 10 characters describing what was checked at the visit." };
   }
   if (note.length > 300) {
     return { status: "validation-error", message: "Verification note must not exceed 300 characters." };
@@ -439,6 +438,11 @@ export async function reverifyPlace(placeId, verificationNote, adminUser, visitD
   // never the moment the button was pressed.
   const visit = parseVisitDate(visitDate);
   if (!visit.ok) return { status: "validation-error", message: visit.message };
+
+  const evidenceRef = typeof visitEvidenceRef === "string" ? visitEvidenceRef.trim() : "";
+  if (!/^https:\/\/\S+$/i.test(evidenceRef) && !/^evidence-record:[A-Za-z0-9_-]+$/.test(evidenceRef)) {
+    return { status: "validation-error", message: "A traceable HTTPS visit-evidence URL or evidence-record reference is required." };
+  }
 
   const db = getFirebaseDb();
   const placeRef = doc(db, "places", placeId);
@@ -480,7 +484,8 @@ export async function reverifyPlace(placeId, verificationNote, adminUser, visitD
         reviewerUid: adminUser.uid,
         reviewerName: adminUser.displayName || "Admin",
         timestamp: recordedAt,
-        visitDate: visit.date
+        visitDate: visit.date,
+        visitEvidenceRef: evidenceRef
       });
     });
     return { status: "ok" };
