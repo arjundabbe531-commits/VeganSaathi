@@ -49,8 +49,13 @@ def place(id, **overrides):
     return {"id": id, "data": data}
 
 
-def init_script_for(docs, throw=None):
-    parts = ["window.__STUB_USER__ = null;"]
+def init_script_for(docs, throw=None, user=None, saved_write_throw=None):
+    parts = ["window.__STUB_USER__ = " + json.dumps(user) + ";"]
+    if saved_write_throw is not None:
+        parts.append(
+            "window.__STUB_SAVED_WRITE_THROW__ = Object.assign(new Error("
+            + json.dumps(saved_write_throw["message"]) + "), " + json.dumps(saved_write_throw) + ");"
+        )
     if docs is not None:
         payload = json.dumps(docs)
         parts.append("window.__STUB_PLACES_DOCS__ = " + payload + ";")
@@ -91,8 +96,8 @@ def new_page(browser):
     return ctx, pg, errs
 
 
-def goto(pg, path, docs=None, throw=None, wait_ms=600):
-    pg.add_init_script(init_script_for(docs, throw))
+def goto(pg, path, docs=None, throw=None, wait_ms=600, user=None, saved_write_throw=None):
+    pg.add_init_script(init_script_for(docs, throw, user, saved_write_throw))
     pg.goto(BASE_URL + "/" + path, wait_until="load")
     if wait_ms:
         pg.wait_for_timeout(wait_ms)
@@ -260,11 +265,13 @@ def main():
 
             # ---- 11d. A failed save write never changes the visible saved state ----
             ctx, pg, errs = new_page(browser)
-            pg.add_init_script("""
-                window.__STUB_USER__ = { uid: "member-1", email: "member@example.test", displayName: "Member" };
-                window.__STUB_SAVED_WRITE_THROW__ = Object.assign(new Error("permission denied"), { code: "permission-denied" });
-            """)
-            goto(pg, "place-details.html?id=save-failure-1", docs=[place("save-failure-1")])
+            goto(
+                pg,
+                "place-details.html?id=save-failure-1",
+                docs=[place("save-failure-1")],
+                user={"uid": "member-1", "email": "member@example.test", "displayName": "Member"},
+                saved_write_throw={"message": "permission denied", "code": "permission-denied"}
+            )
             save_btn = pg.locator("#saveBtn")
             if save_btn.is_disabled():
                 pg.wait_for_timeout(150)

@@ -29,7 +29,7 @@ async function renderProfile(user, profile) {
     : "—";
   document.getElementById("profileSince").textContent = createdAt;
 
-  // Render user's submissions
+  // Render user's submissions. A failed query must not look like an empty history.
   const subEl = document.getElementById("mySubmissionsList");
   if (subEl) {
     try {
@@ -39,9 +39,7 @@ async function renderProfile(user, profile) {
       } else if (subRes.submissions.length === 0) {
         subEl.textContent = "You haven't submitted any places yet.";
       } else {
-        const subs = subRes.submissions;
-      } else {
-        subEl.innerHTML = subs.map(function (s) {
+        subEl.innerHTML = subRes.submissions.map(function (s) {
           const badgeClass = s.status === "published" ? "bg-success" : (s.status === "pending" ? "bg-warning text-dark" : "bg-secondary");
           return (
             '<div class="d-flex justify-content-between align-items-center border-bottom py-2">' +
@@ -53,11 +51,11 @@ async function renderProfile(user, profile) {
         }).join("");
       }
     } catch (e) {
-      subEl.textContent = "Unable to load submissions right now.";
+      subEl.textContent = "Unable to load submissions right now. Please try again.";
     }
   }
 
-  // Render user's reviews
+  // Render user's reviews. A failed query must not look like an empty history.
   const revEl = document.getElementById("myReviewsList");
   if (revEl) {
     try {
@@ -67,9 +65,7 @@ async function renderProfile(user, profile) {
       } else if (revRes.reviews.length === 0) {
         revEl.textContent = "You haven't written any reviews yet.";
       } else {
-        const revs = revRes.reviews;
-      } else {
-        revEl.innerHTML = revs.map(function (r) {
+        revEl.innerHTML = revRes.reviews.map(function (r) {
           const stars = "★".repeat(r.rating) + "☆".repeat(5 - r.rating);
           return (
             '<div class="border-bottom py-2">' +
@@ -83,7 +79,7 @@ async function renderProfile(user, profile) {
         }).join("");
       }
     } catch (e) {
-      revEl.textContent = "Unable to load reviews right now.";
+      revEl.textContent = "Unable to load reviews right now. Please try again.";
     }
   }
 
