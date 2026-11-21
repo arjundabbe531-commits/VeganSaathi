@@ -15,7 +15,13 @@ export function getFirestore(app) {
   return { _stub: "firestore", app: app };
 }
 
+let stubDocumentSequence = 0;
+
 export function doc(db, ...pathSegments) {
+  if (db && db._stub === "collectionRef" && pathSegments.length === 0) {
+    const id = "stub-generated-" + (++stubDocumentSequence);
+    return { _stub: "docRef", path: db.path + "/" + id, collectionName: db.path, id: id };
+  }
   return {
     _stub: "docRef",
     path: pathSegments.join("/"),

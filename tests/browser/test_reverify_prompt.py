@@ -2,7 +2,7 @@
 VeganSaathi — tests/browser/test_reverify_prompt.py
 ==============================================================================
 Browser test for the re-verification flow on admin/dashboard.html. It drives the real
-two-prompt sequence (note, then visit date) through Playwright's dialog handler, then
+three-prompt sequence (note, visit date, and visit evidence reference) through Playwright's dialog handler, then
 checks what the dashboard actually writes to the stubbed Firestore.
 
 Tier: BROWSER TEST WITH STUBBED SERVICES. It proves the dashboard's prompt handling and its
@@ -86,8 +86,8 @@ def main():
         browser = p.chromium.launch(headless=True)
 
         # 1. Normal valid flow: note, then a real past visit date.
-        updates, alert, prompts, errors = run_flow(browser, ["Checked kitchen and menu", "2026-10-12"])
-        log("valid flow: two prompts shown (note, then visit date)", len(prompts) == 2, str(prompts))
+        updates, alert, prompts, errors = run_flow(browser, ["Checked kitchen and menu", "2026-10-12", "evidence-record:visit-2026-10-12"])
+        log("valid flow: three prompts shown (note, visit date, evidence reference)", len(prompts) == 3, str(prompts))
         log("valid flow: exactly one write to the place", len(updates) == 1 and updates[0]["path"].endswith("places/pub-1"), str(updates))
         if updates:
             u = updates[0]
@@ -99,17 +99,17 @@ def main():
         log("valid flow: no page errors", len(errors) == 0)
 
         # 2. Impossible calendar date refused, nothing written.
-        updates, alert, prompts, _ = run_flow(browser, ["Checked kitchen", "2026-02-30"])
+        updates, alert, prompts, _ = run_flow(browser, ["Checked kitchen", "2026-02-30", "evidence-record:invalid-date"])
         log("impossible date (2026-02-30): refused, no write", len(updates) == 0, str(updates))
         log("impossible date: clear message", "not a real calendar date" in alert, alert)
 
         # 3. Future date refused, nothing written.
-        updates, alert, prompts, _ = run_flow(browser, ["Checked kitchen", "2099-01-01"])
+        updates, alert, prompts, _ = run_flow(browser, ["Checked kitchen", "2099-01-01", "evidence-record:future-date"])
         log("future date (2099-01-01): refused, no write", len(updates) == 0, str(updates))
         log("future date: clear message", "cannot be in the future" in alert, alert)
 
         # 4. Wrong format refused, nothing written.
-        updates, alert, prompts, _ = run_flow(browser, ["Checked kitchen", "15/10/2026"])
+        updates, alert, prompts, _ = run_flow(browser, ["Checked kitchen", "15/10/2026", "evidence-record:wrong-format"])
         log("wrong format (15/10/2026): refused, no write", len(updates) == 0, str(updates))
         log("wrong format: asks for YYYY-MM-DD", "YYYY-MM-DD" in alert, alert)
 
@@ -119,7 +119,12 @@ def main():
         log("whitespace-only note: date prompt never shown", len(prompts) == 1, str(prompts))
         log("whitespace-only note: clear message", "Enter what was checked" in alert, alert)
 
-        # 6. Cancelling the date prompt writes nothing.
+        # 6. Missing visit evidence is refused before the service writes anything.
+        updates, alert, prompts, _ = run_flow(browser, ["Checked kitchen and menu", "2026-10-12", ""])
+        log("missing visit evidence: refused, no write", len(updates) == 0, str(updates))
+        log("missing visit evidence: clear message", "traceable visit-evidence reference" in alert, alert)
+
+        # 7. Cancelling the date prompt writes nothing.
         updates, alert, prompts, _ = run_flow(browser, ["Checked kitchen", None])
         log("cancel at date prompt: no write", len(updates) == 0, str(updates))
 

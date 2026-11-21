@@ -219,6 +219,16 @@ describe("Administrator (role admin in users/{uid})", () => {
     await assertSucceeds(updateDoc(doc(as("admin1"), "places", "adm-approve"), { status: "published", verificationStatus: "unverified" }));
   });
 
+  it("allows a visibility-only status change without minting a new verification event", async () => {
+    await seedUsers();
+    await seedPlace("status-only-verified", {
+      ...publishedPlace,
+      verificationHistoryId: "status-only-old-event",
+      verificationDimensions: { physically_visited: true }
+    });
+    await assertSucceeds(updateDoc(doc(as("admin1"), "places", "status-only-verified"), { status: "rejected" }));
+  });
+
   it("refuses a verified place creation unless the same transaction links immutable evidence history", async () => {
     await seedUsers();
     const adminDb = as("admin1");

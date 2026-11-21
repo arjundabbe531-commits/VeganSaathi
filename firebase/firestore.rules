@@ -141,8 +141,10 @@ service cloud.firestore {
         ])
         && history.visitDate is timestamp
         && history.visitEvidenceRef is string
-        && (history.visitEvidenceRef.matches('^https://.+
-
+        && (history.visitEvidenceRef.matches('^https://.+$')
+          || history.visitEvidenceRef.matches('^evidence-record:[A-Za-z0-9_-]+$'))
+        && history.verificationDimensions.physically_visited == true;
+    }
     function hasLinkedVerificationHistory(placeId, placeData) {
       return placeData.keys().hasAll(["verificationHistoryId", "verificationDimensions"])
         && placeData.verificationHistoryId is string
@@ -223,7 +225,7 @@ service cloud.firestore {
 
     function verificationSensitiveFieldsChanged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny([
-        "name", "placeType", "address", "latitude", "longitude", "dietTags", "source", "sourceId", "status",
+        "name", "placeType", "address", "latitude", "longitude", "dietTags", "source", "sourceId",
         "verificationStatus", "lastVerifiedAt", "verificationNote", "verifiedBy", "verifiedAt",
         "verificationDimensions", "evidenceRefs", "evidenceStatus", "veganClassification",
         "evidenceUrl", "verificationHistoryId"
