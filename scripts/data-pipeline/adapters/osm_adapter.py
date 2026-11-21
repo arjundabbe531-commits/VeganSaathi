@@ -138,6 +138,89 @@ def _geojson_representative_lon_lat(geometry):
     return None
 
 
+
+class _OSMExtractionLimitReached(Exception):
+    """Internal callback signal used to stop pyosmium as soon as a cap is reached."""
+
+
+def _effective_record_limit(dry_run: bool, limit: Optional[int]) -> Optional[int]:
+    if limit is not None:
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
+            raise ValueError("limit must be a non-negative integer or None")
+    if dry_run:
+        return min(limit, 100) if limit is not None else 100
+    return limit
+
+
+def _iter_geojson_features(path: str, chunk_size: int = 64 * 1024) -> Iterator[Dict[str, Any]]:
+    """Stream one FeatureCollection feature at a time without json.load()."""
+    if chunk_size < 1:
+        raise ValueError("chunk_size must be at least 1")
+
+    decoder = json.JSONDecoder()
+    with open(path, "r", encoding="utf-8") as stream:
+        buffer = ""
+        eof = False
+
+        def read_more():
+            nonlocal buffer, eof
+            chunk = stream.read(chunk_size)
+            if chunk:
+                buffer += chunk
+            else:
+                eof = True
+
+        # Locate the FeatureCollection's features array while retaining only
+        # the small header buffer, not the full GeoJSON document.
+        while '"features"' not in buffer and not eof:
+            read_more()
+        key_at = buffer.find('"features"')
+        if key_at < 0:
+            raise ValueError("GeoJSON FeatureCollection has no features array")
+
+        array_at = buffer.find("[", key_at + len('"features"'))
+        while array_at < 0 and not eof:
+            read_more()
+            array_at = buffer.find("[", key_at + len('"features"'))
+        if array_at < 0:
+            raise ValueError("GeoJSON features value is not an array")
+
+        cursor = array_at + 1
+        while True:
+            # Discard consumed bytes after every feature. This bounds the
+            # retained input buffer to one feature plus the read chunk.
+            while True:
+                while cursor < len(buffer) and (buffer[cursor].isspace() or buffer[cursor] == ","):
+                    cursor += 1
+                if cursor < len(buffer):
+                    if buffer[cursor] == "]":
+                        return
+                    break
+                if eof:
+                    raise ValueError("Unexpected end of GeoJSON features array")
+                buffer = buffer[cursor:]
+                cursor = 0
+                read_more()
+
+            while True:
+                try:
+                    feature, end = decoder.raw_decode(buffer, cursor)
+                    break
+                except json.JSONDecodeError:
+                    if eof:
+                        raise ValueError("Truncated or invalid GeoJSON feature") from None
+                    buffer = buffer[cursor:]
+                    cursor = 0
+                    read_more()
+
+            if not isinstance(feature, dict):
+                raise ValueError("GeoJSON feature must be an object")
+            yield feature
+            buffer = buffer[end:]
+            cursor = 0
+
+
+
 class OSMAdapter(BaseSourceAdapter):
     """
     Adapter for OpenStreetMap data from Geofabrik PBF extracts.
@@ -194,187 +277,188 @@ class OSMAdapter(BaseSourceAdapter):
             "pbf_path": self.config.get("pbf_path", ""),
         }
 
-    def _extract_via_pyosmium(self, pbf_path: str, dry_run: bool) -> List[Dict[str, Any]]:
-        """Use pyosmium to extract food-related nodes/ways from PBF."""
+    def _extract_via_pyosmium(
+        self, pbf_path: str, dry_run: bool, limit: Optional[int] = None
+    ) -> Iterator[Dict[str, Any]]:
+        """Extract food places to a temporary NDJSON spool and replay one row at a time."""
+        import tempfile
         import osmium
 
-        class FoodHandler(osmium.SimpleHandler):
-            def __init__(self):
-                super().__init__()
-                self.records = []
-                self.count = 0
+        max_records = _effective_record_limit(dry_run, limit)
+        if max_records == 0:
+            return
 
-            def _process(self, obj, is_way=False):
-                tags = {tag.k: tag.v for tag in obj.tags}
-                amenity = tags.get("amenity", "")
-                shop = tags.get("shop", "")
-                name = tags.get("name", "")
+        with tempfile.TemporaryFile(mode="w+t", encoding="utf-8") as spool:
+            class FoodHandler(osmium.SimpleHandler):
+                def __init__(self):
+                    super().__init__()
+                    self.count = 0
 
-                if not name:
-                    return
-                if amenity not in FOOD_AMENITIES and shop not in FOOD_SHOPS:
-                    return
+                def _process(self, obj, is_way=False):
+                    tags = {tag.k: tag.v for tag in obj.tags}
+                    amenity = tags.get("amenity", "")
+                    shop = tags.get("shop", "")
+                    name = tags.get("name", "")
 
-                # Get node coordinates or a representative point for a way.
-                if is_way:
-                    way_points = []
-                    for node_ref in obj.nodes:
-                        try:
-                            location = node_ref.location
-                            if not location.valid():
-                                continue
-                            way_points.append((float(location.lon), float(location.lat)))
-                        except (AttributeError, TypeError, ValueError, RuntimeError):
-                            continue
-                    representative = _representative_lon_lat_from_points(way_points)
-                    if representative is None:
+                    if not name or (amenity not in FOOD_AMENITIES and shop not in FOOD_SHOPS):
                         return
-                    lon, lat = representative
-                else:
-                    try:
-                        lat = float(obj.location.lat)
-                        lon = float(obj.location.lon)
-                    except (AttributeError, TypeError, ValueError, RuntimeError):
-                        lat = lon = None
-                    if lat is not None and lon is not None and (
-                        not math.isfinite(lat) or not math.isfinite(lon)
-                    ):
-                        lat = lon = None
 
-                # Maharashtra bounding box filter (applied after tag filter for efficiency)
-                if lat is None or lon is None:
-                    return
-                if not (15.5 <= lat <= 22.1 and 72.5 <= lon <= 81.0):
-                    return
+                    if is_way:
+                        way_points = []
+                        for node_ref in obj.nodes:
+                            try:
+                                location = node_ref.location
+                                if not location.valid():
+                                    continue
+                                way_points.append((float(location.lon), float(location.lat)))
+                            except (AttributeError, TypeError, ValueError, RuntimeError):
+                                continue
+                        representative = _representative_lon_lat_from_points(way_points)
+                        if representative is None:
+                            return
+                        lon, lat = representative
+                    else:
+                        try:
+                            lat = float(obj.location.lat)
+                            lon = float(obj.location.lon)
+                        except (AttributeError, TypeError, ValueError, RuntimeError):
+                            return
+                        if not math.isfinite(lat) or not math.isfinite(lon):
+                            return
 
-                record = {
-                    "osm_id": str(obj.id),
-                    "osm_type": "way" if is_way else "node",
-                    "name": name,
-                    "amenity": amenity,
-                    "shop": shop,
-                    "cuisine": tags.get("cuisine", ""),
-                    "diet_vegan": tags.get("diet:vegan", ""),
-                    "diet_vegetarian": tags.get("diet:vegetarian", ""),
-                    "addr_street": tags.get("addr:street", ""),
-                    "addr_housenumber": tags.get("addr:housenumber", ""),
-                    "addr_city": tags.get("addr:city", ""),
-                    "addr_postcode": tags.get("addr:postcode", ""),
-                    "phone": tags.get("phone", tags.get("contact:phone", "")),
-                    "website": tags.get("website", tags.get("contact:website", "")),
-                    "email": tags.get("email", tags.get("contact:email", "")),
-                    "opening_hours": tags.get("opening_hours", ""),
-                    "image": tags.get("image", ""),
-                    "wikimedia_commons": tags.get("wikimedia_commons", ""),
-                    "latitude": lat,
-                    "longitude": lon,
-                    "all_tags": json.dumps(tags),
-                }
-                self.records.append(record)
-                self.count += 1
+                    if not (15.5 <= lat <= 22.1 and 72.5 <= lon <= 81.0):
+                        return
 
-                if dry_run and self.count >= 100:
-                    raise StopIteration("dry_run limit")
+                    record = {
+                        "osm_id": str(obj.id),
+                        "osm_type": "way" if is_way else "node",
+                        "name": name,
+                        "amenity": amenity,
+                        "shop": shop,
+                        "cuisine": tags.get("cuisine", ""),
+                        "diet_vegan": tags.get("diet:vegan", ""),
+                        "diet_vegetarian": tags.get("diet:vegetarian", ""),
+                        "addr_street": tags.get("addr:street", ""),
+                        "addr_housenumber": tags.get("addr:housenumber", ""),
+                        "addr_city": tags.get("addr:city", ""),
+                        "addr_postcode": tags.get("addr:postcode", ""),
+                        "phone": tags.get("phone", tags.get("contact:phone", "")),
+                        "website": tags.get("website", tags.get("contact:website", "")),
+                        "email": tags.get("email", tags.get("contact:email", "")),
+                        "opening_hours": tags.get("opening_hours", ""),
+                        "image": tags.get("image", ""),
+                        "wikimedia_commons": tags.get("wikimedia_commons", ""),
+                        "latitude": lat,
+                        "longitude": lon,
+                        "all_tags": json.dumps(tags),
+                    }
+                    spool.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
+                    self.count += 1
+                    if max_records is not None and self.count >= max_records:
+                        raise _OSMExtractionLimitReached()
 
-            def node(self, n):
-                self._process(n, is_way=False)
+                def node(self, n):
+                    self._process(n, is_way=False)
 
-            def way(self, w):
-                self._process(w, is_way=True)
+                def way(self, w):
+                    self._process(w, is_way=True)
 
-        handler = FoodHandler()
-        try:
-            handler.apply_file(pbf_path, locations=True, idx="flex_mem")
-        except StopIteration:
-            pass
-        except Exception as e:
-            if "dry_run limit" not in str(e):
-                raise
-        return handler.records
+            handler = FoodHandler()
+            try:
+                handler.apply_file(pbf_path, locations=True, idx="flex_mem")
+            except _OSMExtractionLimitReached:
+                pass
 
-    def _extract_via_osmium_cli(self, pbf_path: str, dry_run: bool) -> List[Dict[str, Any]]:
-        """
-        Fallback: use osmium tags-filter CLI + osmium export to GeoJSON.
-        """
+            spool.flush()
+            spool.seek(0)
+            for line in spool:
+                if line.strip():
+                    yield json.loads(line)
+
+    def _extract_via_osmium_cli(
+        self, pbf_path: str, dry_run: bool, limit: Optional[int] = None
+    ) -> Iterator[Dict[str, Any]]:
+        """Run osmium CLI, then stream its GeoJSON export feature-by-feature."""
         import tempfile
 
-        filtered_pbf = os.path.join(os.path.dirname(pbf_path), "_vs_filtered_food.osm.pbf")
-        filtered_geojson = os.path.join(os.path.dirname(pbf_path), "_vs_filtered_food.geojson")
+        max_records = _effective_record_limit(dry_run, limit)
+        if max_records == 0:
+            return
 
-        # Filter for food amenities and shops
         filter_expr = (
             "nwr/amenity=restaurant,cafe,fast_food,food_court,bakery,ice_cream "
             "nwr/shop=bakery,deli,health_food,organic,grocery "
             "nwr/diet:vegan nwr/cuisine=vegan,vegetarian"
         )
 
-        self.logger.info("Running osmium tags-filter...")
-        result = subprocess.run(
-            ["osmium", "tags-filter", pbf_path] + filter_expr.split() +
-            ["-o", filtered_pbf, "--overwrite"],
-            capture_output=True, text=True, timeout=600
-        )
-        if result.returncode != 0:
-            raise RuntimeError(f"osmium tags-filter failed: {result.stderr}")
+        with tempfile.TemporaryDirectory(prefix="vegansaathi-osm-") as temp_dir:
+            filtered_pbf = os.path.join(temp_dir, "filtered_food.osm.pbf")
+            filtered_geojson = os.path.join(temp_dir, "filtered_food.geojson")
 
-        self.logger.info("Running osmium export to GeoJSON...")
-        result = subprocess.run(
-            ["osmium", "export", filtered_pbf, "-f", "geojson", "-o", filtered_geojson, "--overwrite"],
-            capture_output=True, text=True, timeout=300
-        )
-        if result.returncode != 0:
-            raise RuntimeError(f"osmium export failed: {result.stderr}")
+            self.logger.info("Running osmium tags-filter...")
+            result = subprocess.run(
+                ["osmium", "tags-filter", pbf_path] + filter_expr.split()
+                + ["-o", filtered_pbf, "--overwrite"],
+                capture_output=True, text=True, timeout=600
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"osmium tags-filter failed: {result.stderr}")
 
-        # Parse GeoJSON
-        records = []
-        with open(filtered_geojson, encoding="utf-8") as f:
-            data = json.load(f)
-        for feat in data.get("features", []):
-            props = feat.get("properties", {})
-            geom = feat.get("geometry", {})
-            geom_type = geom.get("type")
-            representative = _geojson_representative_lon_lat(geom)
-            if representative is None:
-                continue
-            lon, lat = representative
-            if not (15.5 <= lat <= 22.1 and 72.5 <= lon <= 81.0):
-                continue
-            record = {
-                "osm_id": str(props.get("@id", "")),
-                "osm_type": str(props.get("@type") or ("way" if geom_type in ("LineString", "MultiLineString", "Polygon", "MultiPolygon") else "node")),
-                "name": props.get("name", ""),
-                "amenity": props.get("amenity", ""),
-                "shop": props.get("shop", ""),
-                "cuisine": props.get("cuisine", ""),
-                "diet_vegan": props.get("diet:vegan", ""),
-                "diet_vegetarian": props.get("diet:vegetarian", ""),
-                "addr_street": props.get("addr:street", ""),
-                "addr_housenumber": props.get("addr:housenumber", ""),
-                "addr_city": props.get("addr:city", ""),
-                "addr_postcode": props.get("addr:postcode", ""),
-                "phone": props.get("phone", props.get("contact:phone", "")),
-                "website": props.get("website", props.get("contact:website", "")),
-                "email": props.get("email", props.get("contact:email", "")),
-                "opening_hours": props.get("opening_hours", ""),
-                "image": props.get("image", ""),
-                "wikimedia_commons": props.get("wikimedia_commons", ""),
-                "latitude": lat,
-                "longitude": lon,
-                "all_tags": json.dumps(props),
-            }
-            if record["name"]:
-                records.append(record)
-            if dry_run and len(records) >= 100:
-                break
+            self.logger.info("Running osmium export to GeoJSON...")
+            result = subprocess.run(
+                ["osmium", "export", filtered_pbf, "-f", "geojson",
+                 "-o", filtered_geojson, "--overwrite"],
+                capture_output=True, text=True, timeout=300
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"osmium export failed: {result.stderr}")
 
-        # Clean up temp files
-        for f in [filtered_pbf, filtered_geojson]:
-            if os.path.exists(f):
-                os.remove(f)
+            emitted = 0
+            for feature in _iter_geojson_features(filtered_geojson):
+                props = feature.get("properties") or {}
+                geometry = feature.get("geometry") or {}
+                geom_type = geometry.get("type")
+                representative = _geojson_representative_lon_lat(geometry)
+                if representative is None:
+                    continue
+                lon, lat = representative
+                if not (15.5 <= lat <= 22.1 and 72.5 <= lon <= 81.0):
+                    continue
 
-        return records
+                record = {
+                    "osm_id": str(props.get("@id", "")),
+                    "osm_type": str(props.get("@type") or (
+                        "way" if geom_type in ("LineString", "MultiLineString", "Polygon", "MultiPolygon") else "node"
+                    )),
+                    "name": props.get("name", ""),
+                    "amenity": props.get("amenity", ""),
+                    "shop": props.get("shop", ""),
+                    "cuisine": props.get("cuisine", ""),
+                    "diet_vegan": props.get("diet:vegan", ""),
+                    "diet_vegetarian": props.get("diet:vegetarian", ""),
+                    "addr_street": props.get("addr:street", ""),
+                    "addr_housenumber": props.get("addr:housenumber", ""),
+                    "addr_city": props.get("addr:city", ""),
+                    "addr_postcode": props.get("addr:postcode", ""),
+                    "phone": props.get("phone", props.get("contact:phone", "")),
+                    "website": props.get("website", props.get("contact:website", "")),
+                    "email": props.get("email", props.get("contact:email", "")),
+                    "opening_hours": props.get("opening_hours", ""),
+                    "image": props.get("image", ""),
+                    "wikimedia_commons": props.get("wikimedia_commons", ""),
+                    "latitude": lat,
+                    "longitude": lon,
+                    "all_tags": json.dumps(props),
+                }
+                if record["name"]:
+                    yield record
+                    emitted += 1
+                    if max_records is not None and emitted >= max_records:
+                        break
 
-    def fetch_records(self, dry_run: bool = False) -> Iterator[Dict[str, Any]]:
+    def fetch_records(
+        self, dry_run: bool = False, limit: Optional[int] = None
+    ) -> Iterator[Dict[str, Any]]:
         pbf_path = self.config["pbf_path"]
 
         try:
@@ -384,17 +468,16 @@ class OSMAdapter(BaseSourceAdapter):
             use_pyosmium = False
 
         self.logger.info(
-            f"OSM: processing {pbf_path} ({'pyosmium' if use_pyosmium else 'osmium CLI'}, "
-            f"dry_run={dry_run})"
+            "OSM: processing %s (%s, dry_run=%s, limit=%s)",
+            pbf_path, "pyosmium" if use_pyosmium else "osmium CLI", dry_run, limit
         )
 
-        if use_pyosmium:
-            records = self._extract_via_pyosmium(pbf_path, dry_run)
-        else:
-            records = self._extract_via_osmium_cli(pbf_path, dry_run)
-
-        self.logger.info(f"OSM: extracted {len(records)} candidate records")
-        yield from records
+        extractor = self._extract_via_pyosmium if use_pyosmium else self._extract_via_osmium_cli
+        emitted = 0
+        for record in extractor(pbf_path, dry_run, limit=limit):
+            emitted += 1
+            yield record
+        self.logger.info("OSM: extracted %s candidate records", emitted)
 
     def map_record(self, raw: Dict[str, Any]) -> Optional[CandidateRecord]:
         name = str(raw.get("name", "")).strip()
