@@ -528,6 +528,97 @@ class TestOSMGeometryAndOvertureStreaming(unittest.TestCase):
         connection.close.assert_called_once()
 
 
+
+class TestOSMBoundedStreaming(unittest.TestCase):
+    def test_geojson_feature_iterator_reads_incrementally(self):
+        from unittest.mock import patch
+        from adapters.osm_adapter import _iter_geojson_features
+
+        features = [
+            {"type": "Feature", "properties": {"@id": f"node/{i}", "name": f"Cafe {i}"},
+             "geometry": {"type": "Point", "coordinates": [72.8 + i / 100, 19.0]}}
+            for i in range(1, 5)
+        ]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = os.path.join(temp_dir, "features.geojson")
+            with open(path, "w", encoding="utf-8") as stream:
+                json.dump({"type": "FeatureCollection", "features": features}, stream)
+            with patch("adapters.osm_adapter.json.load", side_effect=AssertionError("full JSON load is forbidden")):
+                self.assertEqual(list(_iter_geojson_features(path, chunk_size=19)), features)
+
+    def test_pyosmium_extraction_spools_records_and_honours_limit(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from adapters.osm_adapter import OSMAdapter
+
+        def node(node_id, name, lon):
+            tags = [
+                SimpleNamespace(k="name", v=name),
+                SimpleNamespace(k="amenity", v="restaurant"),
+                SimpleNamespace(k="cuisine", v="vegan"),
+            ]
+            location = SimpleNamespace(lat=19.0, lon=lon)
+            return SimpleNamespace(id=node_id, tags=tags, location=location)
+
+        class FakeSimpleHandler:
+            def apply_file(self, _path, locations, idx):
+                self.node(node(1, "First Cafe", 72.8))
+                self.node(node(2, "Second Cafe", 72.9))
+
+        fake_osmium = SimpleNamespace(SimpleHandler=FakeSimpleHandler)
+        adapter = OSMAdapter(config={"pbf_path": "fixture.pbf"})
+        with patch.dict(sys.modules, {"osmium": fake_osmium}):
+            rows = list(adapter._extract_via_pyosmium("fixture.pbf", dry_run=False, limit=1))
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["name"], "First Cafe")
+        self.assertEqual(rows[0]["osm_id"], "1")
+
+    def test_osmium_cli_extraction_streams_geojson_and_honours_limit(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from adapters import osm_adapter
+
+        features = [
+            {"type": "Feature", "properties": {"@id": f"node/{i}", "@type": "node",
+              "name": f"Cafe {i}", "amenity": "restaurant", "cuisine": "vegan"},
+             "geometry": {"type": "Point", "coordinates": [72.8 + i / 100, 19.0]}}
+            for i in range(1, 4)
+        ]
+
+        def fake_run(command, **_kwargs):
+            if command[1] == "export":
+                output_path = command[command.index("-o") + 1]
+                with open(output_path, "w", encoding="utf-8") as stream:
+                    json.dump({"type": "FeatureCollection", "features": features}, stream)
+            return SimpleNamespace(returncode=0, stderr="")
+
+        adapter = osm_adapter.OSMAdapter(config={"pbf_path": "fixture.pbf"})
+        with patch.object(osm_adapter.subprocess, "run", side_effect=fake_run), \
+             patch.object(osm_adapter.json, "load", side_effect=AssertionError("full JSON load is forbidden")):
+            rows = list(adapter._extract_via_osmium_cli("fixture.pbf", dry_run=False, limit=1))
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["name"], "Cafe 1")
+
+    def test_base_batch_passes_requested_limit_to_source_adapter(self):
+        from unittest.mock import patch
+        from adapters.osm_adapter import OSMAdapter
+
+        adapter = OSMAdapter(config={"pbf_path": "fixture.pbf"})
+        manifest = ImportManifest(
+            batch_id="osm-limit-test", source_id="openstreetmap-geofabrik",
+            dataset_version="test", geographic_scope="test", bounding_box={},
+            extraction_date="2026-11-21", processing_start="2026-11-21T00:00:00Z"
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = os.path.join(temp_dir, "candidates.ndjson")
+            with patch.object(adapter, "validate_config", return_value=True), \
+                 patch.object(adapter, "fetch_records", return_value=iter([])) as fetch:
+                adapter.run_batch(manifest, output, dry_run=False, limit=7)
+        fetch.assert_called_once_with(dry_run=False, limit=7)
+
+
 if __name__ == "__main__":
     unittest.main()
 
