@@ -81,12 +81,20 @@ async function loadPlace(id) {
   // result.status === "ok"
   const place = result.place;
 
+  // Render DOM content immediately — map, reviews, and action buttons run in parallel
+  // so the page feels fast even on slow Firestore connections.
   renderPlaceDetail(place);
-  await renderReviewsFor(place.id);
-  await wireActionButtons(place);
+  showPlaceState("content");
+
+  // Kick off map right after DOM paint — it uses only place.latitude/longitude
+  // already available, no extra network call needed.
   safelyInitDetailMap(place);
 
-  showPlaceState("content");
+  // Reviews and wire-up run in parallel (independent of each other)
+  await Promise.all([
+    renderReviewsFor(place.id),
+    wireActionButtons(place)
+  ]);
 }
 
 // Shows exactly one of the four page states; hides the other three.

@@ -53,9 +53,9 @@ function renderNavbar(activePage, user, isAdmin) {
   const themeLabel = currentTheme === "dark" ? "Light" : "Dark";
   const themeToggleBtnHtml = '<button type="button" id="themeToggleBtn" class="vs-nav-tool-btn me-2" title="Toggle Light / Dark mode" aria-label="Toggle dark or light mode"><span id="themeToggleIcon">' + themeIcon + '</span> <span class="d-none d-sm-inline" id="themeToggleText">' + themeLabel + '</span></button>';
 
-  const diningCardBtnHtml = '<button type="button" id="openNavDiningCardBtn" class="vs-nav-tool-btn me-2" title="Dietary declaration card for Maharashtra restaurants">🌿 Dining Card</button>';
-
-  const navToolsHtml = diningCardBtnHtml + themeToggleBtnHtml;
+  // Dining Card is accessible via the 📋 Dining Card button on place-details.html
+  // and via any element with class .vs-dining-card-trigger — not in navbar.
+  const navToolsHtml = themeToggleBtnHtml;
 
   const authHtml = user
     ? adminBtnHtml + navToolsHtml +
@@ -593,6 +593,32 @@ function toggleTheme() {
 
 if (typeof document !== "undefined") {
   applyTheme(getActiveTheme());
+
+  // Auto-follow OS dark/light preference if the user hasn't set a manual override.
+  // This makes the site respond to changes in System Settings > Appearance without
+  // requiring the user to click the toggle.
+  if (typeof window !== "undefined" && window.matchMedia) {
+    var _mq = window.matchMedia("(prefers-color-scheme: dark)");
+    var _osPrefListener = function (evt) {
+      try {
+        var saved = (typeof localStorage !== "undefined") ? localStorage.getItem("vs_theme") : null;
+        // Only follow OS change if user hasn't made a deliberate manual choice
+        // (i.e. localStorage has no explicit override or override matches new OS pref)
+        var osTheme = evt.matches ? "dark" : "light";
+        if (!saved || saved === osTheme) {
+          applyTheme(osTheme);
+          // Persist so navbar icon updates correctly on next render
+          try { localStorage.setItem("vs_theme", osTheme); } catch (e) {}
+        }
+      } catch (e) {}
+    };
+    if (_mq.addEventListener) {
+      _mq.addEventListener("change", _osPrefListener);
+    } else if (_mq.addListener) {
+      // Safari < 14 fallback
+      _mq.addListener(_osPrefListener);
+    }
+  }
 }
 
 if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
