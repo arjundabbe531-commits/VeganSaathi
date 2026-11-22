@@ -48,13 +48,20 @@ function renderNavbar(activePage, user, isAdmin) {
     ? '<a href="' + base + 'admin/dashboard.html" class="vs-nav-admin-btn me-2" aria-label="Admin Dashboard">Admin ▲</a>'
     : '';
 
-  const diningCardBtnHtml = '<button type="button" id="openNavDiningCardBtn" class="vs-nav-tool-btn me-2" title="Bilingual dining card for Maharashtra restaurants">🌿 Dining Card</button>';
+  const currentTheme = (typeof getActiveTheme === "function") ? getActiveTheme() : "light";
+  const themeIcon = currentTheme === "dark" ? "☀️" : "🌙";
+  const themeLabel = currentTheme === "dark" ? "Light" : "Dark";
+  const themeToggleBtnHtml = '<button type="button" id="themeToggleBtn" class="vs-nav-tool-btn me-2" title="Toggle Light / Dark mode" aria-label="Toggle dark or light mode"><span id="themeToggleIcon">' + themeIcon + '</span> <span class="d-none d-sm-inline" id="themeToggleText">' + themeLabel + '</span></button>';
+
+  const diningCardBtnHtml = '<button type="button" id="openNavDiningCardBtn" class="vs-nav-tool-btn me-2" title="Dietary declaration card for Maharashtra restaurants">🌿 Dining Card</button>';
+
+  const navToolsHtml = diningCardBtnHtml + themeToggleBtnHtml;
 
   const authHtml = user
-    ? adminBtnHtml + diningCardBtnHtml +
+    ? adminBtnHtml + navToolsHtml +
       '<a href="' + base + 'profile.html" class="btn btn-vs-outline btn-sm me-2 px-3" style="font-size:0.83rem;font-weight:600;border-radius:8px;">My Profile</a>' +
       '<button type="button" id="navLogoutBtn" class="btn btn-vs-primary btn-sm px-3" style="font-size:0.83rem;border-radius:8px;">Sign Out</button>'
-    : diningCardBtnHtml +
+    : navToolsHtml +
       '<a href="' + base + 'login.html" class="btn btn-vs-outline btn-sm me-2 px-3" style="font-size:0.83rem;font-weight:600;border-radius:8px;">Login</a>' +
       '<a href="' + base + 'register.html" class="btn btn-vs-primary btn-sm px-3" style="font-size:0.83rem;border-radius:8px;">Join Free</a>';
 
@@ -66,7 +73,7 @@ function renderNavbar(activePage, user, isAdmin) {
     '<svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg" class="me-1" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#4c9a61"/></svg>' +
     'Community-verified vegan discovery portal &nbsp;&middot;&nbsp; Maharashtra &amp; India' +
     '</span>' +
-    '<span class="vs-topstrip__right">अहिंसा परमो धर्म:</span>' +
+    '<span class="vs-topstrip__right" style="font-size:0.72rem; letter-spacing:0.02em;">Transparent Evidence &bull; Open-Access Directory</span>' +
     '</div>' +
     '</div>';
 
@@ -549,8 +556,51 @@ function showDiningCardModal() {
   if (modal) modal.show();
 }
 
+/* ---------------- Dark / Light Theme System ---------------- */
+function getActiveTheme() {
+  if (typeof window === "undefined" || !window.localStorage) return "light";
+  try {
+    const saved = localStorage.getItem("vs_theme");
+    if (saved === "dark" || saved === "light") return saved;
+    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      return "dark";
+    }
+  } catch (e) {}
+  return "light";
+}
+
+function applyTheme(theme) {
+  if (typeof document === "undefined" || !document.documentElement) return;
+  document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.setAttribute("data-bs-theme", theme);
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("vs_theme", theme);
+    }
+  } catch (e) {}
+
+  const iconEl = document.getElementById("themeToggleIcon");
+  const textEl = document.getElementById("themeToggleText");
+  if (iconEl) iconEl.textContent = theme === "dark" ? "☀️" : "🌙";
+  if (textEl) textEl.textContent = theme === "dark" ? "Light" : "Dark";
+}
+
+function toggleTheme() {
+  const current = getActiveTheme();
+  const next = current === "dark" ? "light" : "dark";
+  applyTheme(next);
+}
+
+if (typeof document !== "undefined") {
+  applyTheme(getActiveTheme());
+}
+
 if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
   document.addEventListener("click", function (e) {
+    if (e.target.closest("#themeToggleBtn")) {
+      e.preventDefault();
+      toggleTheme();
+    }
     if (e.target.closest("#openNavDiningCardBtn") || e.target.closest(".vs-dining-card-trigger") || e.target.closest("#openDiningCardBtn")) {
       e.preventDefault();
       showDiningCardModal();

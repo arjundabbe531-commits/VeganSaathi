@@ -1204,3 +1204,480 @@ body { overflow-x: hidden; }
   .vs-brand__w2 { font-size: 1.1rem; }
   .vs-section { padding: 2rem 0; }
 }
+
+
+/* ==========================================================================
+   VeganSaathi – Dark Theme
+   Applied when <html data-theme="dark"> (custom) and
+   <html data-bs-theme="dark"> (Bootstrap 5.3).
+   ========================================================================== */
+
+[data-theme="dark"] {
+  /* ---- Palette Tokens ---- */
+  --vs-canvas:         #0c150e;
+  --vs-cream:          #111c14;
+  --vs-white:          #152419;
+  --vs-text:           #e2ede4;
+  --vs-text-muted:     #95ad9b;
+  --vs-border:         #213828;
+  --vs-border-subtle:  #1a2e1f;
+
+  --vs-green-900:      #c7e2ce;
+  --vs-green-800:      #a8c5ad;
+  --vs-green-700:      #6fba87;
+  --vs-green-600:      #5aaa72;
+  --vs-green-500:      #4c9a61;
+  --vs-green-200:      #1f3a28;
+  --vs-green-100:      #192c20;
+  --vs-green-50:       #111f16;
+
+  /* Dietary Badges */
+  --vs-vegan:          #6fba87;
+  --vs-vegan-bg:       #0f2117;
+  --vs-vegan-border:   #1f3a28;
+
+  --vs-vegetarian:     #6fba87;
+  --vs-vegetarian-bg:  #111f16;
+  --vs-vegetarian-border: #1e3326;
+
+  --vs-eggetarian:     #f5c76a;
+  --vs-eggetarian-bg:  #1f1600;
+  --vs-eggetarian-border: #3d2d00;
+
+  --vs-jain:           #f0916a;
+  --vs-jain-bg:        #200e06;
+  --vs-jain-border:    #3d1b0d;
+
+  /* Verification */
+  --vs-verified:       #6fba87;
+  --vs-unverified:     #7a9480;
+  --vs-recheck-due:    #c9a442;
+
+  /* Shadows (darkened, almost invisible) */
+  --vs-shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+  --vs-shadow:    0 2px 8px -1px rgba(0,0,0,0.6);
+  --vs-shadow-lg: 0 10px 28px -4px rgba(0,0,0,0.7);
+  --vs-focus:     0 0 0 3px rgba(76, 154, 97, 0.45);
+}
+
+/* ---- Body & Base ---- */
+[data-theme="dark"] body {
+  background-color: var(--vs-canvas);
+  color: var(--vs-text);
+}
+
+[data-theme="dark"] a {
+  color: var(--vs-green-700);
+}
+[data-theme="dark"] a:hover {
+  color: var(--vs-green-600);
+}
+
+/* ---- Headings ---- */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+  color: var(--vs-text);
+}
+
+/* ---- Top Strip ---- */
+[data-theme="dark"] .vs-topstrip {
+  background-color: #040c06;
+  border-bottom-color: rgba(255,255,255,0.04);
+}
+
+/* ---- Navbar ---- */
+[data-theme="dark"] .vs-navbar {
+  background-color: rgba(12, 21, 14, 0.97);
+  border-bottom-color: var(--vs-border);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.5), 0 2px 14px rgba(0,0,0,0.3);
+}
+[data-theme="dark"] .vs-brand {
+  border-right-color: var(--vs-border);
+}
+[data-theme="dark"] .vs-nav-link {
+  color: var(--vs-text-muted);
+}
+[data-theme="dark"] .vs-nav-link:hover,
+[data-theme="dark"] .vs-nav-link--active {
+  color: var(--vs-green-700);
+}
+[data-theme="dark"] .vs-nav-link__bar {
+  background-color: var(--vs-green-500);
+}
+[data-theme="dark"] .vs-nav-tool-btn {
+  background-color: var(--vs-white);
+  color: var(--vs-text-muted);
+  border-color: var(--vs-border);
+}
+[data-theme="dark"] .vs-nav-tool-btn:hover {
+  background-color: var(--vs-green-50);
+  color: var(--vs-text);
+  border-color: var(--vs-green-500);
+}
+
+/* ---- Navbar Collapse (mobile) ---- */
+[data-theme="dark"] .navbar-collapse {
+  background-color: var(--vs-cream);
+  border-top: 1px solid var(--vs-border);
+}
+[data-theme="dark"] .navbar-toggler {
+  border-color: var(--vs-border);
+}
+[data-theme="dark"] .navbar-toggler-icon {
+  filter: invert(1) brightness(0.85);
+}
+
+/* ---- Hero Section ---- */
+[data-theme="dark"] .vs-hero {
+  background: linear-gradient(160deg, #0c1f10 0%, #0a1a0d 60%, #071209 100%);
+  border-bottom-color: var(--vs-border);
+}
+[data-theme="dark"] .vs-hero h1 { color: var(--vs-text); }
+[data-theme="dark"] .vs-hero p  { color: var(--vs-text-muted); }
+
+/* ---- Cards ---- */
+[data-theme="dark"] .vs-card,
+[data-theme="dark"] .card {
+  background-color: var(--vs-white);
+  border-color: var(--vs-border) !important;
+  box-shadow: var(--vs-shadow);
+}
+[data-theme="dark"] .vs-card:hover,
+[data-theme="dark"] .card:hover {
+  border-color: var(--vs-green-500) !important;
+  box-shadow: var(--vs-shadow-lg);
+}
+[data-theme="dark"] .card-body,
+[data-theme="dark"] .card-header,
+[data-theme="dark"] .card-footer {
+  background-color: transparent;
+  border-color: var(--vs-border);
+}
+[data-theme="dark"] .card-title { color: var(--vs-text); }
+[data-theme="dark"] .card-text  { color: var(--vs-text-muted); }
+
+/* ---- Place Cards ---- */
+[data-theme="dark"] .vs-place-card {
+  background-color: var(--vs-white);
+  border-color: var(--vs-border) !important;
+}
+[data-theme="dark"] .vs-place-card:hover {
+  border-color: var(--vs-green-500) !important;
+  box-shadow: var(--vs-shadow-lg);
+}
+[data-theme="dark"] .vs-place-card__name { color: var(--vs-text); }
+[data-theme="dark"] .vs-place-card__meta { color: var(--vs-text-muted); }
+
+/* ---- Section backgrounds ---- */
+[data-theme="dark"] .vs-section--muted,
+[data-theme="dark"] .bg-light,
+[data-theme="dark"] section.bg-light {
+  background-color: var(--vs-cream) !important;
+}
+[data-theme="dark"] .vs-section--white,
+[data-theme="dark"] .bg-white {
+  background-color: var(--vs-white) !important;
+}
+
+/* ---- Form Controls ---- */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+  background-color: var(--vs-white);
+  color: var(--vs-text);
+  border-color: var(--vs-border);
+}
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+  background-color: var(--vs-cream);
+  border-color: var(--vs-green-500);
+  color: var(--vs-text);
+  box-shadow: var(--vs-focus);
+}
+[data-theme="dark"] .form-control::placeholder {
+  color: var(--vs-text-muted);
+  opacity: 0.7;
+}
+[data-theme="dark"] .form-label { color: var(--vs-text); }
+[data-theme="dark"] .form-text  { color: var(--vs-text-muted); }
+
+/* ---- Input Group ---- */
+[data-theme="dark"] .input-group-text {
+  background-color: var(--vs-white);
+  color: var(--vs-text-muted);
+  border-color: var(--vs-border);
+}
+
+/* ---- Buttons ---- */
+[data-theme="dark"] .btn-vs-primary {
+  background-color: var(--vs-green-500);
+  border-color: var(--vs-green-500);
+  color: #ffffff;
+}
+[data-theme="dark"] .btn-vs-primary:hover {
+  background-color: var(--vs-green-700);
+  border-color: var(--vs-green-700);
+}
+[data-theme="dark"] .btn-vs-outline {
+  background-color: transparent;
+  border-color: var(--vs-green-500);
+  color: var(--vs-green-700);
+}
+[data-theme="dark"] .btn-vs-outline:hover {
+  background-color: var(--vs-green-50);
+  color: var(--vs-green-600);
+}
+[data-theme="dark"] .btn-outline-secondary {
+  color: var(--vs-text-muted);
+  border-color: var(--vs-border);
+}
+[data-theme="dark"] .btn-outline-secondary:hover {
+  background-color: var(--vs-white);
+  color: var(--vs-text);
+  border-color: var(--vs-green-500);
+}
+[data-theme="dark"] .btn-light {
+  background-color: var(--vs-white);
+  color: var(--vs-text);
+  border-color: var(--vs-border);
+}
+
+/* ---- Filter Chips ---- */
+[data-theme="dark"] .vs-filter-chip {
+  background-color: var(--vs-white);
+  color: var(--vs-text-muted);
+  border-color: var(--vs-border);
+}
+[data-theme="dark"] .vs-filter-chip.active,
+[data-theme="dark"] .vs-filter-chip:hover {
+  background-color: var(--vs-green-50);
+  color: var(--vs-green-700);
+  border-color: var(--vs-green-500);
+}
+
+/* ---- Badges ---- */
+[data-theme="dark"] .badge.bg-light {
+  background-color: var(--vs-white) !important;
+  color: var(--vs-text) !important;
+}
+[data-theme="dark"] .vs-badge--vegan {
+  background-color: var(--vs-vegan-bg);
+  color: var(--vs-vegan);
+  border-color: var(--vs-vegan-border);
+}
+[data-theme="dark"] .vs-badge--vegetarian {
+  background-color: var(--vs-vegetarian-bg);
+  color: var(--vs-vegetarian);
+  border-color: var(--vs-vegetarian-border);
+}
+[data-theme="dark"] .vs-badge--eggetarian {
+  background-color: var(--vs-eggetarian-bg);
+  color: var(--vs-eggetarian);
+  border-color: var(--vs-eggetarian-border);
+}
+[data-theme="dark"] .vs-badge--jain {
+  background-color: var(--vs-jain-bg);
+  color: var(--vs-jain);
+  border-color: var(--vs-jain-border);
+}
+
+/* ---- Modals ---- */
+[data-theme="dark"] .modal-content {
+  background-color: var(--vs-cream);
+  border-color: var(--vs-border);
+  color: var(--vs-text);
+}
+[data-theme="dark"] .modal-header {
+  background-color: var(--vs-white);
+  border-bottom-color: var(--vs-border);
+}
+[data-theme="dark"] .modal-footer {
+  background-color: var(--vs-white);
+  border-top-color: var(--vs-border);
+}
+[data-theme="dark"] .modal-backdrop {
+  background-color: rgba(0,0,0,0.75);
+}
+[data-theme="dark"] .btn-close {
+  filter: invert(1) brightness(0.85);
+}
+
+/* ---- Tables ---- */
+[data-theme="dark"] .table {
+  color: var(--vs-text);
+  border-color: var(--vs-border);
+}
+[data-theme="dark"] .table thead th {
+  background-color: var(--vs-cream);
+  color: var(--vs-text-muted);
+  border-bottom-color: var(--vs-border);
+}
+[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: rgba(255,255,255,0.025);
+}
+[data-theme="dark"] .table-hover > tbody > tr:hover > * {
+  background-color: rgba(76,154,97,0.08);
+}
+
+/* ---- Dropdowns ---- */
+[data-theme="dark"] .dropdown-menu {
+  background-color: var(--vs-cream);
+  border-color: var(--vs-border);
+  box-shadow: var(--vs-shadow-lg);
+}
+[data-theme="dark"] .dropdown-item {
+  color: var(--vs-text);
+}
+[data-theme="dark"] .dropdown-item:hover,
+[data-theme="dark"] .dropdown-item:focus {
+  background-color: var(--vs-green-50);
+  color: var(--vs-green-700);
+}
+[data-theme="dark"] .dropdown-divider {
+  border-top-color: var(--vs-border);
+}
+
+/* ---- Toasts / Alerts ---- */
+[data-theme="dark"] .toast {
+  background-color: var(--vs-cream);
+  border-color: var(--vs-border);
+  color: var(--vs-text);
+}
+[data-theme="dark"] .alert {
+  border-color: var(--vs-border);
+}
+[data-theme="dark"] .alert-success {
+  background-color: var(--vs-vegan-bg);
+  color: var(--vs-vegan);
+  border-color: var(--vs-vegan-border);
+}
+[data-theme="dark"] .alert-warning {
+  background-color: var(--vs-eggetarian-bg);
+  color: var(--vs-eggetarian);
+  border-color: var(--vs-eggetarian-border);
+}
+[data-theme="dark"] .alert-danger {
+  background-color: #200800;
+  color: #f07070;
+  border-color: #3d1500;
+}
+
+/* ---- Pagination ---- */
+[data-theme="dark"] .page-item .page-link {
+  background-color: var(--vs-white);
+  border-color: var(--vs-border);
+  color: var(--vs-text-muted);
+}
+[data-theme="dark"] .page-item.active .page-link {
+  background-color: var(--vs-green-500);
+  border-color: var(--vs-green-500);
+  color: #fff;
+}
+[data-theme="dark"] .page-item.disabled .page-link {
+  background-color: var(--vs-cream);
+  color: var(--vs-border);
+}
+
+/* ---- Profile avatar upload zone ---- */
+[data-theme="dark"] .vs-avatar-upload-zone {
+  background-color: var(--vs-cream);
+  border-color: var(--vs-border);
+}
+[data-theme="dark"] .vs-avatar-upload-zone:hover,
+[data-theme="dark"] .vs-avatar-upload-zone.drag-over {
+  border-color: var(--vs-green-500);
+  background-color: var(--vs-green-50);
+}
+
+/* ---- Location Banner ---- */
+[data-theme="dark"] .vs-location-banner {
+  background: linear-gradient(135deg, var(--vs-green-50) 0%, var(--vs-cream) 100%);
+  border-color: var(--vs-green-200);
+}
+[data-theme="dark"] .vs-location-banner__title { color: var(--vs-green-700); }
+[data-theme="dark"] .vs-location-banner__sub   { color: var(--vs-text-muted); }
+
+/* ---- Ingredient Card ---- */
+[data-theme="dark"] .vs-ingredient-card {
+  background-color: var(--vs-white);
+  border-color: var(--vs-border) !important;
+}
+[data-theme="dark"] .vs-ingredient-card:hover {
+  border-color: rgba(76, 154, 97, 0.5) !important;
+}
+
+/* ---- Saint Cards (Awareness) ---- */
+[data-theme="dark"] .vs-saint-card {
+  background-color: var(--vs-white);
+  border-color: var(--vs-border);
+}
+[data-theme="dark"] .vs-abhang-box {
+  background-color: var(--vs-cream);
+  border-color: var(--vs-border);
+  color: var(--vs-text-muted);
+}
+[data-theme="dark"] .vs-abhang-text   { color: var(--vs-text); }
+[data-theme="dark"] .vs-abhang-meaning { color: var(--vs-text-muted); }
+[data-theme="dark"] .vs-saint-badge {
+  background-color: #2a1800;
+  color: #d4a84b;
+  border-color: #3d2500;
+}
+
+/* ---- Dining Card Modal ---- */
+[data-theme="dark"] .vs-dining-card {
+  background-color: var(--vs-cream);
+  border-color: var(--vs-border);
+}
+
+/* ---- Leaflet Map – Dark tile filter ---- */
+[data-theme="dark"] #vs-map .leaflet-tile-pane {
+  filter: brightness(0.72) invert(1) contrast(2.2) hue-rotate(200deg) saturate(0.3);
+}
+[data-theme="dark"] .leaflet-container {
+  background-color: #0a140b;
+}
+[data-theme="dark"] .leaflet-popup-content-wrapper,
+[data-theme="dark"] .leaflet-popup-tip {
+  background-color: var(--vs-cream);
+  color: var(--vs-text);
+  box-shadow: var(--vs-shadow-lg);
+}
+[data-theme="dark"] .leaflet-control-zoom a {
+  background-color: var(--vs-cream);
+  color: var(--vs-text);
+  border-color: var(--vs-border);
+}
+
+/* ---- Submission rows ---- */
+[data-theme="dark"] .vs-submission-row {
+  border-bottom-color: var(--vs-border-subtle);
+}
+[data-theme="dark"] .vs-submission-name { color: var(--vs-text); }
+[data-theme="dark"] .vs-submission-date { color: var(--vs-text-muted); }
+
+/* ---- Text utilities ---- */
+[data-theme="dark"] .text-muted { color: var(--vs-text-muted) !important; }
+[data-theme="dark"] .text-dark  { color: var(--vs-text) !important; }
+[data-theme="dark"] .text-muted-vs { color: var(--vs-text-muted); }
+
+/* ---- HR / Dividers ---- */
+[data-theme="dark"] hr { border-color: var(--vs-border); opacity: 1; }
+
+/* ---- Smooth theme transition (avoid harsh flash) ---- */
+html {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+body,
+.vs-navbar,
+.vs-card,
+.vs-place-card,
+.form-control,
+.form-select,
+.modal-content,
+.card {
+  transition: background-color 0.25s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
