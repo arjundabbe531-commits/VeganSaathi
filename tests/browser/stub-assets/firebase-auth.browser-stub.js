@@ -53,3 +53,10 @@ export const browserSessionPersistence = "SESSION";
 export async function setPersistence(auth, persistence) {
   return Promise.resolve();
 }
+
+export async function updateProfile(user, updates) {
+  if (user && typeof updates === "object") {
+    Object.assign(user, updates);
+  }
+  return Promise.resolve();
+}

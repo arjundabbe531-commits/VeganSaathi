@@ -763,3 +763,200 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 1rem;
 }
 
+/* ---------------- Enhanced Dropzone & Media UI ---------------- */
+.vs-dropzone {
+  border: 2px dashed #86efac !important;
+  background-color: #f8faf8 !important;
+  border-radius: var(--vs-radius);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.vs-dropzone:hover {
+  border-color: var(--vs-green-600) !important;
+  background-color: #f0fdf4 !important;
+  transform: translateY(-1px);
+  box-shadow: var(--vs-shadow-sm);
+}
+
+.vs-dropzone:focus-visible {
+  border-color: var(--vs-green-700) !important;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3) !important;
+}
+
+.vs-dropzone.drag-active {
+  border-color: var(--vs-green-700) !important;
+  background-color: #dcfce7 !important;
+  transform: scale(1.01);
+}
+
+.vs-photo-preview-container {
+  border: 1px solid var(--vs-border);
+  border-radius: var(--vs-radius);
+  background-color: var(--vs-white);
+  box-shadow: var(--vs-shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.vs-photo-preview-img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--vs-radius-sm);
+  border: 1px solid var(--vs-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------------- Botanical Place Card Fallback ---------------- */
+.vs-place-card__placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--vs-green-800);
+  font-weight: 600;
+  gap: 0.35rem;
+  user-select: none;
+}
+
+.vs-place-card__placeholder-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.vs-place-card__placeholder-label {
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  color: var(--vs-green-700);
+  text-transform: capitalize;
+}
+
+/* ---------------- Spiritual Ahimsa & Saints Heritage ---------------- */
+@keyframes vsAuraGlow {
+  0% { box-shadow: 0 4px 14px rgba(47, 107, 63, 0.08); }
+  50% { box-shadow: 0 6px 20px rgba(47, 107, 63, 0.16); }
+  100% { box-shadow: 0 4px 14px rgba(47, 107, 63, 0.08); }
+}
+
+@keyframes vsFloatSubtle {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0px); }
+}
+
+.vs-spiritual-hero {
+  background: linear-gradient(135deg, #fdfbf7 0%, #edf5ef 100%);
+  border: 1px solid #d9e6dc;
+  border-radius: var(--vs-radius-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.vs-spiritual-hero::before {
+  content: "";
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(76, 154, 97, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.vs-saint-card {
+  background: #ffffff;
+  border: 1px solid #e1e8e2;
+  border-radius: var(--vs-radius-lg);
+  padding: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.vs-saint-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--vs-green-500);
+  box-shadow: 0 10px 24px rgba(31, 46, 35, 0.12);
+}
+
+.vs-saint-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--vs-green-600) 0%, #b8862f 100%);
+}
+
+.vs-abhang-box {
+  background-color: #faf8f2;
+  border: 1px solid #ebdfc8;
+  border-radius: var(--vs-radius);
+  padding: 1.15rem 1.35rem;
+  font-family: "Georgia", serif;
+  color: #3d321d;
+  position: relative;
+}
+
+.vs-abhang-text {
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: #2c2211;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.01em;
+}
+
+.vs-abhang-meaning {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 0.88rem;
+  color: var(--vs-text-muted);
+  font-style: italic;
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+.vs-saint-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: #f5eedb;
+  color: #855b14;
+  border: 1px solid #e5d3a9;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--vs-radius-pill);
+}
+
+/* ==========================================================================
+   Ingredient Compass & Conscious Dining Card Styles
+   ========================================================================== */
+.vs-ingredient-card {
+  background-color: #ffffff;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+.vs-ingredient-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--vs-shadow-lg) !important;
+  border-color: rgba(47, 107, 63, 0.35) !important;
+}
+
+.vs-cat-pill {
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.vs-dist-chip.active {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+}

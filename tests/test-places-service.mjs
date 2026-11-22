@@ -713,5 +713,59 @@ await asyncTest("synthetic safeguard: submitCommunityPlace rejects synthetic tes
   assert.equal(globalThis.__STUB_WRITES__.length, 0, "synthetic fixture must not be written to database");
 });
 
+test("normalizePlace preserves phone and website contact fields when present", function () {
+  const p = basePlace({
+    phone: "+91 98765 43210",
+    website: "https://example.com/menu"
+  });
+  const normalized = normalizePlace(p);
+  assert.ok(normalized);
+  assert.equal(normalized.phone, "+91 98765 43210");
+  assert.equal(normalized.website, "https://example.com/menu");
+});
+
+await asyncTest("explore: matchesSearchTerm covers structured fields including dish claims and diet notes", async function () {
+  const { matchesSearchTerm } = await import("../frontend/js/explore.js");
+
+  const place = {
+    name: "Ahimsa Pure Vegan Dhaba",
+    address: "Near SSGMCE Campus, Khamgaon Road",
+    area: "Shegaon Bypass",
+    city: "Shegaon",
+    state: "Maharashtra",
+    postalCode: "444203",
+    placeType: "dhaba",
+    description: "Traditional rural dhaba preparing meals in pure peanut oil with no dairy ghee.",
+    dietNotes: "Zero ghee used in tadka; soy milk chai made on request; separate vegan cookware.",
+    verificationNote: "On-site kitchen audit conducted by volunteer team.",
+    veganClassification: "fully_vegan",
+    dietTags: ["vegan", "vegetarian"],
+    evidenceRefs: [
+      { claim: "Vegan Poha and Sheera", excerpt: "Cooked fresh daily with cold-pressed groundnut oil" }
+    ]
+  };
+
+  // Match by name
+  assert.equal(matchesSearchTerm(place, "Ahimsa"), true);
+  // Match by locality / city / campus
+  assert.equal(matchesSearchTerm(place, "SSGMCE"), true);
+  assert.equal(matchesSearchTerm(place, "Shegaon"), true);
+  // Match by place type
+  assert.equal(matchesSearchTerm(place, "dhaba"), true);
+  // Match by dish / menu claim
+  assert.equal(matchesSearchTerm(place, "Poha"), true);
+  assert.equal(matchesSearchTerm(place, "Sheera"), true);
+  // Match by ingredient / diet note
+  assert.equal(matchesSearchTerm(place, "peanut oil"), true);
+  assert.equal(matchesSearchTerm(place, "soy milk"), true);
+  // Match by diet tag
+  assert.equal(matchesSearchTerm(place, "vegan"), true);
+  // Negative check
+  assert.equal(matchesSearchTerm(place, "paneer butter masala"), false);
+  // Empty term matches all
+  assert.equal(matchesSearchTerm(place, ""), true);
+  assert.equal(matchesSearchTerm(place, "   "), true);
+});
+
 console.log("\n" + passed + " passed, " + failed + " failed");
 process.exit(failed > 0 ? 1 : 0);

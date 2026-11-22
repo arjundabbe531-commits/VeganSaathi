@@ -79,16 +79,18 @@ test("validateImageFile: accepts files at boundary size (5 MB)", () => {
   assert.equal(res.valid, true);
 });
 
-test("validateImageFile: accepts valid JPG, PNG, and WebP MIME types", () => {
+test("validateImageFile: accepts valid JPG, PNG, WebP, and AVIF MIME types", () => {
   assert.equal(validateImageFile({ size: 1024, type: "image/jpeg", name: "food.jpg" }).valid, true);
   assert.equal(validateImageFile({ size: 1024, type: "image/png", name: "food.png" }).valid, true);
   assert.equal(validateImageFile({ size: 1024, type: "image/webp", name: "food.webp" }).valid, true);
+  assert.equal(validateImageFile({ size: 1024, type: "image/avif", name: "food.avif" }).valid, true);
 });
 
 test("validateImageFile: accepts valid file by extension if MIME is missing", () => {
   assert.equal(validateImageFile({ size: 2048, type: "", name: "storefront.JPG" }).valid, true);
   assert.equal(validateImageFile({ size: 2048, type: "", name: "menu.webp" }).valid, true);
   assert.equal(validateImageFile({ size: 2048, type: "", name: "banner.png" }).valid, true);
+  assert.equal(validateImageFile({ size: 2048, type: "", name: "dish.avif" }).valid, true);
 });
 
 test("validateImageFile: rejects non-image or dangerous extensions (PDF, SVG, EXE)", () => {

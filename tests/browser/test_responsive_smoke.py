@@ -17,6 +17,7 @@ PAGES = [
     "/awareness/faq.html", "/awareness/getting-started.html",
     "/awareness/misconceptions.html", "/awareness/plant-based-indian-foods.html",
     "/awareness/vegetarian-vs-vegan.html", "/awareness/what-is-veganism.html",
+    "/awareness/ingredient-checker.html",
 ]
 WIDTHS = (320, 375, 390, 768, 1024, 1440)
 

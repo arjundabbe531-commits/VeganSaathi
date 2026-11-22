@@ -1,6 +1,62 @@
 # VeganSaathi test results
 
-## Canonical candidate run — 6 November 2026
+## Canonical candidate run — 21-22 November 2026 (Commit 99113c8 + Community Portal Overhaul)
+
+Run locally in the canonical workspace `D:\VeganSaathi` on branch `candidate/zip-baseline-2026-11-05` (tracking `origin/candidate/zip-baseline-2026-11-05` at commit `99113c8645063e78e94e63035d9ad113a07f8646`).
+
+| Test Suite / Command | Runner / Environment | Checks / Tests | Result |
+|---|---|:---:|:---:|
+| `node tests/test-places-service.mjs` | Node.js v25.2.1 | 46 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-admin-service.mjs` | Node.js v25.2.1 | 30 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-cloudinary-service.mjs` | Node.js v25.2.1 | 32 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-controlled-integration.mjs` | Node.js v25.2.1 | 14 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-geolocation.mjs` | Node.js v25.2.1 | 14 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-import-validator.mjs` | Node.js v25.2.1 | 24 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-place-intelligence.mjs` | Node.js v25.2.1 | 23 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-alternatives.mjs` | Node.js v25.2.1 | 6 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-ingredient-checker.mjs` | Node.js v25.2.1 | 3 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-candidate-approval.mjs` | Node.js v25.2.1 | 26 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-photo-rights.mjs` | Node.js v25.2.1 | 3 passed, 0 failed | PASS, exit 0 |
+| `node tests/test-public-source-registry.mjs` | Node.js v25.2.1 | 1 passed, 0 failed | PASS, exit 0 |
+| `node tests/check-duplicate-globals.js` | Node.js v25.2.1 | 19 passed, 0 failed | PASS, exit 0 |
+| **Node.js Unit & Regression Subtotal** | **Node.js** | **241 passed, 0 failed** | **PASS, exit 0** |
+| `python -m unittest discover -s tests -p "test_data_pipeline.py" -v` | Python 3.12 unittest | 32 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_responsive_smoke.py` | Playwright Chromium | 115 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_awareness_content.py` | Playwright Chromium | 66 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_5_4_map_robustness.py` | Playwright Chromium | 16 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_explore_firestore.py` | Playwright Chromium | 31 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_place_details_firestore.py` | Playwright Chromium | 46 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_admin_dashboard.py` | Playwright Chromium | 21 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_phase4_regression.py` | Playwright Chromium | 38 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_5_1b_hardening.py` | Playwright Chromium | 17 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_reverify_prompt.py` | Playwright Chromium | 20 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_accessible_controls.py` | Playwright Chromium | 5 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_import_review_sandbox.py` | Playwright Chromium | 7 passed, 0 failed | PASS, exit 0 |
+| `python tests/browser/test_profile_activity.py` | Playwright Chromium | 6 passed, 0 failed | PASS, exit 0 |
+| **Browser Automated Verification Subtotal** | **Playwright** | **388 passed, 0 failed** | **PASS, exit 0** |
+| Active rules emulator (`firebase/firestore.rules`) via `tests/rules/firestore.rules.test.mjs` | Firebase Emulator (port 8080/8280) | 73 passed, 0 failed | PASS, exit 0 |
+| Proposed rules emulator (`firebase/firestore.rules.proposed`) via `tests/rules/firestore.rules.proposed.test.mjs` | Firebase Emulator (port 8281) | 17 passed, 0 failed | PASS, exit 0 |
+| **Grand Total (Local Automated Verification)** | | **751 passed, 0 failed** | **ALL PASS** |
+
+### Verified Changes in this Run
+1. **Interactive Indian Ingredient Compass (आहार मार्गदर्शक):** Dedicated real-time guide (`awareness/ingredient-checker.html`) covering 16+ key Indian ingredients and additives with classification badges (Animal-Derived, Caution, Plant-Safe) and exact chef ordering advice in Marathi and English.
+2. **Bilingual Conscious Dining Card (शाकाहारी व व्हेगन डायनिंग कार्ड):** Accessible modal from navbar, footer, and place details providing copyable/printable Marathi and English phrases for dining out safely in Maharashtra dhabas, canteens, and pilgrimage centers.
+3. **Proximity Distance Filtering in Explore:** Dynamic distance filter chips (`< 15 km`, `< 50 km`) and Haversine distance badges (`~X.X km away`) updating live when location is detected.
+4. **Native Web Share & WhatsApp Integration:** Enabled native mobile sharing (`navigator.share`) and WhatsApp direct sharing (`api.whatsapp.com/send?text=...`) alongside one-click address copying on place details.
+5. **Marathi / English Quick Localization Toggle:** Clean language switch in the navigation bar persisting user preference in `localStorage`.
+6. **Admin Analytics & Workflow Guidance:** Chart.js dynamic dashboard charts (Doughnut, Bar, Pie) rendering live statistics for diet distribution, venue types, and verification health.
+7. **AVIF Photo Uploads & Visual Preview:** Added full `image/avif` MIME and `.avif` file extension support across Cloudinary service validators; integrated image preview modal for local device files and external URLs.
+8. **High-Accuracy Geolocation & Reverse Geocoding:** Reverse geocoding via OpenStreetMap Nominatim extracts road, area/suburb (e.g. Vatika), and city (e.g. Shegaon) to place informative Leaflet map markers with named badges, address details, and direct directions links.
+9. **Community Portal Identity:** Cleaned all lingering academic/student/practice artifacts from public copy; upgraded header brand emblem and footer layout; gated contribution actions exclusively to signed-in users.
+10. **Spiritual Ahimsa & Maharashtra Saints:** Dedicated awareness section connecting vegetarianism and veganism through the compassion teachings of Sant Tukaram, Sant Dnyaneshwar (Pasaydan), Sant Eknath, Sant Namdev, and Mahatma Gandhi with subtle CSS animations.
+11. **Data Caching & Performance:** Paired `sessionStorage` with a 10-minute `localStorage` cache in `places-service.js` for instant subsequent loads.
+12. **Profile Editing & Avatar Selection:** Verified profile updates (name, diet preference, avatar selection) save cleanly to Firebase Auth and Firestore `users/{uid}`.
+13. **Real Maharashtra Data:** Curated and published 11 authentic places across Maharashtra with coordinates, addresses, photos, and dietary notes using authorized editorial credentials.
+14. **Responsive Layouts:** Zero horizontal overflow across all 19 pages at 320px, 375px, 390px, 768px, 1024px, and 1440px viewports with zero browser page errors.
+
+---
+
+## Canonical candidate run — 6 November 2026 (Historical)
 
 Run locally in the isolated candidate worktree. These results are for source code and emulators; they do not establish production service state.
 

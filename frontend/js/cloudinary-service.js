@@ -9,7 +9,8 @@ import { CLOUDINARY_CONFIG } from "./cloudinary-config.js";
 const FORMAT_EXTENSIONS = {
   "image/jpeg": [".jpg", ".jpeg"],
   "image/png": [".png"],
-  "image/webp": [".webp"]
+  "image/webp": [".webp"],
+  "image/avif": [".avif"]
 };
 
 /**
@@ -45,7 +46,7 @@ export function validateImageFile(file) {
   if (mime.length > 0 && !hasAllowedMime) {
     return {
       valid: false,
-      error: "Unsupported image format. Please select a JPG, PNG, or WebP photo."
+      error: "Unsupported image format. Please select a JPG, PNG, WebP, or AVIF photo."
     };
   }
 
@@ -53,7 +54,7 @@ export function validateImageFile(file) {
   if (name.length > 0 && !hasAllowedExt) {
     return {
       valid: false,
-      error: "Unsupported image format. Please select a JPG, PNG, or WebP photo."
+      error: "Unsupported image format. Please select a JPG, PNG, WebP, or AVIF photo."
     };
   }
 
@@ -61,7 +62,7 @@ export function validateImageFile(file) {
   if (mime.length === 0 && name.length === 0) {
     return {
       valid: false,
-      error: "Unsupported image format. Please select a JPG, PNG, or WebP photo."
+      error: "Unsupported image format. Please select a JPG, PNG, WebP, or AVIF photo."
     };
   }
 

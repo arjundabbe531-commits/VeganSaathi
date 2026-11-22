@@ -9,7 +9,7 @@ export const CLOUDINARY_CONFIG = {
   uploadPreset: (typeof window !== "undefined" && window.VS_CLOUDINARY_PRESET) || "vegansaathi_places_unsigned",
   folder: "vegansaathi/places",
   maxSizeBytes: 5 * 1024 * 1024, // 5 MB maximum file size
-  allowedFormats: ["image/jpeg", "image/png", "image/webp"],
+  allowedFormats: ["image/jpeg", "image/png", "image/webp", "image/avif"],
   // When false, upload runs in safe offline/demo mode without network dispatch
   isConfigured: (typeof window !== "undefined" && window.VS_CLOUDINARY_IS_CONFIGURED === true) || false
 };

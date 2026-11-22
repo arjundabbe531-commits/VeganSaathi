@@ -22,35 +22,62 @@
    ========================================================================== */
 
 import { fetchPublishedPlaces, COORD_BOUNDS } from "./places-service.js";
-import { requestUserLocation, sortByDistance, formatDistance, haversineKm } from "./geolocation.js";
+import { requestUserLocation, sortByDistance, formatDistance, haversineKm, reverseGeocode } from "./geolocation.js";
 
 let vsAllPlaces = null; // null until the first successful load; [] is a valid "loaded, zero places" state
 let vsActiveDietFilters = [];
 let vsActivePlaceType = "";
 let vsActivePriceRange = "";
 let vsVerifiedOnly = false;
+let vsActiveMaxDistance = null;
 let vsMap = null;
 let vsMarkersLayer = null; // Leaflet layerGroup -- all current markers live here
 let vsUserLocation = null; // { lat, lon } when the user has granted permission; null otherwise
+let vsUserLocationDetails = null; // { road, area, city, formattedLocation } from reverse geocoding
 
-document.addEventListener("DOMContentLoaded", function () {
-  // Pre-fill search box from ?q= if the person searched from Home — this
-  // doesn't depend on data having loaded yet.
-  const params = new URLSearchParams(window.location.search);
-  const q = params.get("q");
-  if (q) {
-    document.getElementById("searchInput").value = q;
-  }
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", function () {
+    // Pre-fill filters from URL parameters if arriving from Home or shared link
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (q) {
+      document.getElementById("searchInput").value = q;
+    }
+    const dietParam = params.get("diet");
+    if (dietParam) {
+      vsActiveDietFilters.push(dietParam);
+      const chip = document.querySelector(`.vs-filter-chip[data-diet="${dietParam}"]`);
+      if (chip) chip.classList.add("active");
+    }
+    const typeParam = params.get("type");
+    if (typeParam) {
+      vsActivePlaceType = typeParam;
+      const typeSelect = document.getElementById("placeTypeSelect");
+      if (typeSelect) typeSelect.value = typeParam;
+    }
+    const priceParam = params.get("price");
+    if (priceParam) {
+      vsActivePriceRange = priceParam;
+      const priceSelect = document.getElementById("priceSelect");
+      if (priceSelect) priceSelect.value = priceParam;
+    }
+    if (params.get("verified") === "true") {
+      vsVerifiedOnly = true;
+      const vChip = document.getElementById("verifiedChip");
+      if (vChip) vChip.classList.add("active");
+    }
 
-  wireFilterChips();
-  wireSearchAndSelects();
-  wireViewToggle();
-  wireLocationButton();
-  wireRefreshButton();
-  setViewToggleEnabled(false); // nothing to show yet -- re-enabled once data loads successfully
+    wireFilterChips();
+    wireSearchAndSelects();
+    wireViewToggle();
+    wireLocationButton();
+    wireRefreshButton();
+    wireResetButtons();
+    setViewToggleEnabled(false); // nothing to show yet -- re-enabled once data loads successfully
 
-  loadPlaces(false);
-});
+    loadPlaces(false);
+  });
+}
 
 function wireRefreshButton() {
   const btn = document.getElementById("refreshPlacesBtn");
@@ -153,21 +180,44 @@ function wireLocationButton() {
 
   btn.addEventListener("click", async function () {
     btn.disabled = true;
-    btn.textContent = "Locating\u2026";
+    btn.textContent = "Getting precise location\u2026";
 
     var result = await requestUserLocation();
 
     if (result.status === "ok") {
       vsUserLocation = { lat: result.lat, lon: result.lon };
-      btn.textContent = "\u2713 Location active";
+
+      // Reverse geocode to get road, area, city name
+      const geoInfo = await reverseGeocode(result.lat, result.lon);
+      if (geoInfo && geoInfo.ok) {
+        vsUserLocationDetails = geoInfo;
+      } else {
+        vsUserLocationDetails = { formattedLocation: result.lat.toFixed(4) + ", " + result.lon.toFixed(4) };
+      }
+
+      const displayLoc = vsUserLocationDetails.area || vsUserLocationDetails.city || vsUserLocationDetails.road || "Location found";
+      btn.textContent = "\u2713 Near " + displayLoc;
       btn.classList.add("btn-vs-primary");
       btn.classList.remove("btn-vs-outline");
-      btn.disabled = true;
+      btn.disabled = false;
+
+      var note = document.getElementById("locationNote");
+      if (note) {
+        note.innerHTML = '<span class="text-success fw-bold">📍 Active:</span> ' +
+          escapeHtml(vsUserLocationDetails.formattedLocation || (result.lat.toFixed(4) + ", " + result.lon.toFixed(4)));
+        note.classList.remove("d-none");
+      }
+
+      var distChips = document.getElementById("distanceChips");
+      if (distChips) {
+        distChips.classList.remove("d-none");
+        distChips.classList.add("d-inline-flex");
+      }
+
       renderResults();
     } else {
       btn.disabled = false;
       btn.textContent = "Use my location";
-      // Show a brief non-blocking note below the button
       var note = document.getElementById("locationNote");
       if (note) {
         note.textContent = result.message;
@@ -177,13 +227,47 @@ function wireLocationButton() {
   });
 }
 
+function wireResetButtons() {
+  const resetBtn = document.getElementById("resetFiltersBtn");
+  const emptyResetBtn = document.getElementById("emptyResetBtn");
+
+  function resetAllFilters() {
+    const searchInput = document.getElementById("searchInput");
+    if (searchInput) searchInput.value = "";
+    const typeSelect = document.getElementById("placeTypeSelect");
+    if (typeSelect) typeSelect.value = "";
+    vsActivePlaceType = "";
+    const priceSelect = document.getElementById("priceSelect");
+    if (priceSelect) priceSelect.value = "";
+    vsActivePriceRange = "";
+    vsActiveDietFilters = [];
+    document.querySelectorAll(".vs-filter-chip[data-diet]").forEach(function (c) {
+      c.classList.remove("active");
+    });
+    vsVerifiedOnly = false;
+    const vChip = document.getElementById("verifiedChip");
+    if (vChip) vChip.classList.remove("active");
+    vsActiveMaxDistance = null;
+    document.querySelectorAll(".vs-dist-chip").forEach(function (c) {
+      c.classList.remove("active");
+    });
+
+    renderResults();
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", resetAllFilters);
+  if (emptyResetBtn) emptyResetBtn.addEventListener("click", resetAllFilters);
+}
+
 function wireFilterChips() {
   document.querySelectorAll(".vs-filter-chip[data-diet]").forEach(function (chip) {
     chip.addEventListener("click", function () {
       const diet = chip.getAttribute("data-diet");
       chip.classList.toggle("active");
       if (chip.classList.contains("active")) {
-        vsActiveDietFilters.push(diet);
+        if (!vsActiveDietFilters.includes(diet)) {
+          vsActiveDietFilters.push(diet);
+        }
       } else {
         vsActiveDietFilters = vsActiveDietFilters.filter(function (d) { return d !== diet; });
       }
@@ -192,10 +276,27 @@ function wireFilterChips() {
   });
 
   const verifiedChip = document.getElementById("verifiedChip");
-  verifiedChip.addEventListener("click", function () {
-    vsVerifiedOnly = !vsVerifiedOnly;
-    verifiedChip.classList.toggle("active");
-    renderResults();
+  if (verifiedChip) {
+    verifiedChip.addEventListener("click", function () {
+      vsVerifiedOnly = !vsVerifiedOnly;
+      verifiedChip.classList.toggle("active");
+      renderResults();
+    });
+  }
+
+  document.querySelectorAll(".vs-dist-chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      const maxDist = Number(chip.getAttribute("data-max-dist"));
+      if (vsActiveMaxDistance === maxDist) {
+        vsActiveMaxDistance = null;
+        chip.classList.remove("active");
+      } else {
+        document.querySelectorAll(".vs-dist-chip").forEach(function (c) { c.classList.remove("active"); });
+        vsActiveMaxDistance = maxDist;
+        chip.classList.add("active");
+      }
+      renderResults();
+    });
   });
 }
 
@@ -249,6 +350,34 @@ function setToggleActive(activeId, inactiveId) {
   document.getElementById(inactiveId).classList.remove("btn-vs-primary");
 }
 
+export function matchesSearchTerm(place, term) {
+  if (!term || typeof term !== "string" || !term.trim()) return true;
+  const needle = term.trim().toLowerCase();
+
+  const searchParts = [
+    place.name,
+    place.address,
+    place.area,
+    place.city,
+    place.state,
+    place.postalCode,
+    place.placeType,
+    place.description,
+    place.dietNotes,
+    place.verificationNote,
+    place.veganClassification,
+    Array.isArray(place.dietTags) ? place.dietTags.join(" ") : "",
+    Array.isArray(place.evidenceRefs)
+      ? place.evidenceRefs.map(function (ref) {
+          return (ref.claim || "") + " " + (ref.excerpt || "");
+        }).join(" ")
+      : ""
+  ];
+
+  const haystack = searchParts.filter(Boolean).join(" ").toLowerCase();
+  return haystack.indexOf(needle) !== -1;
+}
+
 function getFilteredPlaces() {
   if (!vsAllPlaces) return []; // data hasn't loaded (or load failed) — nothing to filter
 
@@ -256,25 +385,43 @@ function getFilteredPlaces() {
 
   return vsAllPlaces.filter(function (place) {
     if (searchTerm) {
-      const haystack = (place.name + " " + place.area + " " + place.description).toLowerCase();
-      if (haystack.indexOf(searchTerm) === -1) return false;
+      if (!matchesSearchTerm(place, searchTerm)) return false;
     }
     if (vsActiveDietFilters.length > 0) {
       const hasAll = vsActiveDietFilters.every(function (d) {
         if (d === "vegan") return isVeganDietVerified(place);
-        return place.dietTags.indexOf(d) !== -1;
+        return Array.isArray(place.dietTags) && place.dietTags.indexOf(d) !== -1;
       });
       if (!hasAll) return false;
     }
     if (vsActivePlaceType && place.placeType !== vsActivePlaceType) return false;
     if (vsActivePriceRange && place.priceRange !== vsActivePriceRange) return false;
     if (vsVerifiedOnly && place.verificationStatus !== "verified") return false;
+    if (vsActiveMaxDistance && vsUserLocation) {
+      if (!isValidMapCoordinate(place.latitude, place.longitude)) return false;
+      const km = haversineKm(vsUserLocation, { lat: place.latitude, lon: place.longitude });
+      if (km > vsActiveMaxDistance) return false;
+    }
     return true;
   });
 }
 
 function renderResults() {
   if (!vsAllPlaces) return;
+
+  const searchTerm = document.getElementById("searchInput")?.value.trim() || "";
+  const resetBtn = document.getElementById("resetFiltersBtn");
+  if (resetBtn) {
+    const isFiltered = Boolean(
+      searchTerm ||
+      vsActivePlaceType ||
+      vsActivePriceRange ||
+      vsActiveDietFilters.length > 0 ||
+      vsVerifiedOnly ||
+      vsActiveMaxDistance !== null
+    );
+    resetBtn.classList.toggle("d-none", !isFiltered);
+  }
 
   // If the user has shared their location, sort by distance; otherwise use verification sort.
   var results = vsUserLocation
@@ -342,37 +489,77 @@ function isValidMapCoordinate(lat, lon) {
 }
 
 function renderMapMarkers(places) {
-  // Clears every marker currently in the group in one call — prevents stale
-  // markers accumulating on repeated filter/search changes.
+  // Clears every marker currently in the group in one call
   vsMarkersLayer.clearLayers();
 
   var validBounds = [];
 
+  // 1. If user location is active, pin user with distinctive marker
+  if (vsUserLocation && isValidMapCoordinate(vsUserLocation.lat, vsUserLocation.lon)) {
+    validBounds.push([vsUserLocation.lat, vsUserLocation.lon]);
+
+    var userIcon = typeof L !== "undefined" && typeof L.divIcon === "function" ? L.divIcon({
+      className: "vs-user-marker-wrap",
+      html: '<div style="background-color:#0284c7; width:22px; height:22px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 12px rgba(2,132,199,0.8); display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px;">📍</div>',
+      iconSize: [22, 22],
+      iconAnchor: [11, 11]
+    }) : undefined;
+
+    var userMarker = userIcon
+      ? L.marker([vsUserLocation.lat, vsUserLocation.lon], { icon: userIcon, zIndexOffset: 1000 })
+      : L.marker([vsUserLocation.lat, vsUserLocation.lon], { zIndexOffset: 1000 });
+
+    var userLocText = vsUserLocationDetails?.formattedLocation || (vsUserLocation.lat.toFixed(4) + ", " + vsUserLocation.lon.toFixed(4));
+    userMarker.bindPopup(
+      '<div style="min-width:180px;">' +
+      '<strong style="color:#0284c7;">📍 You Are Here</strong><br>' +
+      '<small class="text-muted-vs">' + escapeHtml(userLocText) + '</small>' +
+      '</div>'
+    );
+    userMarker.bindTooltip("Your location (" + escapeHtml(userLocText) + ")", { permanent: false, direction: "top" });
+    vsMarkersLayer.addLayer(userMarker);
+  }
+
+  // 2. Add each place marker with place name on map, road, area, details
   places.forEach(function (place) {
     if (!isValidMapCoordinate(place.latitude, place.longitude)) {
-      // Skip only this marker; every other valid place still renders.
-      console.warn(
-        "VeganSaathi Explore: skipping map marker for \"" + place.name + "\" (id: " + place.id + ") — " +
-        "coordinates (" + place.latitude + ", " + place.longitude + ") are missing or outside valid global ranges."
-      );
       return;
     }
 
     validBounds.push([place.latitude, place.longitude]);
     var marker = L.marker([place.latitude, place.longitude]);
+
+    var locDetails = [place.area, place.city].filter(Boolean).join(", ");
+    var distText = vsUserLocation
+      ? '<div class="mt-1"><span class="badge bg-light text-success border">~' + escapeHtml(formatDistance(haversineKm(vsUserLocation, { lat: place.latitude, lon: place.longitude }))) + ' away</span></div>'
+      : '';
+
+    if (typeof marker.bindTooltip === "function") {
+      marker.bindTooltip("<strong>" + escapeHtml(place.name) + "</strong>", { permanent: false, direction: "top" });
+    }
+
     marker.bindPopup(
-      "<strong>" + escapeHtml(place.name) + "</strong><br>" +
-      escapeHtml(capitalize(place.placeType)) + "<br>" +
-      '<a href="' + escapeHtml(placeDetailsUrl(place.id)) + '">View details</a>'
+      '<div style="min-width:200px; padding:2px;">' +
+      '<h4 style="font-size:1.02rem; margin-bottom:0.25rem; font-weight:700; color:var(--vs-green-900);">' + escapeHtml(place.name) + '</h4>' +
+      '<div class="mb-1" style="font-size:0.82rem; color:#4a5568;">' +
+      (locDetails ? '<div class="fw-semibold text-dark">📍 ' + escapeHtml(locDetails) + '</div>' : '') +
+      '<div class="text-muted-vs" style="font-size:0.78rem;">' + escapeHtml(place.address) + '</div>' +
+      '</div>' +
+      '<div class="my-1.5">' + renderPlaceDietBadges(place) + '</div>' +
+      distText +
+      '<div class="mt-2 pt-1 border-top d-flex justify-content-between align-items-center gap-2">' +
+      '<a href="' + escapeHtml(placeDetailsUrl(place.id)) + '" class="btn btn-vs-primary btn-sm py-1 px-2" style="font-size:0.78rem;">View Details →</a>' +
+      '<a href="https://www.google.com/maps/search/?api=1&query=' + place.latitude + ',' + place.longitude + '" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;">Directions ↗</a>' +
+      '</div>' +
+      '</div>'
     );
     vsMarkersLayer.addLayer(marker);
   });
 
-  // Fit the map to the markers so all results are visible.
-  // Only call fitBounds when there are valid coordinates to fit to.
+  // Fit the map to the markers so all results are visible
   if (validBounds.length > 0 && vsMap && typeof vsMap.fitBounds === "function") {
     try {
-      vsMap.fitBounds(validBounds, { padding: [30, 30], maxZoom: 15 });
+      vsMap.fitBounds(validBounds, { padding: [35, 35], maxZoom: 15 });
     } catch (err) {
       console.warn("VeganSaathi: fitBounds failed", err);
     }

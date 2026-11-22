@@ -10,6 +10,21 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="css/styles.css" rel="stylesheet">
 <script>window.VS_BASE = ""; window.VS_ACTIVE_PAGE = "";</script>
+<link rel="canonical" href="https://vegansaathi-88d2f.web.app/profile.html">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2D6A4F">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VeganSaathi">
+<meta property="og:title" content="My Profile — VeganSaathi">
+<meta property="og:description" content="Manage your VeganSaathi profile.">
+<meta property="og:url" content="https://vegansaathi-88d2f.web.app/profile.html">
+<meta property="og:image" content="https://vegansaathi-88d2f.web.app/icons/icon-512.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="My Profile — VeganSaathi">
+<meta name="twitter:description" content="Manage your VeganSaathi profile.">
 </head>
 <body>
 
@@ -53,12 +68,13 @@
       <div class="col-lg-4">
         <div class="vs-card p-4">
           <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width:52px; height:52px; background-color:var(--vs-green-100); font-size:1.6rem; color:var(--vs-green-800);">
-              👤
+            <div id="profileAvatarContainer" class="d-inline-flex align-items-center justify-content-center rounded-circle overflow-hidden shadow-sm" style="width:60px; height:60px; background-color:var(--vs-green-100); font-size:1.8rem; color:var(--vs-green-800); border:2px solid var(--vs-green-200);">
+              <span id="profileAvatarFallback">👤</span>
+              <img id="profileAvatarImg" src="" alt="Profile picture" class="d-none w-100 h-100" style="object-fit:cover;" />
             </div>
             <div>
               <span class="text-muted-vs" style="font-size:0.75rem; text-transform:uppercase; font-weight:700; letter-spacing:0.03em;">Account Overview</span>
-              <h2 class="h5 mb-0" style="color:var(--vs-text);">Community Member</h2>
+              <h2 class="h5 mb-0" id="profileHeadingName" style="color:var(--vs-text);">Community Member</h2>
             </div>
           </div>
 
@@ -76,7 +92,7 @@
             <dd id="profileSince" class="mb-0 text-muted-vs"></dd>
           </dl>
 
-          <button type="button" class="btn btn-vs-outline btn-sm w-100" disabled title="Profile editing is planned for a later phase">Edit Profile</button>
+          <button type="button" class="btn btn-vs-outline btn-sm w-100" id="openEditProfileBtn">✏️ Edit Profile</button>
         </div>
 
         <div class="mt-3 p-3 rounded-3 bg-white border d-flex align-items-center gap-3">
@@ -120,6 +136,63 @@
     <div id="profileError" class="vs-form-note mt-3 d-none" style="background-color:#fbeaea;border-color:#f0c3c3;color:#8a2f2f;"></div>
   </div>
 </section>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="editProfileForm" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title h6 mb-0" id="editProfileModalLabel">✏️ Edit Community Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="editProfileName" class="form-label fw-semibold">Your Display Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="editProfileName" required minlength="2" maxlength="80">
+          </div>
+          <div class="mb-3">
+            <label for="editProfileDiet" class="form-label fw-semibold">Dietary Preference <span class="text-danger">*</span></label>
+            <select id="editProfileDiet" class="form-select">
+              <option value="vegan">🌱 Vegan (100% plant-based)</option>
+              <option value="vegetarian">🥗 Vegetarian (Plant-based + dairy)</option>
+              <option value="jain">🌿 Jain Vegetarian (No root veggies)</option>
+              <option value="eggetarian">🥚 Eggetarian (Vegetarian + eggs)</option>
+              <option value="unspecified">Unspecified / Curious</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Profile Picture / Avatar</label>
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <div id="editAvatarPreview" class="rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-light border shadow-sm" style="width:56px; height:56px; font-size:1.6rem;">
+                <span id="editAvatarPreviewEmoji">🌱</span>
+                <img id="editAvatarPreviewImg" src="" class="d-none w-100 h-100" style="object-fit:cover;" alt="Avatar preview" />
+              </div>
+              <div class="flex-grow-1">
+                <input type="url" class="form-control form-control-sm mb-1" id="editProfilePhotoUrl" placeholder="Paste direct image URL or choose a badge below">
+                <div class="text-muted-vs" style="font-size:0.75rem;">Enter image URL or select a botanical badge:</div>
+              </div>
+            </div>
+            <!-- Preset Botanical Avatars -->
+            <div class="d-flex gap-2 flex-wrap pt-1" id="presetAvatarOptions">
+              <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-avatar-preset" data-avatar="🌱">🌱 Sprout</button>
+              <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-avatar-preset" data-avatar="🌿">🌿 Herb</button>
+              <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-avatar-preset" data-avatar="🍀">🍀 Clover</button>
+              <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-avatar-preset" data-avatar="🌸">🌸 Lotus</button>
+              <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-avatar-preset" data-avatar="🌻">🌻 Sunflower</button>
+              <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-avatar-preset" data-avatar="🥑">🥑 Avocado</button>
+            </div>
+          </div>
+          <div id="editProfileAlert" class="alert alert-danger d-none py-2 mb-0" style="font-size:0.85rem;"></div>
+        </div>
+        <div class="modal-footer py-2">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-vs-primary px-3" id="saveProfileBtn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <div id="footer-placeholder"></div>
 

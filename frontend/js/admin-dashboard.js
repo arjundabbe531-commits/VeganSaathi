@@ -29,6 +29,9 @@ import {
 let currentPlacesCache = {};
 let activeAdminUser = null;
 let editModalInstance = null;
+let chartDietInstance = null;
+let chartTypeInstance = null;
+let chartHealthInstance = null;
 
 function showSection(id) {
   const el = document.getElementById(id);
@@ -135,22 +138,166 @@ async function handleAuthState(user) {
   }
 }
 
-/* ---------------- Overview Stats ---------------- */
+/* ---------------- Overview Stats & Analytics Charts ---------------- */
+
+function renderAnalyticsCharts(places, stats) {
+  if (typeof Chart === "undefined") return;
+
+  const validPlaces = Array.isArray(places) ? places : [];
+
+  // 1. Dietary Breakdown
+  const dietCounts = { vegan: 0, vegetarian: 0, jain: 0, eggetarian: 0 };
+  validPlaces.forEach(p => {
+    if (Array.isArray(p.dietTags)) {
+      if (p.dietTags.includes("vegan")) dietCounts.vegan++;
+      if (p.dietTags.includes("vegetarian")) dietCounts.vegetarian++;
+      if (p.dietTags.includes("jain")) dietCounts.jain++;
+      if (p.dietTags.includes("eggetarian")) dietCounts.eggetarian++;
+    }
+  });
+
+  const dietCtx = document.getElementById("chartDietDistribution");
+  if (dietCtx) {
+    if (chartDietInstance) chartDietInstance.destroy();
+    chartDietInstance = new Chart(dietCtx, {
+      type: "doughnut",
+      data: {
+        labels: ["Vegan", "Vegetarian", "Jain", "Eggetarian"],
+        datasets: [{
+          data: [
+            dietCounts.vegan,
+            dietCounts.vegetarian,
+            dietCounts.jain,
+            dietCounts.eggetarian
+          ],
+          backgroundColor: ["#1e824c", "#2f6b3f", "#c05621", "#b26a00"],
+          borderWidth: 2,
+          borderColor: "#ffffff"
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } }
+        }
+      }
+    });
+  }
+
+  // 2. Establishments by Type
+  const typeCounts = { restaurant: 0, mess: 0, cafe: 0, canteen: 0, dhaba: 0, bakery: 0, dessert: 0, shop: 0 };
+  validPlaces.forEach(p => {
+    if (p.placeType && typeCounts[p.placeType] !== undefined) {
+      typeCounts[p.placeType]++;
+    }
+  });
+
+  const typeCtx = document.getElementById("chartTypeDistribution");
+  if (typeCtx) {
+    if (chartTypeInstance) chartTypeInstance.destroy();
+    chartTypeInstance = new Chart(typeCtx, {
+      type: "bar",
+      data: {
+        labels: ["Restaurant", "Mess", "Cafe", "Canteen", "Dhaba", "Bakery", "Dessert", "Shop"],
+        datasets: [{
+          label: "Places",
+          data: [
+            typeCounts.restaurant,
+            typeCounts.mess,
+            typeCounts.cafe,
+            typeCounts.canteen,
+            typeCounts.dhaba,
+            typeCounts.bakery,
+            typeCounts.dessert,
+            typeCounts.shop
+          ],
+          backgroundColor: "#3a7d4c",
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } },
+          x: { ticks: { font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  // 3. Verification Health
+  let verifiedFresh = 0;
+  let recheckDue = 0;
+  validPlaces.forEach(p => {
+    if (p.verificationStatus === "verified") {
+      if (isOlderThan90Days(p.lastVerifiedAt)) recheckDue++;
+      else verifiedFresh++;
+    }
+  });
+  const pending = stats?.pendingPlaces || 0;
+  const reports = stats?.openReports || 0;
+
+  const healthCtx = document.getElementById("chartVerificationHealth");
+  if (healthCtx) {
+    if (chartHealthInstance) chartHealthInstance.destroy();
+    chartHealthInstance = new Chart(healthCtx, {
+      type: "pie",
+      data: {
+        labels: ["Fresh Verified", "Re-Check Due", "Pending Review", "Open Reports"],
+        datasets: [{
+          data: [
+            verifiedFresh,
+            recheckDue,
+            pending,
+            reports
+          ],
+          backgroundColor: ["#2f6b3f", "#f59e0b", "#6366f1", "#ef4444"],
+          borderWidth: 2,
+          borderColor: "#ffffff"
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } }
+        }
+      }
+    });
+  }
+}
 
 async function loadOverviewStats() {
   const res = await fetchAdminOverviewStats();
+  let pubPlaces = [];
+  try {
+    const pubRes = await fetchPublishedPlacesForAdmin();
+    if (pubRes && pubRes.status === "ok") {
+      pubPlaces = pubRes.places || [];
+    }
+  } catch (e) {
+    // Graceful fallback
+  }
+
   if (res.status === "ok" && res.stats) {
     document.getElementById("statPending").textContent = res.stats.pendingPlaces;
     document.getElementById("statPublished").textContent = res.stats.publishedPlaces;
     document.getElementById("statReports").textContent = res.stats.openReports;
     document.getElementById("statReviews").textContent = res.stats.totalReviews;
     document.getElementById("statUsers").textContent = res.stats.totalUsers;
+    renderAnalyticsCharts(pubPlaces, res.stats);
   } else {
     document.getElementById("statPending").textContent = "—";
     document.getElementById("statPublished").textContent = "—";
     document.getElementById("statReports").textContent = "—";
     document.getElementById("statReviews").textContent = "—";
     document.getElementById("statUsers").textContent = "—";
+    renderAnalyticsCharts(pubPlaces, null);
   }
 }
 

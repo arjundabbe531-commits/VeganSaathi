@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Indian Ingredient &amp; Additives Compass — VeganSaathi</title>
+  <meta name="description" content="Interactive guide to hidden animal ingredients, traditional sweets, and dairy fats in Indian and Maharashtra dining, with exact ordering advice in Marathi and English." />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+<link rel="canonical" href="https://vegansaathi-88d2f.web.app/awareness/ingredient-checker.html">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#2D6A4F">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VeganSaathi">
+<meta property="og:title" content="Ingredient Checker — VeganSaathi">
+<meta property="og:description" content="Check if ingredients in your food are vegan-friendly.">
+<meta property="og:url" content="https://vegansaathi-88d2f.web.app/awareness/ingredient-checker.html">
+<meta property="og:image" content="https://vegansaathi-88d2f.web.app/icons/icon-512.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ingredient Checker — VeganSaathi">
+<meta name="twitter:description" content="Check if ingredients in your food are vegan-friendly.">
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <main id="main-content" class="py-5 bg-vs-surface">
+    <div class="container">
+      <!-- Breadcrumb & Hero -->
+      <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="../index.html">Home</a></li>
+          <li class="breadcrumb-item"><a href="what-is-veganism.html">Awareness</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Ingredient Compass</li>
+        </ol>
+      </nav>
+
+      <!-- Awareness Sub-Navigation -->
+      <div id="awareness-nav-placeholder" class="mb-4"></div>
+
+      <!-- Page Header -->
+      <div class="card border-0 rounded-4 p-4 p-md-5 mb-4 shadow-sm text-white" style="background: linear-gradient(135deg, #1b3d2f 0%, #2e6245 100%);">
+        <div class="row align-items-center">
+          <div class="col-lg-8">
+            <span class="badge bg-white bg-opacity-25 text-white mb-2 px-3 py-1.5 rounded-pill fs-xs">
+              आहार मार्गदर्शक &bull; Indian Dietary Compass
+            </span>
+            <h1 class="display-6 fw-bold mb-3" style="letter-spacing:-0.02em;">Can I Eat This? Indian Ingredient Compass</h1>
+            <p class="lead mb-0 text-white-50" style="font-size:1.05rem; line-height:1.6;">
+              Confused whether a traditional sweet, gravy, or E-number contains dairy, ghee, or hidden animal products? Search our Maharashtra-focused directory to order confidently with verified Marathi phrases.
+            </p>
+          </div>
+          <div class="col-lg-4 text-center mt-4 mt-lg-0">
+            <div class="p-3 bg-white bg-opacity-10 rounded-4 border border-white border-opacity-15">
+              <div class="display-5 mb-1">🧭</div>
+              <div class="fw-bold">100% Free &amp; Community-Led</div>
+              <div class="small text-white-50">Evidence-based Indian foodway checks</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search & Filter Controls -->
+      <div class="card border rounded-4 p-3 p-md-4 mb-4 shadow-sm bg-white">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-7">
+            <label for="ingredientSearchInput" class="form-label small fw-semibold text-muted mb-1">Search Ingredient, Dish, Marathi Name or E-Number</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0">🔍</span>
+              <input type="search" id="ingredientSearchInput" class="form-control border-start-0 ps-0" placeholder="e.g., Ghee, Vark, Naan, Paneer, Dahi, E904, खवा..." aria-label="Search ingredients" />
+            </div>
+          </div>
+          <div class="col-md-5">
+            <label for="ingredientStatusSelect" class="form-label small fw-semibold text-muted mb-1">Filter by Status</label>
+            <select id="ingredientStatusSelect" class="form-select" aria-label="Filter ingredients by status">
+              <option value="all">All Classifications</option>
+              <option value="non-vegan">🔴 Non-Vegan / Animal-Derived</option>
+              <option value="caution">🟡 Caution / Check Prep</option>
+              <option value="vegan-safe">🟢 100% Plant-Based Safe</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Category Pills -->
+        <div class="mt-3 pt-3 border-top d-flex flex-wrap gap-2 align-items-center" id="categoryPills"></div>
+      </div>
+
+      <!-- Results Header -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0 text-dark">Directory Results</h5>
+        <span class="text-muted-vs small" id="matchCount">Loading items...</span>
+      </div>
+
+      <!-- Ingredient Grid -->
+      <div class="row g-4" id="ingredientGrid"></div>
+
+      <!-- Educational Disclaimer -->
+      <div class="card border-0 bg-light rounded-4 p-4 mt-5 text-muted-vs small">
+        <h6 class="fw-bold text-dark mb-2">🛡️ Community Dietary Disclaimer</h6>
+        <p class="mb-0">
+          This compass is an educational resource developed for the VeganSaathi community in Maharashtra. Traditional recipes and street preparations vary widely across regions, households, and sweetmakers. When in doubt at restaurants or pilgrimage dining halls (प्रसाहालय), always politely verify the cooking medium with the kitchen chef or manager using our provided ordering phrases.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    window.VS_AWARENESS_SUBPAGE = "ingredient-checker";
+  </script>
+  <script type="module" src="../js/components.js"></script>
+  <script type="module" src="../js/ingredient-checker.js"></script>
+</body>
+</html>

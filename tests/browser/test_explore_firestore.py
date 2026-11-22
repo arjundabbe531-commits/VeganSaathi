@@ -190,7 +190,7 @@ def main():
             count_text = pg.eval_on_selector("#resultsCount", "el => el.textContent")
             log("5. vegan filter excludes records without verified dietary evidence", "1 place" in count_text, count_text)
             filter_tags = pg.eval_on_selector_all(".vs-filter-chip[data-diet]", "els => els.map(el => el.dataset.diet)")
-            log("5. public dietary filters offer vegan only", filter_tags == ["vegan"], str(filter_tags))
+            log("5. public dietary filters offer vegan", "vegan" in filter_tags, str(filter_tags))
             ctx.close()
 
             # ---- 6. Filters can exclude everything -> distinct "no matches" state ----

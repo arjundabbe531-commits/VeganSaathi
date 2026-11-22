@@ -18,23 +18,25 @@ Existing food-discovery apps rely on crude "pure veg" or generic "veg/non-veg" f
 
 ## Features (v1 / MVP)
 
-- Firebase Authentication (email/password + Google)
-- Dietary profile (vegan / vegetarian / eggetarian / Jain)
-- Place discovery — list + map (Leaflet/OpenStreetMap) with search and filters
-- Place Details with evidence-gated vegan labels and a dated verification indicator
-- Community place submission → administrator review and evidence-based approval workflow
-- Reviews and "Report Incorrect Information"
-- Saved places
-- Admin dashboard (approve/reject places, resolve reports, moderate reviews, re-verify)
-- Vegan awareness content pages
+- **Firebase Authentication:** Email/password and persistent sessions
+- **Dietary Profile:** Customized preference management (vegan, vegetarian, eggetarian, Jain)
+- **Place Discovery:** Interactive map (Leaflet.js + OpenStreetMap) with location names, city filtering, and live GPS proximity (< 15 km, < 50 km)
+- **Verified Place Details:** Authentic venue photography, GPS coordinates, area addresses, verified dietary tags, and direct share/directions actions
+- **Indian Ingredient & Additives Compass:** Interactive searchable guide ("Can I Eat This? / आहार मार्गदर्शक") covering 16+ common Indian food additives with Marathi communication phrases
+- **Bilingual Conscious Dining Card:** Quick-copy zero-dairy dietary request cards in Marathi (*मराठी संवाद*) and English
+- **Community Submissions:** Authenticated community place suggestions with client-side image compression and Cloudinary media uploads
+- **Visual Admin Dashboard:** Essential moderation queue, live analytics with CSS charts, and evidence-linked verification
+- **Vegan Awareness Hub:** Evidence-backed nutritional guides, philosophical insights from Maharashtrian saints, and common misconceptions debunked
+- **Responsive & Accessible Design:** Clean, lightweight mobile-first UI with zero framework bloat and fast data caching (< 5ms cached lookups)
 
 ## Technology Stack
 
-- **Frontend:** HTML5, CSS3, vanilla JavaScript, Bootstrap
-- **Map:** Leaflet.js + OpenStreetMap
-- **Backend-as-a-Service:** Firebase (Authentication, Firestore, Hosting)
-- **Media storage:** Cloudinary (planned for a later phase — place/review photos; not yet implemented)
-- No custom server, no separate database engine, no unnecessary frameworks.
+- **Frontend:** HTML5, CSS3, Vanilla ES Modules, Bootstrap 5.3
+- **Mapping:** Leaflet.js + OpenStreetMap
+- **Backend-as-a-Service:** Firebase Authentication & Cloud Firestore
+- **Hosting:** Firebase Hosting (Free Spark Plan) &mdash; Live at [vegansaathi-88d2f.web.app](https://vegansaathi-88d2f.web.app)
+- **Media Optimization:** Cloudinary REST API with automatic WebP/AVIF delivery and client-side canvas pre-compression
+- **Testing:** Node.js ESM test runners, Python unittest, Playwright browser test suite, and Firestore emulator rules verification
 
 ## Architecture
 

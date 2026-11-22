@@ -255,6 +255,8 @@ export function normalizePlace(rawDoc) {
   const dietNotes = isNonEmptyString(data.dietNotes) ? data.dietNotes.trim() : "";
   const priceRange = isNonEmptyString(data.priceRange) ? data.priceRange : "Price not listed";
   const openingInfo = isNonEmptyString(data.openingInfo) ? data.openingInfo.trim() : "";
+  const phone = isNonEmptyString(data.phone) ? data.phone.trim() : "";
+  const website = isNonEmptyString(data.website) ? data.website.trim() : "";
   const verificationNote = isNonEmptyString(data.verificationNote) ? data.verificationNote.trim() : "";
   const imageUrl = isNonEmptyString(data.imageUrl) ? data.imageUrl : null;
 
@@ -287,6 +289,8 @@ export function normalizePlace(rawDoc) {
     dietNotes: dietNotes,
     priceRange: priceRange,
     openingInfo: openingInfo,
+    phone: phone,
+    website: website,
     imageUrl: imageUrl,
     status: data.status,
     verificationStatus: data.verificationStatus,
@@ -332,14 +336,21 @@ export function invalidatePublishedPlacesCache() {
       // Ignore storage access errors
     }
   }
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.removeItem(PLACES_SESSION_CACHE_KEY);
+    } catch (e) {
+      // Ignore storage access errors
+    }
+  }
 }
 
 export async function fetchPublishedPlaces(options) {
   const forceRefresh = options && options.forceRefresh === true;
 
-  // In Node test runner environments where stub docs are configured, bypass caching
+  // In test runner environments where stub docs are configured, bypass caching
   const isStubEnvironment = typeof globalThis !== "undefined" &&
-    (globalThis.__STUB_DOCS__ !== undefined || globalThis.__STUB_THROW__ !== undefined || typeof window === "undefined");
+    (globalThis.__STUB_DOCS__ !== undefined || globalThis.__STUB_THROW__ !== undefined || (typeof window !== "undefined" && window.__STUB_PLACES_DOCS__ !== undefined) || typeof window === "undefined");
 
   if (!forceRefresh && !isStubEnvironment) {
     const now = Date.now();
@@ -358,7 +369,22 @@ export async function fetchPublishedPlaces(options) {
           }
         }
       } catch (e) {
-        // Fall back to network read
+        // Fall back
+      }
+    }
+
+    if (typeof localStorage !== "undefined") {
+      try {
+        const storedLocal = localStorage.getItem(PLACES_SESSION_CACHE_KEY);
+        if (storedLocal) {
+          const parsedLocal = JSON.parse(storedLocal);
+          if (parsedLocal && (now - parsedLocal.timestamp < PUBLISHED_PLACES_CACHE_TTL_MS * 2) && Array.isArray(parsedLocal.places)) {
+            inMemoryPublishedPlacesCache = parsedLocal;
+            return { status: "ok", places: parsedLocal.places, fromCache: true };
+          }
+        }
+      } catch (e) {
+        // Fall back
       }
     }
   }
@@ -388,6 +414,13 @@ export async function fetchPublishedPlaces(options) {
     if (typeof sessionStorage !== "undefined") {
       try {
         sessionStorage.setItem(PLACES_SESSION_CACHE_KEY, JSON.stringify(inMemoryPublishedPlacesCache));
+      } catch (e) {
+        // Ignore storage exceptions
+      }
+    }
+    if (typeof localStorage !== "undefined") {
+      try {
+        localStorage.setItem(PLACES_SESSION_CACHE_KEY, JSON.stringify(inMemoryPublishedPlacesCache));
       } catch (e) {
         // Ignore storage exceptions
       }

@@ -25,6 +25,7 @@ function renderNavbar(activePage, user, isAdmin) {
     { key: "home", label: "Home", href: base + "index.html" },
     { key: "explore", label: "Explore", href: base + "explore.html" },
     { key: "alternatives", label: "Alternatives", href: base + "alternatives/index.html" },
+    { key: "compass", label: "Compass", href: base + "awareness/ingredient-checker.html" },
     { key: "awareness", label: "Awareness", href: base + "awareness/what-is-veganism.html" }
   ];
 
@@ -41,19 +42,26 @@ function renderNavbar(activePage, user, isAdmin) {
     ? '<a href="' + base + 'admin/dashboard.html" class="btn btn-warning btn-sm me-2 text-dark" style="font-weight:600;">Admin</a>'
     : '';
 
+  const diningCardBtnHtml = '<button type="button" id="openNavDiningCardBtn" class="btn btn-outline-success btn-sm me-2 py-1 px-2" style="font-size:0.75rem;" title="Bilingual dining card for ordering in Maharashtra">📋 Dining Card</button>';
+  const langToggleHtml = '<button type="button" id="langToggleBtn" class="btn btn-outline-secondary btn-sm me-2 py-1 px-2" style="font-size:0.75rem;" title="मराठी / English भाषा बदला">🌐 EN | मराठी</button>';
+
   const authHtml = user
     ? adminBtnHtml +
+      diningCardBtnHtml +
+      langToggleHtml +
       '<a href="' + base + 'profile.html" class="btn btn-vs-outline btn-sm me-2">Profile</a>' +
       '<button type="button" id="navLogoutBtn" class="btn btn-vs-primary btn-sm">Logout</button>'
-    : '<a href="' + base + 'login.html" class="btn btn-vs-outline btn-sm me-2">Login</a>' +
+    : diningCardBtnHtml +
+      langToggleHtml +
+      '<a href="' + base + 'login.html" class="btn btn-vs-outline btn-sm me-2">Login</a>' +
       '<a href="' + base + 'register.html" class="btn btn-vs-primary btn-sm">Register</a>';
 
   el.innerHTML =
     '<nav class="navbar navbar-expand-lg vs-navbar sticky-top">' +
     '<div class="container">' +
-    '<a class="navbar-brand" href="' + base + 'index.html">' +
-    '<span>🌿 VeganSaathi</span>' +
-    '<span class="navbar-brand-badge d-none d-sm-inline">Maharashtra</span>' +
+    '<a class="navbar-brand d-inline-flex align-items-center" href="' + base + 'index.html">' +
+    '<span class="vs-brand-icon me-1.5" style="font-size:1.35rem; filter:drop-shadow(0 1px 2px rgba(47,107,63,0.3));">🌱</span>' +
+    '<span class="vs-brand-title fw-bold" style="letter-spacing:-0.03em; font-size:1.28rem; color:var(--vs-green-900);">Vegan<span style="color:var(--vs-green-600); font-weight:800;">Saathi</span></span>' +
     '</a>' +
     '<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#vsNavCollapse" aria-controls="vsNavCollapse" aria-expanded="false" aria-label="Toggle navigation">' +
     '<span class="navbar-toggler-icon"></span></button>' +
@@ -74,38 +82,57 @@ function renderFooter() {
     '<div class="container">' +
     '<div class="row g-4">' +
     '<div class="col-md-4">' +
-    "<h5>VeganSaathi</h5>" +
-    '<p class="text-muted-vs" style="color:#c8d3c0;">Connecting people. Promoting veganism. ' +
-    "Community-verified vegan food discovery and plant-based awareness \u2014 built for Maharashtra and beyond, open to all.</p>" +
+    '<div class="d-flex align-items-center gap-2 mb-2">' +
+    '<span style="font-size:1.4rem;">🌱</span>' +
+    '<h5 class="mb-0 text-white fw-bold" style="letter-spacing:-0.02em;">VeganSaathi</h5>' +
+    '</div>' +
+    '<p class="text-muted-vs" style="color:#c8d3c0; font-size:0.9rem; line-height:1.6;">' +
+    "Community-led discovery platform for conscious, ethical, and plant-based dining. " +
+    "Empowering individuals, families, and travellers with transparent, evidence-checked foodways across Maharashtra and India.</p>" +
+    '<div class="d-flex flex-wrap gap-2 mt-3">' +
+    '<span class="badge border border-success text-success bg-white" style="font-size:0.75rem;">🛡️ Transparent Verification</span>' +
+    '<span class="badge border border-success text-success bg-white" style="font-size:0.75rem;">🌱 100% Non-Profit</span>' +
+    '</div>' +
     "</div>" +
     '<div class="col-6 col-md-2">' +
-    "<h5>Explore</h5><ul class=\"list-unstyled\">" +
-    '<li><a href="' + base + 'explore.html">Find places</a></li>' +
-    '<li><a href="' + base + 'alternatives/index.html">Vegan alternatives</a></li>' +
-    '<li><a href="' + base + 'submit-place.html">Submit a place</a></li>' +
-    '<li><a href="' + base + 'saved.html">Saved places</a></li>' +
+    "<h5>Discovery</h5><ul class=\"list-unstyled\">" +
+    '<li><a href="' + base + 'explore.html">Find Places</a></li>' +
+    '<li><a href="' + base + 'explore.html?diet=vegan">100% Vegan Venues</a></li>' +
+    '<li><a href="' + base + 'explore.html?diet=jain">Jain-Friendly Dining</a></li>' +
+    '<li><a href="' + base + 'alternatives/index.html">Plant-Based Alternatives</a></li>' +
+    '<li><a href="' + base + 'awareness/ingredient-checker.html">Ingredient Compass</a></li>' +
+    '<li><a href="#" class="vs-dining-card-trigger">Bilingual Dining Card</a></li>' +
+    '<li><a href="' + base + 'saved.html">Saved Bookmarks</a></li>' +
     "</ul></div>" +
     '<div class="col-6 col-md-2">' +
-    "<h5>Awareness</h5><ul class=\"list-unstyled\">" +
-    '<li><a href="' + base + 'awareness/what-is-veganism.html">What is veganism?</a></li>' +
-    '<li><a href="' + base + 'awareness/vegetarian-vs-vegan.html">Vegetarian vs vegan</a></li>' +
-    '<li><a href="' + base + 'awareness/misconceptions.html">Misconceptions</a></li>' +
-    '<li><a href="' + base + 'awareness/getting-started.html">Getting started</a></li>' +
-    '<li><a href="' + base + 'awareness/plant-based-indian-foods.html">Indian plant foods</a></li>' +
-    '<li><a href="' + base + 'awareness/faq.html">Student FAQ</a></li>' +
+    "<h5>Knowledge Hub</h5><ul class=\"list-unstyled\">" +
+    '<li><a href="' + base + 'awareness/what-is-veganism.html">What is Veganism?</a></li>' +
+    '<li><a href="' + base + 'awareness/vegetarian-vs-vegan.html">Vegetarian vs Vegan</a></li>' +
+    '<li><a href="' + base + 'awareness/plant-based-indian-foods.html">Indian Plant Foods</a></li>' +
+    '<li><a href="' + base + 'awareness/misconceptions.html">Common Misconceptions</a></li>' +
+    '<li><a href="' + base + 'awareness/getting-started.html">Getting Started Guide</a></li>' +
+    '<li><a href="' + base + 'awareness/faq.html">Community FAQ</a></li>' +
     "</ul></div>" +
     '<div class="col-6 col-md-2">' +
-    "<h5>About</h5><ul class=\"list-unstyled\">" +
-    "<li>VeganSaathi — Community Project</li>" +
-    "<li>Maharashtra, India</li>" +
+    "<h5>Community &amp; Ethics</h5><ul class=\"list-unstyled\">" +
+    '<li><a href="' + base + 'awareness/what-is-veganism.html#spiritual-roots">Spiritual Heritage &amp; Saints</a></li>' +
+    '<li><a href="' + base + 'awareness/what-is-veganism.html#compassion">Ahimsa &amp; Karuna Values</a></li>' +
+    '<li><span style="color:#b5c7b3;">Maharashtra, India</span></li>' +
     "</ul></div>" +
     '<div class="col-6 col-md-2">' +
-    "<h5>Contact</h5><ul class=\"list-unstyled\">" +
-    '<li><a href="mailto:vegansaathi@gmail.com">Email Team</a></li>' +
-    '<li><a href="https://github.com/arjundabbe531-commits/VeganSaathi" target="_blank" rel="noopener noreferrer">GitHub Project</a></li>' +
+    "<h5>Get Involved</h5><ul class=\"list-unstyled\">" +
+    '<li><a href="' + base + 'register.html">Join Community</a></li>' +
+    '<li><a href="mailto:vegansaathi@gmail.com">Contact Editorial Team</a></li>' +
+    '<li><a href="https://github.com/arjundabbe531-commits/VeganSaathi" target="_blank" rel="noopener noreferrer">Open Source Repository</a></li>' +
     "</ul></div>" +
     "</div>" +
-    '<div class="vs-footer__bottom">&copy; 2026 VeganSaathi — An independent community discovery project. Open-source and non-commercial.</div>' +
+    '<div class="vs-footer__bottom d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">' +
+    '<div>&copy; 2026 VeganSaathi Community Portal. Created for civic good and conscious living. Open-access and independent.</div>' +
+    '<div class="d-flex flex-wrap gap-2 text-muted" style="font-size:0.78rem;">' +
+    '<span>Maharashtra &bull; India</span>' +
+    '<span>Pure Compassion (अहिंसा परमो धर्म:)</span>' +
+    '</div>' +
+    '</div>' +
     "</div></footer>";
 }
 
@@ -121,7 +148,7 @@ function renderAwarenessNav(activeSubPage) {
     { key: "misconceptions", label: "Misconceptions", href: base + "awareness/misconceptions.html" },
     { key: "getting-started", label: "Getting Started", href: base + "awareness/getting-started.html" },
     { key: "plant-based-indian-foods", label: "Indian Plant Foods", href: base + "awareness/plant-based-indian-foods.html" },
-    { key: "faq", label: "Student FAQ", href: base + "awareness/faq.html" }
+    { key: "faq", label: "Community FAQ", href: base + "awareness/faq.html" }
   ];
 
   const pillsHtml = topics.map(function (t) {
@@ -280,6 +307,39 @@ function renderPlaceDietBadges(place) {
   return label ? '<span class="vs-badge vs-badge-vegan">🌿 ' + label + "</span>" : "";
 }
 
+function renderDietBadgesDetailed(place) {
+  if (!place || !Array.isArray(place.dietTags)) return "";
+  const badges = [];
+
+  // Vegan tier (evidence-gated)
+  if (isVeganDietVerified(place)) {
+    const labels = {
+      fully_vegan: "🌱 100% Fully Vegan Venue",
+      vegan_friendly: "🌿 Vegan-Friendly Options Available",
+      verified_vegan_options: "✨ Verified Vegan Options on Menu"
+    };
+    const label = labels[place.veganClassification] || "🌱 Verified Vegan";
+    badges.push('<span class="vs-badge vs-badge-vegan me-1 mb-1">' + escapeHtml(label) + "</span>");
+  }
+
+  // Vegetarian
+  if (place.dietTags.includes("vegetarian") && place.veganClassification !== "fully_vegan") {
+    badges.push('<span class="badge bg-light text-success border border-success me-1 mb-1">🥬 Vegetarian</span>');
+  }
+
+  // Jain
+  if (place.dietTags.includes("jain")) {
+    badges.push('<span class="badge bg-light text-warning border border-warning me-1 mb-1" style="color:#856404 !important; border-color:#ffeeba !important;">🪷 Jain Options</span>');
+  }
+
+  // Eggetarian
+  if (place.dietTags.includes("eggetarian")) {
+    badges.push('<span class="badge bg-light text-secondary border me-1 mb-1">🥚 Eggetarian Options</span>');
+  }
+
+  return badges.join("");
+}
+
 /* ---------------- Verification badge ---------------- */
 // 90-day soft "re-check due" cue (Phase 5 decision D5, docs/PHASE_5_PLAN.md).
 // Presentation only — never changes verificationStatus itself, and the
@@ -336,10 +396,10 @@ function renderPlaceCard(place, km) {
     if (thumbUrl) {
       imageSlotHtml = '<img class="vs-place-card__img" src="' + escapeHtml(thumbUrl) + '" alt="' + escapeHtml(place.name) + '" loading="lazy" data-fallback="' + escapeHtml(placeImageLabel(place)) + '" onerror="this.onerror=null;this.parentElement.textContent=this.getAttribute(\'data-fallback\')||\'No photo yet\';" />';
     } else {
-      imageSlotHtml = escapeHtml(placeImageLabel(place));
+      imageSlotHtml = '<div class="vs-place-card__placeholder"><span class="vs-place-card__placeholder-icon">🌿</span><span class="vs-place-card__placeholder-label">' + escapeHtml(placeImageLabel(place)) + '</span></div>';
     }
   } else {
-    imageSlotHtml = escapeHtml(placeImageLabel(place));
+    imageSlotHtml = '<div class="vs-place-card__placeholder"><span class="vs-place-card__placeholder-icon">🌿</span><span class="vs-place-card__placeholder-label">' + escapeHtml(placeImageLabel(place)) + '</span></div>';
   }
 
   return (
@@ -368,6 +428,97 @@ function capitalize(str) {
 
 function formatPlaceType(type) {
   return ({ dessert: "Dessert shop", shop: "Grocery / food shop" })[type] || capitalize(type);
+}
+
+/* ---------------- Bilingual Conscious Dining Card ---------------- */
+function showDiningCardModal() {
+  let modalEl = document.getElementById("diningCardModal");
+  if (!modalEl) {
+    const div = document.createElement("div");
+    div.id = "diningCardModal";
+    div.className = "modal fade";
+    div.tabIndex = -1;
+    div.setAttribute("aria-hidden", "true");
+    div.innerHTML = (
+      '<div class="modal-dialog modal-dialog-centered">' +
+      '<div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">' +
+      '<div class="modal-header border-0 bg-success text-white py-3 px-4">' +
+      '<div>' +
+      '<h5 class="modal-title fw-bold mb-0">🌱 शाकाहारी व व्हेगन डायनिंग कार्ड</h5>' +
+      '<small class="text-white-50">Conscious Dining Card for Maharashtra</small>' +
+      '</div>' +
+      '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>' +
+      '</div>' +
+      '<div class="modal-body p-4">' +
+      '<div class="alert alert-success border-0 rounded-3 mb-3 p-3">' +
+      '<div class="fw-bold fs-6 mb-1 text-success-emphasis">मराठी संवाद (Show to Chef / Waiter):</div>' +
+      '<p class="mb-0 fw-semibold text-dark fs-6" style="line-height:1.6;" id="diningMrText">' +
+      '“मी पूर्ण शाकाहारी (व्हेगन) आहे. माझ्या जेवणात दूध, दही, साजूक तूप, लोणी, मलाई, पनीर, चीज, किंवा मध मुळीच वापरू नका. कृपया माझे जेवण फक्त वनस्पती तेलात बनवा आणि वरून तूप किंवा बटर घालू नका. धन्यवाद!”' +
+      '</p>' +
+      '</div>' +
+      '<div class="p-3 bg-light rounded-3 border mb-3">' +
+      '<div class="fw-bold small text-muted-vs mb-1">English Translation:</div>' +
+      '<p class="small text-muted-vs mb-0" id="diningEnText">' +
+      '“I follow a 100% plant-based / vegan diet. Please do not use milk, curd, ghee, butter, cream, paneer, cheese, or honey in my food. Please cook only in vegetable oil (groundnut, sunflower, sesame) and do not brush with butter. Thank you!”' +
+      '</p>' +
+      '</div>' +
+      '<div class="d-flex gap-2">' +
+      '<button type="button" class="btn btn-outline-success btn-sm flex-grow-1" id="copyDiningMrBtn">📋 Copy Marathi Text</button>' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1" id="copyDiningEnBtn">📋 Copy English Text</button>' +
+      '</div>' +
+      '</div>' +
+      '<div class="modal-footer border-0 bg-light py-2 px-4 d-flex justify-content-between">' +
+      '<small class="text-muted-vs">Useful for Dhabas, Canteens, &amp; Prasadalayas</small>' +
+      '<button type="button" class="btn btn-vs-outline btn-sm px-3" data-bs-dismiss="modal">Close</button>' +
+      '</div>' +
+      '</div>' +
+      '</div>'
+    );
+    document.body.appendChild(div);
+    modalEl = div;
+
+    div.querySelector("#copyDiningMrBtn").addEventListener("click", function () {
+      const text = div.querySelector("#diningMrText").textContent.replace(/[“”]/g, "").trim();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function () {
+          div.querySelector("#copyDiningMrBtn").textContent = "✓ Copied Marathi!";
+          setTimeout(function () { div.querySelector("#copyDiningMrBtn").textContent = "📋 Copy Marathi Text"; }, 2000);
+        });
+      }
+    });
+
+    div.querySelector("#copyDiningEnBtn").addEventListener("click", function () {
+      const text = div.querySelector("#diningEnText").textContent.replace(/[“”]/g, "").trim();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function () {
+          div.querySelector("#copyDiningEnBtn").textContent = "✓ Copied English!";
+          setTimeout(function () { div.querySelector("#copyDiningEnBtn").textContent = "📋 Copy English Text"; }, 2000);
+        });
+      }
+    });
+  }
+
+  const modal = (typeof bootstrap !== "undefined" && bootstrap.Modal)
+    ? bootstrap.Modal.getOrCreateInstance(modalEl)
+    : null;
+  if (modal) modal.show();
+}
+
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("#openNavDiningCardBtn") || e.target.closest(".vs-dining-card-trigger") || e.target.closest("#openDiningCardBtn")) {
+      e.preventDefault();
+      showDiningCardModal();
+    }
+    if (e.target.closest("#langToggleBtn")) {
+      e.preventDefault();
+      const current = localStorage.getItem("vs_lang") || "en";
+      const next = current === "en" ? "mr" : "en";
+      localStorage.setItem("vs_lang", next);
+      const btn = document.getElementById("langToggleBtn");
+      if (btn) btn.textContent = next === "mr" ? "🌐 मराठी (MR)" : "🌐 EN | मराठी";
+    }
+  });
 }
 
 /* ---------------- Review card ---------------- */

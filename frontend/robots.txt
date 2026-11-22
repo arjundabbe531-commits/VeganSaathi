@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /submit-place.html
+Disallow: /profile.html
+Disallow: /saved.html
+
+# Sitemap
+Sitemap: https://vegansaathi-88d2f.web.app/sitemap.xml

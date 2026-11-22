@@ -11,6 +11,21 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link href="css/styles.css" rel="stylesheet">
 <script>window.VS_BASE = ""; window.VS_ACTIVE_PAGE = "explore";</script>
+<link rel="canonical" href="https://vegansaathi-88d2f.web.app/explore.html">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2D6A4F">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VeganSaathi">
+<meta property="og:title" content="Explore Vegan Places — VeganSaathi">
+<meta property="og:description" content="Find genuine vegan eateries and verified vegan-friendly places across Maharashtra.">
+<meta property="og:url" content="https://vegansaathi-88d2f.web.app/explore.html">
+<meta property="og:image" content="https://vegansaathi-88d2f.web.app/icons/icon-512.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Explore Vegan Places — VeganSaathi">
+<meta name="twitter:description" content="Find genuine vegan eateries and verified vegan-friendly places across Maharashtra.">
 </head>
 <body>
 
@@ -73,9 +88,16 @@
           </select>
         </div>
       </div>
-      <div class="d-flex flex-wrap gap-2" role="group" aria-label="Dietary filters">
+      <div class="d-flex flex-wrap align-items-center gap-2" role="group" aria-label="Dietary filters">
         <button type="button" class="vs-filter-chip" data-diet="vegan">🌱 Vegan</button>
+        <button type="button" class="vs-filter-chip" data-diet="vegetarian">🥬 Vegetarian</button>
+        <button type="button" class="vs-filter-chip" data-diet="jain">🪷 Jain friendly</button>
         <button type="button" class="vs-filter-chip" id="verifiedChip">🛡️ Verified only</button>
+        <span id="distanceChips" class="d-none align-items-center gap-2">
+          <button type="button" class="vs-filter-chip vs-dist-chip" data-max-dist="15">📍 &lt; 15 km</button>
+          <button type="button" class="vs-filter-chip vs-dist-chip" data-max-dist="50">📍 &lt; 50 km</button>
+        </span>
+        <button type="button" id="resetFiltersBtn" class="btn btn-link btn-sm text-muted-vs text-decoration-none ms-auto d-none">✕ Reset filters</button>
       </div>
     </div>
 
@@ -161,7 +183,8 @@
       <div class="row g-4" id="resultsGrid"><!-- injected by JS --></div>
       <div id="emptyState" class="vs-empty-state d-none">
         <div style="font-size:2rem; margin-bottom:0.5rem;">🔍</div>
-        <p>No places match your filters. Try clearing a filter or searching a different term.</p>
+        <p class="mb-2">No places match your filters. Try clearing a filter or searching a different term.</p>
+        <button type="button" id="emptyResetBtn" class="btn btn-vs-outline btn-sm">Clear all filters</button>
       </div>
     </div>
     <div id="mapView" class="d-none">

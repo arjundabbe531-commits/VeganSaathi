@@ -10,6 +10,21 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="../css/styles.css" rel="stylesheet">
 <script>window.VS_BASE = "../"; window.VS_ACTIVE_PAGE = "";</script>
+<link rel="canonical" href="https://vegansaathi-88d2f.web.app/admin/dashboard.html">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#2D6A4F">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VeganSaathi">
+<meta property="og:title" content="Admin Dashboard — VeganSaathi">
+<meta property="og:description" content="Admin management panel for VeganSaathi.">
+<meta property="og:url" content="https://vegansaathi-88d2f.web.app/admin/dashboard.html">
+<meta property="og:image" content="https://vegansaathi-88d2f.web.app/icons/icon-512.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Admin Dashboard — VeganSaathi">
+<meta name="twitter:description" content="Admin management panel for VeganSaathi.">
 </head>
 <body>
 
@@ -57,14 +72,6 @@
         <p class="text-muted-vs mb-0" style="font-size:0.92rem;">Manage community submissions, published listings, physical re-verifications, and user reports across Maharashtra and beyond.</p>
       </div>
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <a href="place-intelligence.html" class="btn btn-sm btn-success text-white d-inline-flex align-items-center gap-1">
-          <span>🧠</span>
-          <span>Place Intelligence</span>
-        </a>
-        <a href="import-review.html" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
-          <span>🔬</span>
-          <span>Research Import Reviewer</span>
-        </a>
         <div id="adminUserIdentity" class="badge bg-white text-dark border p-2 shadow-sm d-inline-flex align-items-center gap-1" style="font-size:0.85rem;"></div>
       </div>
     </div>
@@ -111,7 +118,7 @@
             <span style="font-size:1.1rem;">💬</span>
           </div>
           <div class="vs-admin-stat__value" id="statReviews">…</div>
-          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Student dining feedback</div>
+          <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Community feedback</div>
         </div>
       </div>
       <div class="col-6 col-md-4 col-lg">
@@ -122,6 +129,66 @@
           </div>
           <div class="vs-admin-stat__value" id="statUsers">…</div>
           <div class="text-muted-vs mt-1" style="font-size:0.75rem;">Registered members</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Analytics & Intelligence Section -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-4 col-md-6">
+        <div class="vs-card p-3 h-100 shadow-sm">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0" style="color:var(--vs-green-900);">🌱 Dietary Distribution</h6>
+            <span class="badge bg-light text-dark border" style="font-size:0.72rem;">Proportion</span>
+          </div>
+          <div style="height:210px; position:relative;" class="d-flex align-items-center justify-content-center">
+            <canvas id="chartDietDistribution"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-5 col-md-6">
+        <div class="vs-card p-3 h-100 shadow-sm">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0" style="color:var(--vs-green-900);">🏬 Establishments by Category</h6>
+            <span class="badge bg-light text-dark border" style="font-size:0.72rem;">Venues</span>
+          </div>
+          <div style="height:210px; position:relative;" class="d-flex align-items-center justify-content-center">
+            <canvas id="chartTypeDistribution"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-12">
+        <div class="vs-card p-3 h-100 shadow-sm">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0" style="color:var(--vs-green-900);">🛡️ Verification Health</h6>
+            <span class="badge bg-light text-dark border" style="font-size:0.72rem;">Audit</span>
+          </div>
+          <div style="height:210px; position:relative;" class="d-flex align-items-center justify-content-center">
+            <canvas id="chartVerificationHealth"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Advanced Specialized Tooling Explanation -->
+    <div class="vs-card p-3 mb-4" style="background-color:#f6faf6; border-color:var(--vs-green-200);">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+        <div>
+          <span class="badge bg-success me-1">Advanced Pipeline Tools</span>
+          <strong style="color:var(--vs-green-900);">Specialized Intelligence Engines:</strong>
+          <p class="text-muted-vs mb-0 mt-0.5" style="font-size:0.85rem;">
+            <strong>Place Intelligence Engine:</strong> Automates candidate deduplication, coordinates validation, and dietary evidence cross-checks.
+            <br>
+            <strong>Research Import Reviewer:</strong> Staged audit environment to review external web scraping and public catalog batches before publishing.
+          </p>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0 mt-2 mt-md-0">
+          <a href="place-intelligence.html" class="btn btn-sm btn-outline-success bg-white d-inline-flex align-items-center gap-1 shadow-sm" title="Multi-stage verification, candidate deduplication, and photo rights">
+            <span>🧠</span> <span>Place Intelligence</span>
+          </a>
+          <a href="import-review.html" class="btn btn-sm btn-outline-secondary bg-white d-inline-flex align-items-center gap-1 shadow-sm" title="Audit and inspect incoming data batches from external catalogs">
+            <span>🔬</span> <span>Import Reviewer</span>
+          </a>
         </div>
       </div>
     </div>
@@ -428,6 +495,7 @@
 <div id="footer-placeholder"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="../js/components.js"></script>
 <script type="module" src="../js/app.js"></script>
 <script type="module" src="../js/admin-dashboard.js"></script>

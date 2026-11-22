@@ -11,6 +11,21 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link href="css/styles.css" rel="stylesheet">
 <script>window.VS_BASE = ""; window.VS_ACTIVE_PAGE = "community";</script>
+<link rel="canonical" href="https://vegansaathi-88d2f.web.app/submit-place.html">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2D6A4F">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VeganSaathi">
+<meta property="og:title" content="Submit a Place — VeganSaathi">
+<meta property="og:description" content="Contribute a vegan-friendly place to the community directory.">
+<meta property="og:url" content="https://vegansaathi-88d2f.web.app/submit-place.html">
+<meta property="og:image" content="https://vegansaathi-88d2f.web.app/icons/icon-512.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Submit a Place — VeganSaathi">
+<meta name="twitter:description" content="Contribute a vegan-friendly place to the community directory.">
 </head>
 <body>
 
@@ -223,12 +238,12 @@
           <div class="tab-content" id="photoMethodContent">
             <!-- Option A: File Upload / Camera -->
             <div class="tab-pane fade show active" id="panelUploadPhoto" role="tabpanel">
-              <div class="vs-dropzone p-4 text-center border rounded-3 bg-light" id="spDropzone">
-                <input type="file" class="d-none" id="spPhoto" accept="image/jpeg,image/png,image/webp" capture="environment">
-                <div class="mb-2" style="font-size:1.75rem;">📷</div>
-                <div class="fw-semibold mb-1">Click to select photo or drag and drop here</div>
-                <div class="text-muted-vs" style="font-size:0.8rem;">Supports JPG, PNG, or WebP up to 5 MB. Mobile camera supported.</div>
-                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="spSelectFileBtn">Browse Files…</button>
+              <div class="vs-dropzone p-4 text-center border rounded-3 bg-light" id="spDropzone" tabindex="0" role="button" aria-label="Upload photo: Click to browse or drag and drop image here">
+                <input type="file" class="d-none" id="spPhoto" accept="image/jpeg,image/png,image/webp,image/avif" capture="environment">
+                <div class="mb-2" style="font-size:2.2rem;">📷</div>
+                <div class="fw-semibold mb-1" style="color:var(--vs-green-900); font-size:1rem;">Click or drag and drop photo here</div>
+                <div class="text-muted-vs" style="font-size:0.82rem;">Supports JPG, PNG, WebP, or AVIF. Smartphone photos auto-optimized for web.</div>
+                <button type="button" class="btn btn-sm btn-outline-success mt-2 px-3 fw-semibold" id="spSelectFileBtn">📁 Browse Files</button>
               </div>
             </div>
 
@@ -255,14 +270,36 @@
           <!-- Unified Image Preview Container -->
           <div id="spPhotoPreviewContainer" class="vs-photo-preview-container d-none mt-3 p-3 border rounded-3 bg-white">
             <div class="d-flex align-items-center gap-3">
-              <img id="spPhotoPreviewImg" class="vs-photo-preview-img rounded" style="width:110px; height:80px; object-fit:cover; border:1px solid var(--vs-border);" alt="Place photo preview" />
+              <img id="spPhotoPreviewImg" class="vs-photo-preview-img rounded" style="width:110px; height:80px; object-fit:cover; border:1px solid var(--vs-border); cursor:pointer;" alt="Place photo preview" title="Click to view full preview" />
               <div class="flex-grow-1 overflow-hidden">
-                <div class="d-flex align-items-center gap-2 mb-1">
+                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                   <span class="badge bg-success text-white" id="spPhotoSourceBadge" style="font-size:0.75rem;">Photo Attached</span>
                   <span id="spPhotoFileName" class="text-truncate fw-semibold" style="font-size:0.85rem; max-width:260px;"></span>
                 </div>
                 <div class="text-muted-vs mb-2" id="spPhotoStatusNote" style="font-size:0.75rem;">Ready to attach to your submission.</div>
-                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" id="spRemovePhotoBtn" style="font-size:0.8rem;">✕ Remove / Replace Photo</button>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="spViewFullPreviewBtn" style="font-size:0.8rem;">🔍 Preview Image</button>
+                  <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" id="spRemovePhotoBtn" style="font-size:0.8rem;">✕ Remove / Replace</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal for Full Image Preview -->
+          <div class="modal fade" id="spPhotoFullPreviewModal" tabindex="-1" aria-labelledby="spPhotoFullPreviewModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title h6 mb-0" id="spPhotoFullPreviewModalLabel">📷 Photo Preview &amp; Verification</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-3 bg-light">
+                  <img id="spModalFullPreviewImg" src="" alt="Full place preview" class="img-fluid rounded shadow-sm" style="max-height:65vh; object-fit:contain;" />
+                  <div id="spModalFullPreviewDetails" class="text-muted-vs mt-2 font-tabular" style="font-size:0.85rem;"></div>
+                </div>
+                <div class="modal-footer py-2">
+                  <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
               </div>
             </div>
           </div>

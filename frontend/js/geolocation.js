@@ -52,9 +52,63 @@ export function requestUserLocation() {
         else if (err.code === 3) resolve({ status: "timeout", message: "Location request timed out. Please try again or search manually." });
         else resolve({ status: "unavailable", message: "Your location is currently unavailable. Please search manually." });
       },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
   });
+}
+
+/**
+ * Reverse geocode a latitude and longitude to obtain readable place details
+ * such as road, area/locality, city/town, and state.
+ * Uses OpenStreetMap Nominatim with ₹0 cost and graceful fallback.
+ *
+ * @param {number} lat
+ * @param {number} lon
+ * @returns {Promise<{ ok: boolean, road?: string, area?: string, city?: string, state?: string, formattedLocation?: string, displayName?: string }>}
+ */
+export async function reverseGeocode(lat, lon) {
+  if (typeof lat !== "number" || typeof lon !== "number" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return { ok: false, formattedLocation: "" };
+  }
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1`;
+    const response = await fetch(url, {
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      return { ok: false, formattedLocation: `${lat.toFixed(4)}, ${lon.toFixed(4)}` };
+    }
+
+    const data = await response.json();
+    const addr = data.address || {};
+
+    const road = addr.road || addr.pedestrian || addr.street || addr.highway || "";
+    const area = addr.suburb || addr.neighbourhood || addr.residential || addr.commercial || addr.hamlet || "";
+    const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || "";
+    const state = addr.state || "Maharashtra";
+
+    const parts = [road, area, city].filter(Boolean);
+    const formattedLocation = parts.length > 0 ? parts.join(", ") : `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+
+    return {
+      ok: true,
+      road: road,
+      area: area,
+      city: city,
+      state: state,
+      formattedLocation: formattedLocation,
+      displayName: data.display_name || formattedLocation
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      formattedLocation: `${lat.toFixed(4)}, ${lon.toFixed(4)}`
+    };
+  }
 }
 
 /**

@@ -36,11 +36,15 @@ window.L = (function () {
     },
 
     marker: function (coords) {
-      const markerObj = chainable({ _stub: "marker", _coords: coords }, ["addTo", "setLatLng", "on", "off"]);
+      const markerObj = chainable({ _stub: "marker", _coords: coords }, ["addTo", "setLatLng", "on", "off", "bindTooltip"]);
       markerObj.bindPopup = function (html) {
         markerObj._popupHtml = html;
         window.__STUB_MARKER_POPUPS__ = window.__STUB_MARKER_POPUPS__ || [];
         window.__STUB_MARKER_POPUPS__.push(html);
+        return markerObj;
+      };
+      markerObj.bindTooltip = function (content, opts) {
+        markerObj._tooltip = content;
         return markerObj;
       };
       return markerObj;

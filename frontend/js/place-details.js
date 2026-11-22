@@ -128,19 +128,124 @@ function renderPlaceDetail(place) {
       heroUrl = buildOptimizedImageUrl(place.imageUrl.trim(), 1200, 800);
     }
     if (heroUrl) {
-      imgEl.innerHTML = '<img class="vs-place-detail__img" src="' + escapeHtml(heroUrl) + '" alt="' + escapeHtml(place.name) + '" data-fallback="' + escapeHtml(placeImageLabel(place)) + '" onerror="this.onerror=null;this.parentElement.textContent=this.getAttribute(\'data-fallback\')||\'No photo yet\';" />';
+      imgEl.innerHTML = '<img class="vs-place-detail__img" src="' + escapeHtml(heroUrl) + '" alt="' + escapeHtml(place.name) + '" onerror="this.onerror=null;this.parentElement.textContent=\'No photo yet\';" />';
     } else {
-      imgEl.textContent = placeImageLabel(place);
+      imgEl.textContent = "No photo yet";
     }
   }
+
+  // A. Overview
   document.getElementById("placeName").textContent = place.name;
   document.getElementById("placeType").textContent = formatPlaceType(place.placeType);
-  document.getElementById("placeArea").textContent = place.area;
+  document.getElementById("placeArea").textContent = place.area || "Area not listed";
   document.getElementById("placeAddress").textContent = place.address;
-  document.getElementById("placePrice").textContent = capitalize(place.priceRange);
-  document.getElementById("placeDescription").textContent = place.description;
-  document.getElementById("placeDietBadges").innerHTML = renderPlaceDietBadges(place);
+  document.getElementById("placePrice").textContent = place.priceRange ? capitalize(place.priceRange) : "Price not listed";
+
+  // Opening Hours (clean empty state)
+  const openingEl = document.getElementById("placeOpening");
+  const openingLabel = document.getElementById("placeOpeningLabel");
+  if (place.openingInfo && place.openingInfo.trim()) {
+    openingEl.textContent = place.openingInfo.trim();
+    openingEl.classList.remove("d-none");
+    if (openingLabel) openingLabel.classList.remove("d-none");
+  } else {
+    if (openingEl) openingEl.classList.add("d-none");
+    if (openingLabel) openingLabel.classList.add("d-none");
+  }
+
+  // Phone (clean empty state)
+  const phoneEl = document.getElementById("placePhone");
+  const phoneLabel = document.getElementById("placePhoneLabel");
+  if (place.phone && place.phone.trim()) {
+    phoneEl.innerHTML = '<a href="tel:' + escapeHtml(place.phone.trim()) + '" class="text-decoration-none">📞 ' + escapeHtml(place.phone.trim()) + '</a>';
+    phoneEl.classList.remove("d-none");
+    if (phoneLabel) phoneLabel.classList.remove("d-none");
+  } else {
+    if (phoneEl) phoneEl.classList.add("d-none");
+    if (phoneLabel) phoneLabel.classList.add("d-none");
+  }
+
+  // Website (clean empty state)
+  const webEl = document.getElementById("placeWebsite");
+  const webLabel = document.getElementById("placeWebsiteLabel");
+  if (place.website && place.website.trim()) {
+    const rawUrl = place.website.trim();
+    const cleanUrl = rawUrl.startsWith("http://") || rawUrl.startsWith("https://") ? rawUrl : "https://" + rawUrl;
+    webEl.innerHTML = '<a href="' + escapeHtml(cleanUrl) + '" target="_blank" rel="noopener noreferrer" class="text-decoration-none">🌐 Visit Website ↗</a>';
+    webEl.classList.remove("d-none");
+    if (webLabel) webLabel.classList.remove("d-none");
+  } else {
+    if (webEl) webEl.classList.add("d-none");
+    if (webLabel) webLabel.classList.add("d-none");
+  }
+
+  // Description (clean empty state)
+  const descEl = document.getElementById("placeDescription");
+  const aboutSec = document.getElementById("placeAboutSection");
+  if (place.description && place.description.trim()) {
+    descEl.textContent = place.description.trim();
+    if (aboutSec) aboutSec.classList.remove("d-none");
+  } else {
+    if (aboutSec) aboutSec.classList.add("d-none");
+  }
+
+  // B. Dietary Classification (Distinct badges)
+  const dietBadgesEl = document.getElementById("placeDietBadges");
+  if (typeof renderDietBadgesDetailed === "function") {
+    dietBadgesEl.innerHTML = renderDietBadgesDetailed(place);
+  } else {
+    dietBadgesEl.innerHTML = renderPlaceDietBadges(place);
+  }
+
+  // Verification Pill
   document.getElementById("placeVerification").innerHTML = renderVerificationBadge(place);
+
+  // C. Dietary Evidence & Ingredients Section
+  renderDietaryEvidence(place);
+
+  // D. Map Directions Link
+  const dirBtn = document.getElementById("directionsBtn");
+  if (dirBtn && typeof place.latitude === "number" && typeof place.longitude === "number") {
+    dirBtn.href = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(place.latitude + "," + place.longitude);
+    dirBtn.classList.remove("d-none");
+  }
+}
+
+function renderDietaryEvidence(place) {
+  const container = document.getElementById("placeEvidenceContainer");
+  if (!container) return;
+
+  const html = [];
+
+  // 1. Physical fieldwork status
+  const isPhys = place.verificationDimensions && place.verificationDimensions.physically_visited === true;
+  if (isPhys) {
+    html.push('<div class="d-flex align-items-center gap-2 mb-2"><span class="badge bg-success text-white">✓ On-Site Field Visit</span><span style="font-size:0.85rem;" class="text-muted-vs">Physical verification conducted on premises.</span></div>');
+  }
+
+  // 2. Ingredients & Preparation notes
+  if (place.dietNotes && place.dietNotes.trim()) {
+    html.push('<div class="mb-2"><strong style="font-size:0.85rem;" class="d-block text-dark mb-1">Ingredient &amp; Kitchen Notes:</strong><p class="mb-0 text-muted-vs" style="font-size:0.88rem; line-height:1.5;">' + escapeHtml(place.dietNotes.trim()) + '</p></div>');
+  }
+
+  // 3. Specific verified dishes / claims
+  if (Array.isArray(place.evidenceRefs) && place.evidenceRefs.length > 0) {
+    html.push('<div class="mt-2"><strong style="font-size:0.85rem;" class="d-block text-dark mb-1">Audited Menu Evidence:</strong><ul class="mb-0 ps-3 text-muted-vs" style="font-size:0.85rem;">');
+    place.evidenceRefs.forEach(function (ref) {
+      const claimText = escapeHtml(ref.claim || "");
+      const excerptText = ref.excerpt ? ' <span class="fst-italic text-secondary">— "' + escapeHtml(ref.excerpt) + '"</span>' : "";
+      const dateText = ref.lastCheckedAt ? ' <span class="badge bg-light text-dark border ms-1" style="font-size:0.75rem;">Checked: ' + escapeHtml(ref.lastCheckedAt) + '</span>' : "";
+      html.push('<li><strong>' + claimText + '</strong>' + excerptText + dateText + '</li>');
+    });
+    html.push('</ul></div>');
+  }
+
+  // 4. Default advisory if minimal notes
+  if (!place.dietNotes && (!place.evidenceRefs || place.evidenceRefs.length === 0)) {
+    html.push('<p class="mb-0 text-muted-vs" style="font-size:0.88rem; line-height:1.5;">Venue details published. Confirm daily vegan ingredients directly with staff.</p>');
+  }
+
+  container.innerHTML = html.join("");
 }
 
 async function renderReviewsFor(placeId) {
@@ -241,6 +346,35 @@ function updateActionAvailability(user) {
 
 async function wireActionButtons(place) {
   const saveBtn = document.getElementById("saveBtn");
+  const shareBtn = document.getElementById("sharePlaceBtn");
+  const copyAddrBtn = document.getElementById("copyAddressBtn");
+
+  if (shareBtn) {
+    shareBtn.addEventListener("click", function () {
+      const shareData = {
+        title: place.name + " — VeganSaathi",
+        text: "Check out " + place.name + " (" + (place.area || "Maharashtra") + ") on VeganSaathi — community discovery portal for conscious dining!",
+        url: window.location.href
+      };
+      if (navigator.share) {
+        navigator.share(shareData).catch(function () {});
+      } else {
+        const text = encodeURIComponent(shareData.text + " " + shareData.url);
+        window.open("https://api.whatsapp.com/send?text=" + text, "_blank", "noopener,noreferrer");
+      }
+    });
+  }
+
+  if (copyAddrBtn) {
+    copyAddrBtn.addEventListener("click", function () {
+      if (navigator.clipboard && place.address) {
+        navigator.clipboard.writeText(place.address).then(function () {
+          copyAddrBtn.textContent = "✓ Copied!";
+          setTimeout(function () { copyAddrBtn.textContent = "📋 Copy"; }, 2000);
+        });
+      }
+    });
+  }
 
   async function refreshSaveButton() {
     const user = getCurrentUser();

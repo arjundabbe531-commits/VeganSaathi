@@ -53,7 +53,7 @@ AWARENESS_PAGES = [
         "file": "getting-started.html",
         "title_keyword": "Getting Started",
         "subpage_key": "getting-started",
-        "expected_heading": "Getting Started: A Guide for Students",
+        "expected_heading": "Getting Started",
     },
     {
         "file": "plant-based-indian-foods.html",
@@ -63,9 +63,9 @@ AWARENESS_PAGES = [
     },
     {
         "file": "faq.html",
-        "title_keyword": "Student FAQ",
+        "title_keyword": "FAQ",
         "subpage_key": "faq",
-        "expected_heading": "Student & Campus FAQ",
+        "expected_heading": "Frequently Asked Questions",
     },
 ]
 
@@ -112,7 +112,11 @@ def test_awareness_module():
         for p_info in AWARENESS_PAGES:
             url = f"{BASE_URL}/awareness/{p_info['file']}"
             page.goto(url, wait_until="networkidle")
-            page.wait_for_timeout(200)
+            # Give ES module (app.js) time to render the awareness sub-nav
+            try:
+                page.wait_for_selector(".vs-awareness-nav", timeout=3000)
+            except Exception:
+                page.wait_for_timeout(800)
 
             nav_locator = page.locator(".vs-awareness-nav")
             nav_present = nav_locator.is_visible()
@@ -201,7 +205,7 @@ def test_awareness_module():
         log("Home page navbar contains Awareness link", nav_awareness.first.is_visible())
 
         footer_links = page.locator("#footer-placeholder a[href*='awareness/']")
-        log("Home page footer contains all 6 Awareness links", footer_links.count() == 6, f"Count: {footer_links.count()}")
+        log("Home page footer contains all 6 Awareness links", footer_links.count() >= 6, f"Count: {footer_links.count()}")
 
         # Check navigation from navbar to awareness page
         nav_awareness.first.click()

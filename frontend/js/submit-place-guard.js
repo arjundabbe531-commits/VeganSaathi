@@ -68,6 +68,75 @@ let selectedPhotoFile = null;
 let verifiedWebImageUrl = "";
 let photoPreviewObjectUrl = null;
 
+/**
+ * Automatically downsizes / compresses large camera photos client-side
+ * if they exceed the 5 MB limit. Uses HTML5 Canvas.
+ */
+function autoCompressImageFile(file, maxDimension = 1920, targetQuality = 0.82) {
+  return new Promise((resolve) => {
+    if (!file || typeof document === "undefined" || typeof FileReader === "undefined") {
+      resolve(file);
+      return;
+    }
+    // If already within size limits, keep as-is
+    if (file.size <= 5 * 1024 * 1024) {
+      resolve(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        if (typeof canvas.toBlob === "function") {
+          canvas.toBlob(
+            (blob) => {
+              if (blob && blob.size < file.size) {
+                const cleanName = (file.name || "photo.jpg").replace(/\.[^.]+$/, "") + ".jpg";
+                const compressedFile = new File([blob], cleanName, {
+                  type: "image/jpeg",
+                  lastModified: Date.now()
+                });
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            },
+            "image/jpeg",
+            targetQuality
+          );
+        } else {
+          resolve(file);
+        }
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 function clearPhotoSelection() {
   selectedPhotoFile = null;
   verifiedWebImageUrl = "";
@@ -84,13 +153,23 @@ function clearPhotoSelection() {
   const previewImg = document.getElementById("spPhotoPreviewImg");
   if (previewImg) previewImg.src = "";
 
-  const sourceInfo = document.getElementById("spPhotoSourceInfo");
-  if (sourceInfo) sourceInfo.textContent = "";
+  const fileNameEl = document.getElementById("spPhotoFileName");
+  if (fileNameEl) fileNameEl.textContent = "";
+
+  const statusNoteEl = document.getElementById("spPhotoStatusNote");
+  if (statusNoteEl) statusNoteEl.textContent = "Ready to attach to your submission.";
+
+  const sourceBadgeEl = document.getElementById("spPhotoSourceBadge");
+  if (sourceBadgeEl) {
+    sourceBadgeEl.textContent = "Photo Attached";
+    sourceBadgeEl.className = "badge bg-success text-white";
+  }
 
   const feedback = document.getElementById("spPhotoFeedback");
   if (feedback) {
     feedback.textContent = "";
     feedback.classList.add("d-none");
+    feedback.classList.remove("text-success", "text-danger");
   }
 
   const urlFeedback = document.getElementById("spUrlFeedback");
@@ -114,19 +193,42 @@ function clearPhotoSelection() {
   }
 }
 
-function handleLocalFile(file) {
+async function handleLocalFile(rawFile) {
   const feedback = document.getElementById("spPhotoFeedback");
   const previewCont = document.getElementById("spPhotoPreviewContainer");
   const previewImg = document.getElementById("spPhotoPreviewImg");
-  const sourceInfo = document.getElementById("spPhotoSourceInfo");
+  const fileNameEl = document.getElementById("spPhotoFileName");
+  const statusNoteEl = document.getElementById("spPhotoStatusNote");
+  const sourceBadgeEl = document.getElementById("spPhotoSourceBadge");
 
-  if (!file) return;
+  if (!rawFile) return;
+
+  let file = rawFile;
+  let wasCompressed = false;
+
+  if (file.size > 5 * 1024 * 1024) {
+    if (feedback) {
+      const origMb = (file.size / (1024 * 1024)).toFixed(1);
+      feedback.textContent = `Optimizing high-resolution photo (${origMb} MB) for web upload…`;
+      feedback.classList.remove("d-none", "text-danger");
+      feedback.classList.add("text-success");
+    }
+    try {
+      file = await autoCompressImageFile(rawFile);
+      if (file.size < rawFile.size) {
+        wasCompressed = true;
+      }
+    } catch (e) {
+      console.warn("VeganSaathi: auto-compression bypassed", e);
+    }
+  }
 
   const validation = validateImageFile(file);
   if (!validation.valid) {
     if (feedback) {
       feedback.textContent = validation.error;
-      feedback.classList.remove("d-none");
+      feedback.classList.remove("d-none", "text-success");
+      feedback.classList.add("text-danger");
     }
     clearPhotoSelection();
     return;
@@ -135,6 +237,7 @@ function handleLocalFile(file) {
   if (feedback) {
     feedback.textContent = "";
     feedback.classList.add("d-none");
+    feedback.classList.remove("text-success", "text-danger");
   }
 
   // Clear any web URL when selecting a file
@@ -150,8 +253,32 @@ function handleLocalFile(file) {
     if (previewImg) previewImg.src = photoPreviewObjectUrl;
   }
 
-  if (sourceInfo) {
-    sourceInfo.textContent = "Device photo: " + file.name + " (" + (file.size / 1024).toFixed(0) + " KB)";
+  if (fileNameEl) {
+    fileNameEl.textContent = file.name;
+    fileNameEl.title = file.name;
+  }
+
+  if (sourceBadgeEl) {
+    sourceBadgeEl.textContent = wasCompressed ? "✓ Auto-Optimized" : "📁 Device Photo";
+    sourceBadgeEl.className = "badge bg-success text-white";
+  }
+
+  const sizeKb = (file.size / 1024).toFixed(0);
+  const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+  const sizeText = file.size >= 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
+
+  if (statusNoteEl) {
+    statusNoteEl.textContent = `${sizeText} • Ready to attach`;
+  }
+
+  if (photoPreviewObjectUrl) {
+    const measureImg = new Image();
+    measureImg.onload = () => {
+      if (statusNoteEl && measureImg.naturalWidth && measureImg.naturalHeight) {
+        statusNoteEl.textContent = `${measureImg.naturalWidth} × ${measureImg.naturalHeight} px • ${sizeText} • Ready to submit`;
+      }
+    };
+    measureImg.src = photoPreviewObjectUrl;
   }
 
   if (previewCont) previewCont.classList.remove("d-none");
@@ -161,7 +288,9 @@ function handleWebImageUrl(rawUrl) {
   const urlFeedback = document.getElementById("spUrlFeedback");
   const previewCont = document.getElementById("spPhotoPreviewContainer");
   const previewImg = document.getElementById("spPhotoPreviewImg");
-  const sourceInfo = document.getElementById("spPhotoSourceInfo");
+  const fileNameEl = document.getElementById("spPhotoFileName");
+  const statusNoteEl = document.getElementById("spPhotoStatusNote");
+  const sourceBadgeEl = document.getElementById("spPhotoSourceBadge");
 
   const trimmed = (rawUrl || "").trim();
   if (!trimmed) {
@@ -209,14 +338,30 @@ function handleWebImageUrl(rawUrl) {
     }
 
     if (previewImg) previewImg.src = trimmed;
-    if (sourceInfo) {
-      try {
-        const u = new URL(trimmed);
-        sourceInfo.textContent = "Web Image: " + u.hostname + " (" + testImg.naturalWidth + "×" + testImg.naturalHeight + "px)";
-      } catch (e) {
-        sourceInfo.textContent = "Web Image verified";
-      }
+
+    if (sourceBadgeEl) {
+      sourceBadgeEl.textContent = "🔗 Web Image";
+      sourceBadgeEl.className = "badge bg-primary text-white";
     }
+
+    let hostDisplay = "Web Image";
+    try {
+      const u = new URL(trimmed);
+      const parts = u.pathname.split("/").filter(Boolean);
+      hostDisplay = parts.pop() || u.hostname;
+    } catch (e) {
+      // fallback
+    }
+
+    if (fileNameEl) {
+      fileNameEl.textContent = hostDisplay;
+      fileNameEl.title = trimmed;
+    }
+
+    if (statusNoteEl) {
+      statusNoteEl.textContent = `${testImg.naturalWidth} × ${testImg.naturalHeight} px • Verified web image`;
+    }
+
     if (previewCont) previewCont.classList.remove("d-none");
   };
 
@@ -239,8 +384,47 @@ function wirePhotoUpload() {
   const verifyUrlBtn = document.getElementById("spVerifyUrlBtn");
 
   if (selectFileBtn && fileInput) {
-    selectFileBtn.addEventListener("click", function () {
+    selectFileBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
       fileInput.click();
+    });
+  }
+
+  if (dropzone) {
+    dropzone.setAttribute("tabindex", "0");
+    dropzone.setAttribute("role", "button");
+    dropzone.setAttribute("aria-label", "Click to select photo or drag and drop an image file");
+
+    dropzone.addEventListener("click", function (e) {
+      if (fileInput && e.target !== selectFileBtn) {
+        fileInput.click();
+      }
+    });
+
+    dropzone.addEventListener("keydown", function (e) {
+      if ((e.key === "Enter" || e.key === " ") && fileInput) {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    dropzone.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      dropzone.classList.add("drag-active");
+    });
+
+    dropzone.addEventListener("dragleave", function (e) {
+      e.preventDefault();
+      dropzone.classList.remove("drag-active");
+    });
+
+    dropzone.addEventListener("drop", function (e) {
+      e.preventDefault();
+      dropzone.classList.remove("drag-active");
+
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleLocalFile(e.dataTransfer.files[0]);
+      }
     });
   }
 
@@ -251,30 +435,6 @@ function wirePhotoUpload() {
         return;
       }
       handleLocalFile(fileInput.files[0]);
-    });
-  }
-
-  if (dropzone) {
-    dropzone.addEventListener("dragover", function (e) {
-      e.preventDefault();
-      dropzone.classList.add("border-success");
-      dropzone.style.backgroundColor = "#e8f3ea";
-    });
-
-    dropzone.addEventListener("dragleave", function (e) {
-      e.preventDefault();
-      dropzone.classList.remove("border-success");
-      dropzone.style.backgroundColor = "#f9fbf9";
-    });
-
-    dropzone.addEventListener("drop", function (e) {
-      e.preventDefault();
-      dropzone.classList.remove("border-success");
-      dropzone.style.backgroundColor = "#f9fbf9";
-
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        handleLocalFile(e.dataTransfer.files[0]);
-      }
     });
   }
 
@@ -295,6 +455,32 @@ function wirePhotoUpload() {
     removeBtn.addEventListener("click", function () {
       clearPhotoSelection();
     });
+  }
+
+  const viewPreviewBtn = document.getElementById("spViewFullPreviewBtn");
+  const previewImg = document.getElementById("spPhotoPreviewImg");
+  const modalEl = document.getElementById("spPhotoFullPreviewModal");
+  const modalImg = document.getElementById("spModalFullPreviewImg");
+  const modalDetails = document.getElementById("spModalFullPreviewDetails");
+
+  function openFullPreview() {
+    const src = (previewImg && previewImg.src) || verifiedWebImageUrl || photoPreviewObjectUrl;
+    if (!src || !modalEl || typeof bootstrap === "undefined") return;
+    if (modalImg) modalImg.src = src;
+    if (modalDetails) {
+      const fileName = document.getElementById("spPhotoFileName")?.textContent || "Place photo";
+      const statusNote = document.getElementById("spPhotoStatusNote")?.textContent || "";
+      modalDetails.textContent = `${fileName} • ${statusNote}`;
+    }
+    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modalInstance.show();
+  }
+
+  if (viewPreviewBtn) {
+    viewPreviewBtn.addEventListener("click", openFullPreview);
+  }
+  if (previewImg) {
+    previewImg.addEventListener("click", openFullPreview);
   }
 }
 

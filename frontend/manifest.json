@@ -1,0 +1,56 @@
+{
+  "name": "VeganSaathi — Vegan Community Portal",
+  "short_name": "VeganSaathi",
+  "description": "Discover, verify, and share genuine vegan-friendly places across Maharashtra and India.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAFAF7",
+  "theme_color": "#2D6A4F",
+  "lang": "en-IN",
+  "categories": ["food", "lifestyle", "social"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/screenshot-home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "VeganSaathi Home — Discover Vegan Places"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Explore Places",
+      "short_name": "Explore",
+      "description": "Browse vegan-friendly places",
+      "url": "/explore.html",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Vegan Awareness",
+      "short_name": "Awareness",
+      "description": "Learn about veganism",
+      "url": "/awareness/what-is-veganism.html",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
