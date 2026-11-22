@@ -22,11 +22,11 @@ function renderNavbar(activePage, user, isAdmin) {
   if (!el) return;
 
   const links = [
-    { key: "home", label: "Home", href: base + "index.html" },
-    { key: "explore", label: "Explore", href: base + "explore.html" },
-    { key: "alternatives", label: "Alternatives", href: base + "alternatives/index.html" },
-    { key: "compass", label: "Compass", href: base + "awareness/ingredient-checker.html" },
-    { key: "awareness", label: "Awareness", href: base + "awareness/what-is-veganism.html" }
+    { key: "home",         label: "Home",               href: base + "index.html" },
+    { key: "explore",      label: "Explore",             href: base + "explore.html" },
+    { key: "alternatives", label: "Alternatives",        href: base + "alternatives/index.html" },
+    { key: "compass",      label: "Ingredient Compass",  href: base + "awareness/ingredient-checker.html" },
+    { key: "awareness",    label: "Awareness",           href: base + "awareness/what-is-veganism.html" }
   ];
 
   if (user) {
@@ -34,41 +34,71 @@ function renderNavbar(activePage, user, isAdmin) {
   }
 
   const linkHtml = links.map(function (l) {
-    const activeClass = l.key === activePage ? " active" : "";
-    return '<li class="nav-item"><a class="nav-link' + activeClass + '" href="' + l.href + '">' + l.label + "</a></li>";
-  }).join("");
+    const isActive = l.key === activePage;
+    return (
+      '<li class="nav-item vs-nav-item">' +
+      '<a class="nav-link vs-nav-link' + (isActive ? ' active vs-nav-link--active' : '') + '" href="' + l.href + '">' +
+      '<span class="vs-nav-link__text">' + l.label + '</span>' +
+      (isActive ? '<span class="vs-nav-link__bar" aria-hidden="true"></span>' : '') +
+      '</a></li>'
+    );
+  }).join('');
 
   const adminBtnHtml = isAdmin
-    ? '<a href="' + base + 'admin/dashboard.html" class="btn btn-warning btn-sm me-2 text-dark" style="font-weight:600;">Admin</a>'
+    ? '<a href="' + base + 'admin/dashboard.html" class="vs-nav-admin-btn me-2" aria-label="Admin Dashboard">Admin ▲</a>'
     : '';
 
-  const diningCardBtnHtml = '<button type="button" id="openNavDiningCardBtn" class="btn btn-outline-success btn-sm me-2 py-1 px-2" style="font-size:0.75rem;" title="Bilingual dining card for ordering in Maharashtra">📋 Dining Card</button>';
-  const langToggleHtml = '<button type="button" id="langToggleBtn" class="btn btn-outline-secondary btn-sm me-2 py-1 px-2" style="font-size:0.75rem;" title="मराठी / English भाषा बदला">🌐 EN | मराठी</button>';
+  const diningCardBtnHtml = '<button type="button" id="openNavDiningCardBtn" class="vs-nav-tool-btn me-2" title="Bilingual dining card for Maharashtra restaurants">🌿 Dining Card</button>';
 
   const authHtml = user
-    ? adminBtnHtml +
-      diningCardBtnHtml +
-      langToggleHtml +
-      '<a href="' + base + 'profile.html" class="btn btn-vs-outline btn-sm me-2">Profile</a>' +
-      '<button type="button" id="navLogoutBtn" class="btn btn-vs-primary btn-sm">Logout</button>'
+    ? adminBtnHtml + diningCardBtnHtml +
+      '<a href="' + base + 'profile.html" class="btn btn-vs-outline btn-sm me-2 px-3" style="font-size:0.83rem;font-weight:600;border-radius:8px;">My Profile</a>' +
+      '<button type="button" id="navLogoutBtn" class="btn btn-vs-primary btn-sm px-3" style="font-size:0.83rem;border-radius:8px;">Sign Out</button>'
     : diningCardBtnHtml +
-      langToggleHtml +
-      '<a href="' + base + 'login.html" class="btn btn-vs-outline btn-sm me-2">Login</a>' +
-      '<a href="' + base + 'register.html" class="btn btn-vs-primary btn-sm">Register</a>';
+      '<a href="' + base + 'login.html" class="btn btn-vs-outline btn-sm me-2 px-3" style="font-size:0.83rem;font-weight:600;border-radius:8px;">Login</a>' +
+      '<a href="' + base + 'register.html" class="btn btn-vs-primary btn-sm px-3" style="font-size:0.83rem;border-radius:8px;">Join Free</a>';
+
+  // Top announce strip — civic portal identity
+  const topStripHtml =
+    '<div class="vs-topstrip" role="banner">' +
+    '<div class="container d-flex justify-content-between align-items-center">' +
+    '<span class="vs-topstrip__left">' +
+    '<svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg" class="me-1" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#4c9a61"/></svg>' +
+    'Community-verified vegan discovery portal &nbsp;&middot;&nbsp; Maharashtra &amp; India' +
+    '</span>' +
+    '<span class="vs-topstrip__right">अहिंसा परमो धर्म:</span>' +
+    '</div>' +
+    '</div>';
+
+  // SVG leaf logo
+  const logoHtml =
+    '<a class="vs-brand" href="' + base + 'index.html" aria-label="VeganSaathi — Go to Home">' +
+    '<span class="vs-brand__accent" aria-hidden="true"></span>' +
+    '<svg class="vs-brand__leaf" width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<path d="M15 4C15 4 6 9.5 6 17.5C6 22.2 9.8 26 14.5 26C14.8 26 15.1 25.98 15.4 25.95V4H15Z" fill="#2f6b3f"/>' +
+    '<path d="M15 4C15 4 24 9.5 24 17.5C24 22.2 20.2 26 15.5 26C15.2 26 14.9 25.98 14.6 25.95V4H15Z" fill="#4c9a61" opacity="0.75"/>' +
+    '<line x1="15" y1="26" x2="15" y2="12" stroke="#135229" stroke-width="1" stroke-linecap="round" stroke-dasharray="2 3"/>' +
+    '</svg>' +
+    '<span class="vs-brand__wordmark">' +
+    '<span class="vs-brand__w1">Vegan</span>' +
+    '<span class="vs-brand__w2">Saathi</span>' +
+    '</span>' +
+    '</a>';
 
   el.innerHTML =
-    '<nav class="navbar navbar-expand-lg vs-navbar sticky-top">' +
-    '<div class="container">' +
-    '<a class="navbar-brand d-inline-flex align-items-center" href="' + base + 'index.html">' +
-    '<span class="vs-brand-icon me-1.5" style="font-size:1.35rem; filter:drop-shadow(0 1px 2px rgba(47,107,63,0.3));">🌱</span>' +
-    '<span class="vs-brand-title fw-bold" style="letter-spacing:-0.03em; font-size:1.28rem; color:var(--vs-green-900);">Vegan<span style="color:var(--vs-green-600); font-weight:800;">Saathi</span></span>' +
-    '</a>' +
-    '<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#vsNavCollapse" aria-controls="vsNavCollapse" aria-expanded="false" aria-label="Toggle navigation">' +
-    '<span class="navbar-toggler-icon"></span></button>' +
+    topStripHtml +
+    '<nav class="navbar navbar-expand-lg vs-navbar sticky-top" role="navigation" aria-label="Main navigation">' +
+    '<div class="container vs-navbar__inner">' +
+    logoHtml +
+    '<button class="navbar-toggler vs-nav-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#vsNavCollapse" aria-controls="vsNavCollapse" aria-expanded="false" aria-label="Toggle navigation">' +
+    '<span class="navbar-toggler-icon"></span>' +
+    '</button>' +
     '<div class="collapse navbar-collapse" id="vsNavCollapse">' +
-    '<ul class="navbar-nav me-auto mb-2 mb-lg-0">' + linkHtml + "</ul>" +
-    authHtml +
-    "</div></div></nav>";
+    '<ul class="navbar-nav vs-nav-links me-auto mb-2 mb-lg-0">' + linkHtml + '</ul>' +
+    '<div class="vs-nav-actions d-flex align-items-center flex-wrap gap-1">' + authHtml + '</div>' +
+    '</div>' +
+    '</div>' +
+    '</nav>';
 }
 
 /* ---------------- Footer ---------------- */
@@ -430,7 +460,7 @@ function formatPlaceType(type) {
   return ({ dessert: "Dessert shop", shop: "Grocery / food shop" })[type] || capitalize(type);
 }
 
-/* ---------------- Bilingual Conscious Dining Card ---------------- */
+/* ---------------- Formal Bilingual Dietary Declaration Card ---------------- */
 function showDiningCardModal() {
   let modalEl = document.getElementById("diningCardModal");
   if (!modalEl) {
@@ -440,36 +470,51 @@ function showDiningCardModal() {
     div.tabIndex = -1;
     div.setAttribute("aria-hidden", "true");
     div.innerHTML = (
-      '<div class="modal-dialog modal-dialog-centered">' +
-      '<div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">' +
-      '<div class="modal-header border-0 bg-success text-white py-3 px-4">' +
+      '<div class="modal-dialog modal-dialog-centered modal-lg">' +
+      '<div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden" style="background:#fdfcf9;">' +
+      '<div class="modal-header border-bottom py-3 px-4" style="background:linear-gradient(135deg, #135229 0%, #0d381c 100%); color:#fff;">' +
       '<div>' +
-      '<h5 class="modal-title fw-bold mb-0">🌱 शाकाहारी व व्हेगन डायनिंग कार्ड</h5>' +
-      '<small class="text-white-50">Conscious Dining Card for Maharashtra</small>' +
+      '<div class="d-flex align-items-center gap-2 mb-1">' +
+      '<span style="font-size:1.2rem;">🏛️</span>' +
+      '<h5 class="modal-title fw-bold mb-0" style="letter-spacing:-0.02em; font-size:1.15rem;">अधिकृत आहार निवेदन / Dietary Declaration</h5>' +
+      '</div>' +
+      '<div style="font-size:0.75rem; color:#b7dfbe; letter-spacing:0.02em;">VEGANSAATHI COMMUNITY FOODWAY INITIATIVE &bull; MAHARASHTRA</div>' +
       '</div>' +
       '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>' +
       '</div>' +
       '<div class="modal-body p-4">' +
-      '<div class="alert alert-success border-0 rounded-3 mb-3 p-3">' +
-      '<div class="fw-bold fs-6 mb-1 text-success-emphasis">मराठी संवाद (Show to Chef / Waiter):</div>' +
-      '<p class="mb-0 fw-semibold text-dark fs-6" style="line-height:1.6;" id="diningMrText">' +
-      '“मी पूर्ण शाकाहारी (व्हेगन) आहे. माझ्या जेवणात दूध, दही, साजूक तूप, लोणी, मलाई, पनीर, चीज, किंवा मध मुळीच वापरू नका. कृपया माझे जेवण फक्त वनस्पती तेलात बनवा आणि वरून तूप किंवा बटर घालू नका. धन्यवाद!”' +
+      '<div class="p-3 rounded-3 mb-3" style="background:#ffffff; border:1.5px solid #d4e5d6; box-shadow:0 1px 3px rgba(0,0,0,0.04);">' +
+      '<div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">' +
+      '<span class="fw-bold" style="color:#135229; font-size:0.88rem; text-transform:uppercase; letter-spacing:0.03em;">मराठी (अधिकृत निवेदन — आचारी / व्यवस्थापक यांना दाखवावे):</span>' +
+      '<span class="badge" style="background:#e8f3ea; color:#135229; font-size:0.72rem; border:1px solid #c7e2ce;">मराठी आवृत्ती</span>' +
+      '</div>' +
+      '<p class="mb-0 text-dark" style="line-height:1.75; font-size:0.95rem; font-family:\'Plus Jakarta Sans\', \'Noto Sans Devanagari\', sans-serif;" id="diningMrText">' +
+      '“आदरणीय व्यवस्थापक व मुख्य आचारी (Chef) महोदय,<br>' +
+      'मी पूर्णपणे वनस्पती-आधारित (व्हेगन) आहाराचे काटेकोर पालन करतो/करते. कृपया माझ्या भोजनात दूध, दही, साजूक तूप, लोणी, मलाई, पनीर, चीज, मध किंवा कोणताही प्राणिज घटक वापरू नये.<br>' +
+      'कृपया माझे भोजन केवळ शुद्ध वनस्पती तेलामध्ये तयार करावे व अन्नावर अतिरिक्त तूप किंवा बटर लावू नये.<br>' +
+      'आपल्या व्यावसायिक सहकार्याबद्दल धन्यवाद!”' +
       '</p>' +
       '</div>' +
-      '<div class="p-3 bg-light rounded-3 border mb-3">' +
-      '<div class="fw-bold small text-muted-vs mb-1">English Translation:</div>' +
-      '<p class="small text-muted-vs mb-0" id="diningEnText">' +
-      '“I follow a 100% plant-based / vegan diet. Please do not use milk, curd, ghee, butter, cream, paneer, cheese, or honey in my food. Please cook only in vegetable oil (groundnut, sunflower, sesame) and do not brush with butter. Thank you!”' +
+      '<div class="p-3 rounded-3 mb-3" style="background:#ffffff; border:1.5px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.04);">' +
+      '<div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">' +
+      '<span class="fw-bold text-muted-vs" style="font-size:0.85rem; text-transform:uppercase; letter-spacing:0.03em;">English (To Executive Chef / Management):</span>' +
+      '<span class="badge bg-light text-secondary border" style="font-size:0.72rem;">English Version</span>' +
+      '</div>' +
+      '<p class="text-muted-vs mb-0" style="line-height:1.7; font-size:0.9rem;" id="diningEnText">' +
+      '“To the Executive Chef &amp; Restaurant Management,<br>' +
+      'I strictly observe a 100% plant-based / vegan diet. Kindly ensure that all items prepared for my order contain no dairy or animal derivatives (including milk, butter, ghee, curd/yogurt, cream, paneer, cheese, or honey).<br>' +
+      'Please prepare the meal using pure vegetable/plant oils only, without any butter or ghee glaze.<br>' +
+      'Thank you for your professional consideration and courteous accommodation.”' +
       '</p>' +
       '</div>' +
-      '<div class="d-flex gap-2">' +
-      '<button type="button" class="btn btn-outline-success btn-sm flex-grow-1" id="copyDiningMrBtn">📋 Copy Marathi Text</button>' +
-      '<button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1" id="copyDiningEnBtn">📋 Copy English Text</button>' +
+      '<div class="d-flex gap-2 flex-wrap">' +
+      '<button type="button" class="btn btn-outline-success btn-sm flex-grow-1 py-2" id="copyDiningMrBtn" style="font-weight:600;">📋 Copy Marathi Notice</button>' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1 py-2" id="copyDiningEnBtn" style="font-weight:600;">📋 Copy English Notice</button>' +
       '</div>' +
       '</div>' +
-      '<div class="modal-footer border-0 bg-light py-2 px-4 d-flex justify-content-between">' +
-      '<small class="text-muted-vs">Useful for Dhabas, Canteens, &amp; Prasadalayas</small>' +
-      '<button type="button" class="btn btn-vs-outline btn-sm px-3" data-bs-dismiss="modal">Close</button>' +
+      '<div class="modal-footer border-top bg-white py-2.5 px-4 d-flex justify-content-between align-items-center">' +
+      '<small class="text-muted-vs" style="font-size:0.78rem;">✓ Designed for restaurants, dhabas, canteens &amp; prasadalayas across Maharashtra</small>' +
+      '<button type="button" class="btn btn-vs-outline btn-sm px-4" data-bs-dismiss="modal">Close</button>' +
       '</div>' +
       '</div>' +
       '</div>'
@@ -478,21 +523,21 @@ function showDiningCardModal() {
     modalEl = div;
 
     div.querySelector("#copyDiningMrBtn").addEventListener("click", function () {
-      const text = div.querySelector("#diningMrText").textContent.replace(/[“”]/g, "").trim();
+      const text = div.querySelector("#diningMrText").innerText.replace(/[“”]/g, "").trim();
       if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(function () {
-          div.querySelector("#copyDiningMrBtn").textContent = "✓ Copied Marathi!";
-          setTimeout(function () { div.querySelector("#copyDiningMrBtn").textContent = "📋 Copy Marathi Text"; }, 2000);
+          div.querySelector("#copyDiningMrBtn").textContent = "✓ Copied to Clipboard!";
+          setTimeout(function () { div.querySelector("#copyDiningMrBtn").textContent = "📋 Copy Marathi Notice"; }, 2000);
         });
       }
     });
 
     div.querySelector("#copyDiningEnBtn").addEventListener("click", function () {
-      const text = div.querySelector("#diningEnText").textContent.replace(/[“”]/g, "").trim();
+      const text = div.querySelector("#diningEnText").innerText.replace(/[“”]/g, "").trim();
       if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(function () {
-          div.querySelector("#copyDiningEnBtn").textContent = "✓ Copied English!";
-          setTimeout(function () { div.querySelector("#copyDiningEnBtn").textContent = "📋 Copy English Text"; }, 2000);
+          div.querySelector("#copyDiningEnBtn").textContent = "✓ Copied to Clipboard!";
+          setTimeout(function () { div.querySelector("#copyDiningEnBtn").textContent = "📋 Copy English Notice"; }, 2000);
         });
       }
     });
@@ -510,14 +555,7 @@ if (typeof document !== "undefined" && typeof document.addEventListener === "fun
       e.preventDefault();
       showDiningCardModal();
     }
-    if (e.target.closest("#langToggleBtn")) {
-      e.preventDefault();
-      const current = localStorage.getItem("vs_lang") || "en";
-      const next = current === "en" ? "mr" : "en";
-      localStorage.setItem("vs_lang", next);
-      const btn = document.getElementById("langToggleBtn");
-      if (btn) btn.textContent = next === "mr" ? "🌐 मराठी (MR)" : "🌐 EN | मराठी";
-    }
+    // lang toggle removed — Google Translate handles translations natively
   });
 }
 

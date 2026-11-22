@@ -6,7 +6,7 @@
    across Maharashtra and regional communities.
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* Botanical Civic Discovery Palette */
@@ -65,7 +65,7 @@
 * { box-sizing: border-box; }
 
 body {
-  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Plus Jakarta Sans", "Noto Sans Devanagari", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background-color: var(--vs-canvas);
   color: var(--vs-text);
   line-height: 1.6;
@@ -103,58 +103,213 @@ h1, h2, h3, h4, h5, h6 {
 .text-muted-vs { color: var(--vs-text-muted); }
 .font-tabular { font-variant-numeric: tabular-nums; }
 
-/* ---------------- Navbar ---------------- */
-.vs-navbar {
-  background-color: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--vs-border);
-  box-shadow: 0 1px 6px rgba(31, 46, 35, 0.03);
-  transition: all 0.2s ease;
+/* ---------------- Top Strip ---------------- */
+.vs-topstrip {
+  background-color: var(--vs-green-900);
+  color: #a8c5ad;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
-.vs-navbar .navbar-brand {
-  font-weight: 800;
-  color: var(--vs-green-800);
-  font-size: 1.3rem;
-  letter-spacing: -0.02em;
+.vs-topstrip__left {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.vs-topstrip__right {
+  font-style: italic;
+  color: #c8d9c5;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+}
+@media (max-width: 575px) {
+  .vs-topstrip__right { display: none; }
+}
+
+/* ---------------- Navbar — Civic Editorial Style ---------------- */
+.vs-navbar {
+  background-color: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--vs-border-subtle);
+  box-shadow: 0 1px 0 rgba(31,46,35,0.07), 0 2px 14px rgba(31,46,35,0.03);
+  transition: box-shadow 0.2s ease;
+  padding: 0;
+}
+.vs-navbar__inner {
+  display: flex;
+  align-items: stretch;
+  min-height: 60px;
+  gap: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Brand / Logo */
+.vs-brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0;
+  text-decoration: none !important;
+  position: relative;
+  flex-shrink: 0;
+  padding: 0 1.5rem 0 0;
+  margin-right: 0.5rem;
+  border-right: 1px solid var(--vs-border-subtle);
 }
-.vs-navbar .navbar-brand-badge {
-  font-size: 0.68rem;
+.vs-brand:hover { opacity: 0.85; }
+.vs-brand__accent {
+  display: inline-block;
+  width: 3px;
+  height: 36px;
+  background: linear-gradient(180deg, var(--vs-green-500) 0%, var(--vs-green-900) 100%);
+  border-radius: 2px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+.vs-brand__leaf {
+  flex-shrink: 0;
+  margin-right: 7px;
+}
+.vs-brand__wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+.vs-brand__w1 {
+  font-size: 0.6rem;
   font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--vs-green-700);
-  background-color: var(--vs-green-100);
-  padding: 0.15rem 0.45rem;
-  border-radius: var(--vs-radius-pill);
-  margin-left: 0.4rem;
 }
-.vs-navbar .nav-link {
-  color: var(--vs-text);
+.vs-brand__w2 {
+  font-size: 1.32rem;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  color: var(--vs-green-900);
+  line-height: 1.1;
+}
+
+/* Nav links */
+.vs-nav-links {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.25rem;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.vs-nav-item { display: flex; align-items: stretch; }
+.vs-nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.9rem;
+  min-height: 60px;
+  position: relative;
+  text-decoration: none !important;
+  color: var(--vs-text-muted);
+  font-size: 0.875rem;
   font-weight: 600;
-  font-size: 0.92rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: var(--vs-radius-sm);
-  transition: color 0.15s ease, background-color 0.15s ease;
+  letter-spacing: -0.01em;
+  transition: color 0.15s ease;
+  white-space: nowrap;
 }
-.vs-navbar .nav-link:hover {
-  color: var(--vs-green-700);
-  background-color: var(--vs-green-50);
+.vs-nav-link:hover { color: var(--vs-green-700); text-decoration: none !important; }
+.vs-nav-link--active { color: var(--vs-green-900) !important; font-weight: 700; }
+.vs-nav-link__bar {
+  position: absolute;
+  bottom: 0;
+  left: 0.9rem;
+  right: 0.9rem;
+  height: 2.5px;
+  background: var(--vs-green-700);
+  border-radius: 2px 2px 0 0;
 }
-.vs-navbar .nav-link.active {
-  color: var(--vs-green-800);
+
+/* Nav action area */
+.vs-nav-actions {
+  margin-left: auto;
+  padding-left: 1rem;
+}
+
+/* Admin badge */
+.vs-nav-admin-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  background-color: var(--vs-green-100);
+  background-color: #fef9c3;
+  color: #713f12;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  text-decoration: none !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
-.vs-navbar .btn-vs-primary,
-.vs-navbar .btn-vs-outline {
-  font-size: 0.85rem;
+.vs-nav-admin-btn:hover { background-color: #fef08a; }
+
+/* Tool button (Dining Card) */
+.vs-nav-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.38rem 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  padding: 0.4rem 0.95rem;
-  border-radius: 8px;
+  background: transparent;
+  border: 1.5px solid var(--vs-border);
+  border-radius: 7px;
+  color: var(--vs-green-800);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.vs-nav-tool-btn:hover {
+  background-color: var(--vs-green-50);
+  border-color: var(--vs-green-400, #6cba7d);
+  color: var(--vs-green-900);
+}
+
+/* Custom hamburger toggler */
+.vs-nav-toggler {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 9px;
+  background: none;
+  border: 1.5px solid var(--vs-border);
+  border-radius: 7px;
+  cursor: pointer;
+  margin-left: auto;
+  align-self: center;
+}
+.vs-nav-toggler span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--vs-text);
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+/* Responsive collapse */
+@media (max-width: 991px) {
+  .vs-nav-toggler { display: flex; }
+  .vs-navbar__inner { flex-wrap: wrap; gap: 0; padding-top: 0; padding-bottom: 0; }
+  .vs-brand { border-right: none; padding-right: 0; min-height: 54px; }
+  .vs-nav-links { flex-direction: column; align-items: flex-start; padding: 0.25rem 0; gap: 0; width: 100%; }
+  .vs-nav-item { width: 100%; }
+  .vs-nav-link { min-height: auto; height: auto; padding: 0.65rem 0.5rem; justify-content: flex-start; }
+  .vs-nav-link__bar { display: none; }
+  .vs-nav-link--active { color: var(--vs-green-700) !important; background: var(--vs-green-50); border-radius: 7px; }
+  .vs-nav-actions { margin-left: 0; padding-left: 0; flex-direction: column !important; align-items: flex-start !important; padding: 0.75rem 0 1rem; gap: 0.5rem !important; }
+  .collapse.navbar-collapse { border-top: 1px solid var(--vs-border-subtle); padding: 0 0 0.5rem; width: 100%; }
 }
 
 /* ---------------- Buttons ---------------- */
@@ -959,4 +1114,93 @@ h1, h2, h3, h4, h5, h6 {
   background-color: #0284c7 !important;
   color: #ffffff !important;
   border-color: #0284c7 !important;
+}
+
+/* ============================================================
+   Additional styles — Profile Upload, Location Banner, Zoom
+   ============================================================ */
+
+/* ---------------- Profile Upload Zone ---------------- */
+.vs-avatar-upload-zone {
+  border: 2px dashed var(--vs-border);
+  border-radius: var(--vs-radius);
+  padding: 0.85rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  background: var(--vs-canvas);
+  position: relative;
+  overflow: hidden;
+  display: block;
+}
+.vs-avatar-upload-zone:hover,
+.vs-avatar-upload-zone.drag-over {
+  border-color: var(--vs-green-500);
+  background: var(--vs-green-50);
+}
+.vs-avatar-upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+/* Paginated submissions */
+.vs-submissions-list {
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--vs-border) transparent;
+}
+.vs-submission-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--vs-border-subtle);
+  gap: 0.75rem;
+}
+.vs-submission-row:last-child { border-bottom: none; }
+.vs-submission-name { font-weight: 600; font-size: 0.9rem; color: var(--vs-text); }
+.vs-submission-date { font-size: 0.75rem; color: var(--vs-text-muted); margin-top: 0.1rem; }
+
+/* ---------------- Location Banner (Explore) ---------------- */
+.vs-location-banner {
+  background: linear-gradient(135deg, #e8f5ed 0%, #f0f9f4 100%);
+  border: 1px solid var(--vs-green-200);
+  border-radius: var(--vs-radius-lg);
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.vs-location-banner__icon { font-size: 1.6rem; flex-shrink: 0; }
+.vs-location-banner__title { font-size: 0.93rem; font-weight: 700; color: var(--vs-green-800); margin-bottom: 0.1rem; }
+.vs-location-banner__sub { font-size: 0.78rem; color: var(--vs-text-muted); }
+@media (max-width: 575px) {
+  .vs-location-banner { flex-direction: column; text-align: center; gap: 0.5rem; }
+}
+
+/* ---------------- Global Zoom / Viewport Stability ---------------- */
+html {
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+img, svg, video, canvas, iframe {
+  max-width: 100%;
+}
+/* Prevent horizontal overflow on small screens */
+body { overflow-x: hidden; }
+@media (min-width: 1400px) {
+  .vs-hero h1 { font-size: 2.9rem; }
+}
+@media (max-width: 400px) {
+  body { font-size: 0.93rem; }
+  .vs-hero h1 { font-size: 1.65rem; }
+  .vs-brand__w2 { font-size: 1.1rem; }
+  .vs-section { padding: 2rem 0; }
 }

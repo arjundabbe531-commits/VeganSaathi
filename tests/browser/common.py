@@ -85,6 +85,8 @@ def make_route_handler(base_url: str = BASE_URL):
             route.fulfill(path=str(STUB_DIR / "leaflet-stub.css"), content_type="text/css")
         elif "unpkg.com/leaflet" in url and url.endswith(".js"):
             route.fulfill(path=str(STUB_DIR / "leaflet-stub.js"), content_type="application/javascript")
+        elif "fonts.googleapis.com" in url or "fonts.gstatic.com" in url:
+            route.fulfill(status=200, content_type="text/css", body="")
         elif "tile.openstreetmap.org" in url:
             route.fulfill(status=204, body="")
         elif "gstatic.com/firebasejs" in url:

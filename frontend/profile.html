@@ -162,19 +162,27 @@
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Profile Picture / Avatar</label>
-            <div class="d-flex align-items-center gap-3 mb-2">
-              <div id="editAvatarPreview" class="rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-light border shadow-sm" style="width:56px; height:56px; font-size:1.6rem;">
+            <label class="form-label fw-semibold">Profile Picture</label>
+            <div class="d-flex align-items-start gap-3 mb-3">
+              <div id="editAvatarPreview" class="rounded-circle overflow-hidden d-flex align-items-center justify-content-center flex-shrink-0" style="width:66px; height:66px; font-size:1.9rem; background:var(--vs-green-100); border:2.5px solid var(--vs-green-200); box-shadow:var(--vs-shadow-sm);">
                 <span id="editAvatarPreviewEmoji">🌱</span>
                 <img id="editAvatarPreviewImg" src="" class="d-none w-100 h-100" style="object-fit:cover;" alt="Avatar preview" />
               </div>
               <div class="flex-grow-1">
-                <input type="url" class="form-control form-control-sm mb-1" id="editProfilePhotoUrl" placeholder="Paste direct image URL or choose a badge below">
-                <div class="text-muted-vs" style="font-size:0.75rem;">Enter image URL or select a botanical badge:</div>
+                <label class="vs-avatar-upload-zone d-block mb-2" title="Click or drag a photo here">
+                  <input type="file" id="editProfileFileInput" accept="image/*,image/avif,image/webp" aria-label="Upload profile photo from device">
+                  <div class="py-1">
+                    <div style="font-size:1.2rem; margin-bottom:0.2rem;">📷</div>
+                    <div style="font-size:0.8rem; font-weight:600; color:var(--vs-green-800);">Upload from device</div>
+                    <div style="font-size:0.72rem; color:var(--vs-text-muted);">JPG, PNG, WebP, AVIF — max 2 MB</div>
+                  </div>
+                </label>
+                <input type="url" class="form-control form-control-sm mb-1" id="editProfilePhotoUrl" placeholder="Or paste image URL (https://…)">
+                <input type="hidden" id="editProfileFileDataUrl">
               </div>
             </div>
-            <!-- Preset Botanical Avatars -->
-            <div class="d-flex gap-2 flex-wrap pt-1" id="presetAvatarOptions">
+            <div class="text-muted-vs mb-1" style="font-size:0.75rem;">Or pick a botanical badge:</div>
+            <div class="d-flex gap-2 flex-wrap" id="presetAvatarOptions">
               <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-avatar-preset" data-avatar="🌱">🌱 Sprout</button>
               <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-avatar-preset" data-avatar="🌿">🌿 Herb</button>
               <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-avatar-preset" data-avatar="🍀">🍀 Clover</button>

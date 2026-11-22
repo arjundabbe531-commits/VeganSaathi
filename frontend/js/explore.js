@@ -134,6 +134,74 @@ async function loadPlaces(forceRefresh = false) {
   showOnly("listView");
   setViewToggleEnabled(true);
   renderResults();
+
+  // Modern Workflow: Proactively check/fetch user location to surface nearest places
+  autoFetchUserLocation();
+}
+
+async function autoFetchUserLocation() {
+  if (vsUserLocation || typeof navigator === "undefined" || !navigator.geolocation) return;
+
+  // Check if Geolocation permission was already granted or queryable
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const status = await navigator.permissions.query({ name: "geolocation" });
+      if (status.state === "denied") {
+        return; // User has explicitly blocked geolocation, do not prompt
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // Attempt non-blocking location detection
+  try {
+    const btn = document.getElementById("useMyLocationBtn");
+    if (btn) btn.textContent = "📍 Detecting nearest places…";
+
+    const result = await requestUserLocation();
+    if (result && result.status === "ok") {
+      vsUserLocation = { lat: result.lat, lon: result.lon };
+
+      const geoInfo = await reverseGeocode(result.lat, result.lon);
+      if (geoInfo && geoInfo.ok) {
+        vsUserLocationDetails = geoInfo;
+      } else {
+        vsUserLocationDetails = { formattedLocation: result.lat.toFixed(4) + ", " + result.lon.toFixed(4) };
+      }
+
+      const displayLoc = vsUserLocationDetails.area || vsUserLocationDetails.city || vsUserLocationDetails.road || "Your Location";
+      if (btn) {
+        btn.textContent = "✓ Near " + displayLoc;
+        btn.classList.add("btn-vs-primary");
+        btn.classList.remove("btn-vs-outline");
+      }
+
+      const note = document.getElementById("locationNote");
+      if (note) {
+        note.innerHTML = '<span class="text-success fw-bold">📍 Active:</span> ' +
+          escapeHtml(vsUserLocationDetails.formattedLocation || (result.lat.toFixed(4) + ", " + result.lon.toFixed(4)));
+        note.classList.remove("d-none");
+      }
+
+      const distChips = document.getElementById("distanceChips");
+      if (distChips) {
+        distChips.classList.remove("d-none");
+        distChips.classList.add("d-inline-flex");
+      }
+
+      renderResults();
+    } else {
+      if (btn) {
+        btn.textContent = "📍 Use my location";
+        btn.classList.remove("btn-vs-primary");
+        btn.classList.add("btn-vs-outline");
+      }
+    }
+  } catch (err) {
+    const btn = document.getElementById("useMyLocationBtn");
+    if (btn) btn.textContent = "📍 Use my location";
+  }
 }
 
 // Shows exactly one of the four top-level states; hides the other three.
@@ -535,20 +603,28 @@ function renderMapMarkers(places) {
       : '';
 
     if (typeof marker.bindTooltip === "function") {
-      marker.bindTooltip("<strong>" + escapeHtml(place.name) + "</strong>", { permanent: false, direction: "top" });
+      const tooltipContent = '<div style="text-align:center; padding:2px;">' +
+        '<strong style="color:var(--vs-green-900); font-size:0.88rem;">' + escapeHtml(place.name) + '</strong>' +
+        (locDetails ? '<br><span style="font-size:0.75rem; color:#4a5568;">📍 ' + escapeHtml(locDetails) + '</span>' : '') +
+        '</div>';
+      marker.bindTooltip(tooltipContent, { permanent: false, direction: "top", offset: [0, -12] });
     }
 
     marker.bindPopup(
-      '<div style="min-width:200px; padding:2px;">' +
-      '<h4 style="font-size:1.02rem; margin-bottom:0.25rem; font-weight:700; color:var(--vs-green-900);">' + escapeHtml(place.name) + '</h4>' +
-      '<div class="mb-1" style="font-size:0.82rem; color:#4a5568;">' +
-      (locDetails ? '<div class="fw-semibold text-dark">📍 ' + escapeHtml(locDetails) + '</div>' : '') +
-      '<div class="text-muted-vs" style="font-size:0.78rem;">' + escapeHtml(place.address) + '</div>' +
+      '<div style="min-width:220px; padding:3px;">' +
+      '<div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--vs-green-700); margin-bottom:2px;">' +
+      escapeHtml(formatPlaceType(place.placeType || "Dining")) +
+      '</div>' +
+      '<h4 style="font-size:1.05rem; margin-bottom:0.35rem; font-weight:700; color:var(--vs-green-900); line-height:1.25;">' + escapeHtml(place.name) + '</h4>' +
+      '<div class="mb-2 p-2 rounded" style="background:#f6faf7; font-size:0.8rem; border:1px solid #e2ece3;">' +
+      (place.area ? '<div class="fw-bold text-dark">📍 Area: ' + escapeHtml(place.area) + '</div>' : '') +
+      (place.city ? '<div class="text-muted-vs">🏙️ City / Town: ' + escapeHtml(place.city) + '</div>' : '') +
+      (place.address ? '<div class="text-muted-vs text-break mt-0.5">🛣️ ' + escapeHtml(place.address) + '</div>' : '') +
       '</div>' +
       '<div class="my-1.5">' + renderPlaceDietBadges(place) + '</div>' +
       distText +
-      '<div class="mt-2 pt-1 border-top d-flex justify-content-between align-items-center gap-2">' +
-      '<a href="' + escapeHtml(placeDetailsUrl(place.id)) + '" class="btn btn-vs-primary btn-sm py-1 px-2" style="font-size:0.78rem;">View Details →</a>' +
+      '<div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center gap-2">' +
+      '<a href="' + escapeHtml(placeDetailsUrl(place.id)) + '" class="btn btn-vs-primary btn-sm py-1 px-2.5" style="font-size:0.78rem;">View Details →</a>' +
       '<a href="https://www.google.com/maps/search/?api=1&query=' + place.latitude + ',' + place.longitude + '" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;">Directions ↗</a>' +
       '</div>' +
       '</div>'

@@ -178,7 +178,35 @@
   </div>
 </section>
 
-<!-- Community CTA -->
+<!-- Community CTA — content differs for guest vs signed-in users -->
+<section class="vs-section">
+  <div class="container text-center">
+    <div class="vs-card p-4 p-md-5" style="background: linear-gradient(180deg, var(--vs-green-100) 0%, var(--vs-cream) 100%); border-color:var(--vs-green-200);">
+      <!-- Guest state (default) -->
+      <div id="homeCtaGuest">
+        <h2 class="h3" style="color:var(--vs-green-800);">Discover Vegan-Friendly Places Near You</h2>
+        <p class="text-muted-vs mb-4" style="max-width:580px; margin-left:auto; margin-right:auto;">
+          Browse our community-verified directory of genuine vegan eateries, dhabas, and plant-based options across Maharashtra and India.
+        </p>
+        <div class="d-flex justify-content-center flex-wrap gap-2">
+          <a href="explore.html" class="btn btn-vs-primary btn-lg px-4">Explore Directory →</a>
+          <a href="register.html" class="btn btn-vs-outline btn-lg px-4">Join the Community</a>
+        </div>
+      </div>
+      <!-- Signed-in state (shown by JS) -->
+      <div id="homeCtaUser" class="d-none">
+        <h2 class="h3" style="color:var(--vs-green-800);">Know a vegan-friendly place across Maharashtra?</h2>
+        <p class="text-muted-vs mb-4" style="max-width:580px; margin-left:auto; margin-right:auto;">
+          Help the community discover genuine plant-based food. Registered members can contribute places for transparent verification by our team.
+        </p>
+        <div class="d-flex justify-content-center flex-wrap gap-2">
+          <a href="submit-place.html" class="btn btn-vs-primary btn-lg px-4">Contribute a Place →</a>
+          <a href="explore.html" class="btn btn-vs-outline btn-lg px-4">Browse Directory</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 <section class="vs-section">
   <div class="container text-center">
     <div class="vs-card p-4 p-md-5" style="background: linear-gradient(180deg, var(--vs-green-100) 0%, var(--vs-cream) 100%); border-color:var(--vs-green-200);">
@@ -204,14 +232,16 @@
   import { onAuthChange } from "./js/auth-state.js";
 
   onAuthChange(function (user) {
-    const cta = document.getElementById("homeCtaButtons");
-    if (!cta) return;
-    if (user) {
-      cta.innerHTML = '<a href="submit-place.html" class="btn btn-vs-primary btn-lg px-4">Contribute a Place →</a>' +
-        '<a href="explore.html" class="btn btn-vs-outline btn-lg px-4">Browse Directory</a>';
-    } else {
-      cta.innerHTML = '<a href="explore.html" class="btn btn-vs-primary btn-lg px-4">Explore Directory →</a>' +
-        '<a href="register.html" class="btn btn-vs-outline btn-lg px-4">Join the Community</a>';
+    const guestEl = document.getElementById("homeCtaGuest");
+    const userEl  = document.getElementById("homeCtaUser");
+    if (guestEl && userEl) {
+      if (user) {
+        guestEl.classList.add("d-none");
+        userEl.classList.remove("d-none");
+      } else {
+        guestEl.classList.remove("d-none");
+        userEl.classList.add("d-none");
+      }
     }
   });
 
