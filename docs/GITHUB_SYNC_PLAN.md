@@ -7,7 +7,7 @@ not a record of anything already done.
 
 ## Where things stand
 
-- The existing public repository is `github.com/arjundabbe531-commits/VeganSaathi`. An
+- The existing public repository is `github.com/arjundabbe-work-commits/VeganSaathi`. An
   earlier session reported it returned 404 to this tool's read access; that has not been
   rechecked in this session.
 - The last commit this project's docs refer to is `aedac7196ee48a45f06cdc3442effc4a05fd094c`,

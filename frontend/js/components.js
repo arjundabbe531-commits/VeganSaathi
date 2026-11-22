@@ -153,7 +153,7 @@ function renderFooter() {
     "<h5>Get Involved</h5><ul class=\"list-unstyled\">" +
     '<li><a href="' + base + 'register.html">Join Community</a></li>' +
     '<li><a href="mailto:vegansaathi@gmail.com">Contact Editorial Team</a></li>' +
-    '<li><a href="https://github.com/arjundabbe531-commits/VeganSaathi" target="_blank" rel="noopener noreferrer">Open Source Repository</a></li>' +
+    '<li><a href="https://github.com/arjundabbe-work-commits/VeganSaathi" target="_blank" rel="noopener noreferrer">Open Source Repository</a></li>' +
     "</ul></div>" +
     "</div>" +
     '<div class="vs-footer__bottom d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">' +
