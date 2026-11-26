@@ -1,5 +1,21 @@
 # VeganSaathi test results
 
+## Current `main` worktree verification — 26 November 2026
+
+Run from `C:\Users\JIJAU\.codex\worktrees\vegansaathi-main-vscode` on local branch `main`, based on `d69c27a155c5a22c17747780f76e557d08306c2e`. The theme work in this run is an uncommitted working-tree change; this record does not claim that GitHub has received it.
+
+| Command / suite | Result |
+|---|---:|
+| `python tests/browser/test_theme.py` | PASS, exit 0 — 83 browser checks across all 20 HTML pages, theme preference behavior, and accessible switch state |
+| `node tests/test-controlled-integration.mjs` | PASS, exit 0 — 16 passed, 0 failed |
+| `powershell -ExecutionPolicy Bypass -File tests\run_all.ps1` | PASS, exit 0 — 229 Node checks, 471 browser checks (including the theme suite), 2 static checks, 54 JavaScript syntax checks; Python data-pipeline subprocess passed |
+
+The initial full-run attempt found that the controlled integration harness supplies an intentionally minimal `document` stub. The standalone-page theme-toggle initializer now exits safely when the DOM element APIs are unavailable; the focused integration rerun and complete repository runner then passed. The browser test waits for the existing background-color transition to finish before asserting the final dark palette.
+
+No active Firestore emulator suite, live authentication session, production Firebase/Cloudinary access, or deployed Hosting check was run in this theme pass. Focused results are included in the full-runner totals and should not be added to them.
+
+---
+
 ## Canonical candidate run — 21-22 November 2026 (Commit 99113c8 + Community Portal Overhaul)
 
 Run locally in the canonical workspace `D:\VeganSaathi` on branch `candidate/zip-baseline-2026-11-05` (tracking `origin/candidate/zip-baseline-2026-11-05` at commit `99113c8645063e78e94e63035d9ad113a07f8646`).

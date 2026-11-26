@@ -51,7 +51,7 @@ function renderNavbar(activePage, user, isAdmin) {
   const currentTheme = (typeof getActiveTheme === "function") ? getActiveTheme() : "light";
   const themeIcon = currentTheme === "dark" ? "☀️" : "🌙";
   const themeLabel = currentTheme === "dark" ? "Light" : "Dark";
-  const themeToggleBtnHtml = '<button type="button" id="themeToggleBtn" class="vs-nav-tool-btn me-2" title="Toggle Light / Dark mode" aria-label="Toggle dark or light mode"><span id="themeToggleIcon">' + themeIcon + '</span> <span class="d-none d-sm-inline" id="themeToggleText">' + themeLabel + '</span></button>';
+  const themeToggleBtnHtml = '<button type="button" id="themeToggleBtn" class="vs-nav-tool-btn me-2" title="Switch to ' + (currentTheme === "dark" ? "light" : "dark") + ' theme" aria-label="Switch to ' + (currentTheme === "dark" ? "light" : "dark") + ' theme"><span id="themeToggleIcon" aria-hidden="true">' + themeIcon + '</span> <span class="d-none d-sm-inline" id="themeToggleText">' + themeLabel + '</span></button>';
 
   // Dining Card is accessible via the 📋 Dining Card button on place-details.html
   // and via any element with class .vs-dining-card-trigger — not in navbar.
@@ -583,6 +583,13 @@ function applyTheme(theme) {
   const textEl = document.getElementById("themeToggleText");
   if (iconEl) iconEl.textContent = theme === "dark" ? "☀️" : "🌙";
   if (textEl) textEl.textContent = theme === "dark" ? "Light" : "Dark";
+  const toggle = document.getElementById("themeToggleBtn");
+  if (toggle) {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    toggle.setAttribute("aria-label", "Switch to " + nextTheme + " theme");
+    toggle.setAttribute("title", "Switch to " + nextTheme + " theme");
+    toggle.setAttribute("aria-pressed", String(theme === "dark"));
+  }
 }
 
 function toggleTheme() {
@@ -591,8 +598,26 @@ function toggleTheme() {
   applyTheme(next);
 }
 
+// A few standalone tools intentionally do not render the full shared navbar.
+// Keep the theme switch available on those routes as well.
+function mountFallbackThemeToggle() {
+  if (typeof document.getElementById !== "function" || typeof document.createElement !== "function") return;
+  const placeholder = document.getElementById("navbar-placeholder");
+  if (!placeholder || document.getElementById("themeToggleBtn")) return;
+  const wrapper = document.createElement("div");
+  wrapper.className = "vs-theme-fallback container";
+  const currentTheme = getActiveTheme();
+  wrapper.innerHTML = '<button type="button" id="themeToggleBtn" class="vs-nav-tool-btn" title="Switch to ' + (currentTheme === "dark" ? "light" : "dark") + ' theme" aria-label="Switch to ' + (currentTheme === "dark" ? "light" : "dark") + ' theme"><span id="themeToggleIcon" aria-hidden="true">' + (currentTheme === "dark" ? "☀️" : "🌙") + '</span> <span id="themeToggleText">' + (currentTheme === "dark" ? "Light" : "Dark") + '</span></button>';
+  placeholder.appendChild(wrapper);
+}
+
 if (typeof document !== "undefined") {
   applyTheme(getActiveTheme());
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mountFallbackThemeToggle, { once: true });
+  } else {
+    mountFallbackThemeToggle();
+  }
 
   // Auto-follow OS dark/light preference if the user hasn't set a manual override.
   // This makes the site respond to changes in System Settings > Appearance without

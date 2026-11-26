@@ -1205,6 +1205,18 @@ body { overflow-x: hidden; }
   .vs-section { padding: 2rem 0; }
 }
 
+/* Standalone tools that do not render the full shared navbar still expose mode control. */
+.vs-theme-fallback {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: .45rem;
+  padding-bottom: .45rem;
+}
+.vs-theme-fallback .vs-nav-tool-btn {
+  min-height: 42px;
+  color: var(--vs-text);
+}
+
 
 /* ==========================================================================
    VeganSaathi – Dark Theme

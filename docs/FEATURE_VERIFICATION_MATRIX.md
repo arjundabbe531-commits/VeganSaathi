@@ -1,6 +1,14 @@
 # Feature verification matrix — candidate local evidence
 
-Reviewed 21-22 November 2026 (Commit `99113c8` + Consolidation Sprint). **PASS** below means the listed local automated behavior passed in its test environment; it does not imply Firebase production or Hosting has been exercised. A live review against production credentials would be required for those claims.
+## Current `main` worktree update — 26 November 2026
+
+| Feature | Expected behaviour | Actual result | Test evidence | Status |
+|---|---|---|---|---|
+| Dark theme on public, member, awareness, and admin pages | Every HTML route provides a working theme switch; saved preference and operating-system preference are respected; switch has an accessible name/state | Automated browser checks cover all 20 current HTML pages, including standalone pages without the shared rendered navbar. They verify pre-paint theme bootstrap, labeled switch, final dark body palette, updated `aria-label`/`aria-pressed`, OS dark preference, saved light override, and persistence across navigation | `tests/browser/test_theme.py` (83 checks); also included in `powershell -ExecutionPolicy Bypass -File tests\run_all.ps1` (388 browser checks total) | PASS — functional behavior covered; this does not establish a complete contrast/WCAG audit |
+
+This update is verified on a local `main` worktree based on `d69c27a155c5a22c17747780f76e557d08306c2e`. The full runner passed with 229 Node checks, 471 browser checks, 2 static checks, 54 syntax checks, and the Python pipeline subprocess passing. No production services or Firestore rules were changed or tested in this pass.
+
+The matrix below retains feature evidence reviewed 21-22 November 2026 (Commit `99113c8` + Consolidation Sprint); those rows are historical and were not all rerun in this theme pass. **PASS** means the listed local automated behavior passed in its stated test environment; it does not imply Firebase production or Hosting has been exercised.
 
 | Feature | Expected behaviour | Actual result | Test evidence | Status |
 |---|---|---|---|---|
