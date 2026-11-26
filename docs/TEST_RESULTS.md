@@ -12,7 +12,7 @@ Run from `C:\Users\JIJAU\.codex\worktrees\vegansaathi-main-vscode` on local bran
 
 The initial full-run attempt found that the controlled integration harness supplies an intentionally minimal `document` stub. The standalone-page theme-toggle initializer now exits safely when the DOM element APIs are unavailable; the focused integration rerun and complete repository runner then passed. The browser test waits for the existing background-color transition to finish before asserting the final dark palette.
 
-No active Firestore emulator suite, live authentication session, production Firebase/Cloudinary access, or deployed Hosting check was run in this theme pass. Focused results are included in the full-runner totals and should not be added to them.
+The exact-head GitHub Actions run [#55](https://github.com/arjundabbe-work-commits/VeganSaathi/actions/runs/45869049024) for commit `2d56dd419a5a8d1e245c4cd0ab3230366691f2f5` completed successfully. It ran the full CI suite and separately passed the active Firestore emulator tests (**73/73**, `firebase/firestore.rules`) and proposed-rules tests (**17/17**, `firebase/firestore.rules.proposed`). The local run did not separately run the rules emulators. No live authentication session, production Firebase/Cloudinary access, or deployment was performed. Focused results are included in the full-runner totals and should not be added to them.
 
 ---
 
